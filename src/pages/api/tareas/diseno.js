@@ -27,6 +27,22 @@ export async function PATCH({ request }) {
       return new Response(JSON.stringify({ error: error.message }), { status: 500 });
     }
 
+    // Registrar en bitácora histórica para reportes completos
+    if (data?.id_requerimiento) {
+      try {
+        await supabaseServer.from('historial_seguimiento').insert({
+          id_requerimiento: data.id_requerimiento,
+          departamento: 'Diseño',
+          usuario: body.usuario || 'Isaac (Diseño)',
+          accion: `Diseño actualizado a "${data.estado || estado}" (${data.progreso_porcentaje ?? progreso_porcentaje}%)`,
+          comentario: body.comentario || `Progreso de diseño confirmado al ${data.progreso_porcentaje ?? progreso_porcentaje}%`,
+          fecha_registro: new Date().toISOString()
+        });
+      } catch (errHist) {
+        console.warn('Error registrando en historial_seguimiento:', errHist.message);
+      }
+    }
+
     return new Response(JSON.stringify({ mensaje: 'Tarea de diseño actualizada con éxito', data }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }

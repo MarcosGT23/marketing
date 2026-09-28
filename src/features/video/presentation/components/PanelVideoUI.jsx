@@ -1,4 +1,6 @@
 import { useState, useMemo } from 'react';
+import { SlideConfirm } from '../../../diseno/presentation/components/SlideConfirm';
+import '../../../diseno/presentation/components/SlideConfirm.css';
 
 function StyledSelect({ children, ...rest }) {
     const [focused, setFocused] = useState(false);
@@ -119,6 +121,26 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
     const [agenteSeleccionadoId, setAgenteSeleccionadoId] = useState(null);
     const [vistaModo, setVistaModo] = useState('agentes'); // 'agentes' | 'todos'
     const [busqueda, setBusqueda] = useState('');
+    const [tarjetasBloqueadas, setTarjetasBloqueadas] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                return JSON.parse(localStorage.getItem('bloqueadas_video') || '{}');
+            } catch (e) {
+                return {};
+            }
+        }
+        return {};
+    });
+
+    const actualizarBloqueo = (idTarea, bloqueado) => {
+        setTarjetasBloqueadas(prev => {
+            const nuevo = { ...prev, [idTarea]: bloqueado };
+            try {
+                localStorage.setItem('bloqueadas_video', JSON.stringify(nuevo));
+            } catch (e) {}
+            return nuevo;
+        });
+    };
 
     // Agrupar requerimientos por agente
     const agentes = useMemo(() => {
@@ -547,16 +569,24 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
         const agente = item.usuarios?.nombre || 'Sin agente';
         const s = getStatusStyle(video.estado);
         const progreso = video.progreso_porcentaje ?? 0;
+        const estaBloqueada = Boolean(tarjetasBloqueadas[video.id_tarea] ?? (video.estado === 'Finalizado'));
 
         return (
             <div key={video.id_tarea || item.id_requerimiento}
-                className="rounded-2xl shadow-sm flex flex-col justify-between overflow-hidden transition-all hover:shadow-md border"
-                style={{ background: 'var(--color-surface-container-lowest)', borderColor: 'var(--color-surface-container)' }}>
+                className={`rounded-2xl shadow-sm flex flex-col justify-between overflow-hidden transition-all hover:shadow-md border ${
+                    estaBloqueada
+                        ? 'border-emerald-500/30 bg-emerald-50/40 ring-1 ring-emerald-500/20'
+                        : 'border-surface-container'
+                }`}
+                style={{ background: estaBloqueada ? 'rgba(16, 185, 129, 0.04)' : 'var(--color-surface-container-lowest)' }}>
 
                 <div>
                     {/* Header */}
                     <div className="px-5 py-4 flex items-start justify-between gap-3 border-b"
-                        style={{ background: 'var(--color-surface-container-low)', borderColor: 'var(--color-surface-container)' }}>
+                        style={{
+                            background: estaBloqueada ? 'rgba(16, 185, 129, 0.08)' : 'var(--color-surface-container-low)',
+                            borderColor: estaBloqueada ? 'rgba(16, 185, 129, 0.2)' : 'var(--color-surface-container)'
+                        }}>
                         <div className="min-w-0">
                             <h3 className="font-title-md truncate font-semibold" style={{ color: 'var(--color-on-surface)', fontSize: '15px' }}>
                                 {item.nombre_propiedad}
@@ -565,11 +595,19 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                                 Agente: <strong>{agente}</strong> · {item.ubicacion || 'Ubicación pendiente'}
                             </p>
                         </div>
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-label-sm text-[11px] flex-shrink-0"
-                            style={{ background: s.bg, color: s.color }}>
-                            <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>{s.icon}</span>
-                            {video.estado || 'Por Hacer'}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                            {estaBloqueada && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 border border-emerald-500/25">
+                                    <span className="material-symbols-outlined text-[12px]">lock</span>
+                                    Bloqueada
+                                </span>
+                            )}
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-label-sm text-[11px]"
+                                style={{ background: s.bg, color: s.color }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>{s.icon}</span>
+                                {video.estado || 'Por Hacer'}
+                            </span>
+                        </div>
                     </div>
 
                     {/* Brief */}
@@ -589,68 +627,88 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                         </div>
                     )}
 
-                    {/* Checklist */}
-                    <div className="px-5 py-4 border-b" style={{ borderColor: 'var(--color-surface-container-low)' }}>
-                        <p className="font-label-sm uppercase tracking-wider mb-3 text-[11px]" style={{ color: 'var(--color-outline)' }}>
-                            Checklist de Requerimientos
-                        </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {AV_CHECKS.map(({ key, icon, color, label }) => (
-                                <CheckCard key={key} icon={icon} iconColor={color} label={label}
-                                    checked={Boolean(video[key])}
-                                    onChange={(e) => alCambiarCheck(video.id_tarea, key, e.target.checked)} />
-                            ))}
+                    {/* Checklist & Progress */}
+                    <div className={estaBloqueada ? 'pointer-events-none opacity-80' : ''}>
+                        {/* Checklist */}
+                        <div className="px-5 py-4 border-b" style={{ borderColor: 'var(--color-surface-container-low)' }}>
+                            <p className="font-label-sm uppercase tracking-wider mb-3 text-[11px]" style={{ color: 'var(--color-outline)' }}>
+                                Checklist de Requerimientos
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {AV_CHECKS.map(({ key, icon, color, label }) => (
+                                    <CheckCard key={key} icon={icon} iconColor={color} label={label}
+                                        checked={Boolean(video[key])}
+                                        onChange={(e) => alCambiarCheck(video.id_tarea, key, e.target.checked)} />
+                                ))}
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Progress */}
-                    <div className="px-5 py-3 border-b" style={{ borderColor: 'var(--color-surface-container-low)' }}>
-                        <div className="flex justify-between font-label-sm text-[11px] mb-2">
-                            <span style={{ color: 'var(--color-outline)' }}>Progreso de producción</span>
-                            <span style={{ color: 'var(--color-tertiary)', fontWeight: 600 }}>{progreso}%</span>
-                        </div>
-                        <div className="w-full rounded-full overflow-hidden" style={{ height: '6px', background: 'var(--color-surface-container)' }}>
-                            <div className="h-full rounded-full transition-all duration-500"
-                                style={{ width: `${progreso}%`, background: 'var(--color-tertiary)' }} />
+                        {/* Progress */}
+                        <div className="px-5 py-3 border-b" style={{ borderColor: 'var(--color-surface-container-low)' }}>
+                            <div className="flex justify-between font-label-sm text-[11px] mb-2">
+                                <span style={{ color: 'var(--color-outline)' }}>Progreso de producción</span>
+                                <span style={{ color: 'var(--color-tertiary)', fontWeight: 600 }}>{progreso}%</span>
+                            </div>
+                            <div className="w-full rounded-full overflow-hidden" style={{ height: '6px', background: 'var(--color-surface-container)' }}>
+                                <div className="h-full rounded-full transition-all duration-500"
+                                    style={{ width: `${progreso}%`, background: 'var(--color-tertiary)' }} />
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Controls */}
-                <div className="px-4 sm:px-5 py-3 sm:py-4 space-y-3 bg-surface-container-low/20">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="flex flex-col gap-1.5">
-                            <label className="font-label-sm text-[11px]" style={{ color: 'var(--color-on-surface-variant)' }}>Fase</label>
-                            <StyledSelect value={video.estado || 'Por Hacer'}
-                                onChange={(e) => alCambiarCampo(video.id_tarea, 'estado', e.target.value)}>
-                                <option value="Por Hacer">Por Hacer</option>
-                                <option value="Grabando">🎥 Grabando</option>
-                                <option value="En Edición">💻 En Edición</option>
-                                <option value="Finalizado">✅ Finalizado</option>
-                            </StyledSelect>
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                            <label className="font-label-sm text-[11px]" style={{ color: 'var(--color-on-surface-variant)' }}>Progreso (%)</label>
-                            <StyledInput type="number" min="0" max="100" icon="percent"
-                                value={video.progreso_porcentaje ?? 0}
-                                onChange={(e) => alCambiarCampo(video.id_tarea, 'progreso_porcentaje', parseInt(e.target.value, 10) || 0)} />
+                <div className="px-4 sm:px-5 py-3 sm:py-4 space-y-3"
+                    style={{ background: estaBloqueada ? 'rgba(16, 185, 129, 0.04)' : 'var(--color-surface-container-low/20)' }}>
+                    <div className={estaBloqueada ? 'pointer-events-none opacity-80' : ''}>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="flex flex-col gap-1.5">
+                                <label className="font-label-sm text-[11px]" style={{ color: 'var(--color-on-surface-variant)' }}>Fase</label>
+                                <StyledSelect value={video.estado || 'Por Hacer'}
+                                    onChange={(e) => alCambiarCampo(video.id_tarea, 'estado', e.target.value)}>
+                                    <option value="Por Hacer">Por Hacer (0%)</option>
+                                    <option value="Grabando">🎥 Grabando (40%)</option>
+                                    <option value="En Edición">💻 En Edición (75%)</option>
+                                    <option value="Finalizado">✅ Finalizado (100%)</option>
+                                </StyledSelect>
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                                <label className="font-label-sm text-[11px]" style={{ color: 'var(--color-on-surface-variant)' }}>Progreso (%)</label>
+                                <StyledInput type="number" min="0" max="100" icon="percent"
+                                    value={video.progreso_porcentaje ?? 0}
+                                    onChange={(e) => alCambiarCampo(video.id_tarea, 'progreso_porcentaje', parseInt(e.target.value, 10) || 0)} />
+                            </div>
                         </div>
                     </div>
-                    <button
-                        className="w-full flex items-center justify-center gap-2 font-label-md font-medium transition-all active:scale-95"
-                        style={{
-                            height: '42px', borderRadius: '0.5rem',
-                            background: 'var(--color-primary-container)',
-                            color: 'var(--color-on-primary)',
-                            border: 'none', cursor: 'pointer', fontSize: '14px',
-                            boxShadow: '0 2px 8px rgba(37,99,235,0.2)',
-                        }}
-                        onClick={() => alGuardar(video.id_tarea)}
-                        onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'var(--color-primary-container)'}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>save</span>
-                        Actualizar Producción
-                    </button>
+
+                    {estaBloqueada ? (
+                        <div className="pt-1 flex flex-col gap-2">
+                            <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                                <span className="material-symbols-outlined text-[17px]">verified</span>
+                                <span>Producción guardada y bloqueada</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => actualizarBloqueo(video.id_tarea, false)}
+                                className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-xs font-semibold border border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-500/20 active:scale-98 transition-all cursor-pointer shadow-xs"
+                            >
+                                <span className="material-symbols-outlined text-[16px]">lock_open</span>
+                                Desbloquear para editar
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="pt-1 flex justify-center">
+                            <SlideConfirm
+                                corner={28}
+                                speed={50}
+                                width={280}
+                                onConfirm={async () => {
+                                    actualizarBloqueo(video.id_tarea, true);
+                                    await alGuardar(video.id_tarea);
+                                }}
+                            />
+                        </div>
+                    )}
                 </div>
             </div>
         );

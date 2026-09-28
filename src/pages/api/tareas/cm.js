@@ -27,6 +27,22 @@ export async function PATCH({ request }) {
       return new Response(JSON.stringify({ error: error.message }), { status: 500 });
     }
 
+    // Registrar en bitácora histórica para reportes completos
+    if (data?.id_requerimiento) {
+      try {
+        await supabaseServer.from('historial_seguimiento').insert({
+          id_requerimiento: data.id_requerimiento,
+          departamento: 'CM',
+          usuario: body.usuario || 'Sebas (CM)',
+          accion: `Campaña CM actualizada a "${data.estado || estado}"`,
+          comentario: body.comentario || `Plataforma: ${data.plataforma || 'N/A'} | Presupuesto: ${data.presupuesto || 'Sin definir'}`,
+          fecha_registro: new Date().toISOString()
+        });
+      } catch (errHist) {
+        console.warn('Error registrando en historial_seguimiento:', errHist.message);
+      }
+    }
+
     return new Response(JSON.stringify({ mensaje: 'Tarea de CM actualizada con éxito', data }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }

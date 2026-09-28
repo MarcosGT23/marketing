@@ -101,7 +101,26 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
     const [agenteSeleccionadoId, setAgenteSeleccionadoId] = useState(null);
     const [vistaModo, setVistaModo] = useState('agentes'); // 'agentes' | 'todos'
     const [busqueda, setBusqueda] = useState('');
-    const [tarjetasBloqueadas, setTarjetasBloqueadas] = useState({});
+    const [tarjetasBloqueadas, setTarjetasBloqueadas] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                return JSON.parse(localStorage.getItem('bloqueadas_diseno') || '{}');
+            } catch (e) {
+                return {};
+            }
+        }
+        return {};
+    });
+
+    const actualizarBloqueo = (idTarea, bloqueado) => {
+        setTarjetasBloqueadas(prev => {
+            const nuevo = { ...prev, [idTarea]: bloqueado };
+            try {
+                localStorage.setItem('bloqueadas_diseno', JSON.stringify(nuevo));
+            } catch (e) {}
+            return nuevo;
+        });
+    };
 
     // Agrupar tareas de diseño por agente
     const agentes = useMemo(() => {
@@ -640,7 +659,7 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
                             </div>
                             <button
                                 type="button"
-                                onClick={() => setTarjetasBloqueadas(prev => ({ ...prev, [tarea.id_tarea]: false }))}
+                                onClick={() => actualizarBloqueo(tarea.id_tarea, false)}
                                 className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-xs font-semibold border border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-500/20 active:scale-98 transition-all cursor-pointer shadow-xs"
                             >
                                 <span className="material-symbols-outlined text-[16px]">lock_open</span>
@@ -654,7 +673,7 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
                                 speed={50}
                                 width={280}
                                 onConfirm={async () => {
-                                    setTarjetasBloqueadas(prev => ({ ...prev, [tarea.id_tarea]: true }));
+                                    actualizarBloqueo(tarea.id_tarea, true);
                                     await alGuardar(tarea.id_tarea);
                                 }}
                             />

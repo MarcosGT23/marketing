@@ -17,7 +17,27 @@ export default function TableroDisenoContainer() {
                 return;
             }
             // Solo mostrar si tiene tarea de diseño creada por el trigger
-            const tareasFiltradas = (Array.isArray(json) ? json : []).filter(item => item.tareas_diseno && item.tareas_diseno.length > 0);
+            const porcentajesPorEstado = {
+                'Por Hacer': 0,
+                'En Proceso': 50,
+                'Revisión': 75,
+                'Finalizado': 100
+            };
+
+            const tareasFiltradas = (Array.isArray(json) ? json : [])
+                .filter(item => item.tareas_diseno && item.tareas_diseno.length > 0)
+                .map(item => {
+                    const td = item.tareas_diseno[0];
+                    const pctEsperado = porcentajesPorEstado[td.estado];
+                    if (pctEsperado !== undefined && (td.progreso_porcentaje === undefined || td.progreso_porcentaje === null || (td.estado === 'Finalizado' && td.progreso_porcentaje !== 100))) {
+                        return {
+                            ...item,
+                            tareas_diseno: [{ ...td, progreso_porcentaje: pctEsperado }]
+                        };
+                    }
+                    return item;
+                });
+
             setDatos(tareasFiltradas);
         } catch (err) {
             console.error(err);
@@ -63,8 +83,13 @@ export default function TableroDisenoContainer() {
         const { estado, progreso_porcentaje, fecha_limite } = item.tareas_diseno[0];
 
         try {
-            await actualizarTareaDiseno(idTarea, { estado, progreso_porcentaje, fecha_limite });
-            alert('Tarea de diseño guardada correctamente.');
+            await actualizarTareaDiseno(idTarea, {
+                estado,
+                progreso_porcentaje,
+                fecha_limite,
+                id_requerimiento: item.id_requerimiento,
+                usuario: 'Isaac (Diseño)'
+            });
         } catch (err) {
             alert(`Error al guardar: ${err.message}`);
         }

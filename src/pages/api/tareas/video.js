@@ -31,6 +31,30 @@ export async function PATCH({ request }) {
       return new Response(JSON.stringify({ error: error.message }), { status: 500 });
     }
 
+    // Registrar en bitácora histórica para reportes completos
+    if (data?.id_requerimiento) {
+      try {
+        const checks = [];
+        if (data.req_guion) checks.push('Guion');
+        if (data.req_fotos) checks.push('Fotos');
+        if (data.req_grabacion) checks.push('Grabación');
+        if (data.req_edicion) checks.push('Edición');
+        if (data.req_voz_off) checks.push('Voz en Off');
+        const resumenChecks = checks.length > 0 ? `Checklist: ${checks.join(', ')}` : 'Sin checks activos';
+
+        await supabaseServer.from('historial_seguimiento').insert({
+          id_requerimiento: data.id_requerimiento,
+          departamento: 'Video',
+          usuario: body.usuario || 'Marcos (Video)',
+          accion: `Video actualizado a "${data.estado || estado}" (${data.progreso_porcentaje ?? progreso_porcentaje}%)`,
+          comentario: body.comentario || resumenChecks,
+          fecha_registro: new Date().toISOString()
+        });
+      } catch (errHist) {
+        console.warn('Error registrando en historial_seguimiento:', errHist.message);
+      }
+    }
+
     return new Response(JSON.stringify({ mensaje: 'Tarea de video actualizada con éxito', data }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
