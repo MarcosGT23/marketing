@@ -501,23 +501,22 @@ export default function FormularioPropiedadUI({ datos, alCambiarDato, alCambiarC
                   {/* Tarjetas de Tareas Técnicas (Captura de Imagen) */}
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                     {[
-                      { id: 'req_guion', label: 'Guion Técnico', desc: 'Storyline & estructura de ganchos', icon: 'description', color: 'text-primary' },
-                      { id: 'req_fotos', label: 'Sesión de Fotos', desc: 'HDR, gran angular y detalles', icon: 'photo_camera', color: 'text-secondary' },
-                      { id: 'req_reel', label: 'Grabación Reel', desc: 'Tomas verticales + Drone 4K', icon: 'videocam', color: 'text-tertiary' },
-                      { id: 'req_edicion', label: 'Postproducción', desc: 'Cortes dinámicos, sound fx', icon: 'movie_edit', color: 'text-primary-container' },
-                      { id: 'req_voz_off', label: 'Voz en Off', desc: 'Locución profesional neutra', icon: 'mic', color: 'text-outline' }
+                      { id: 'req_guion', label: 'Guion Técnico', desc: 'Storyline & estructura de ganchos' },
+                      { id: 'req_fotos', label: 'Sesión de Fotos', desc: 'HDR, gran angular y detalles' },
+                      { id: 'req_reel', label: 'Grabación Reel', desc: 'Tomas verticales + Drone 4K' },
+                      { id: 'req_edicion', label: 'Postproducción', desc: 'Cortes dinámicos, sound fx' },
+                      { id: 'req_voz_off', label: 'Voz en Off', desc: 'Locución profesional neutra' }
                     ].map(card => (
                       <div 
                         key={card.id} 
                         onClick={() => alCambiarCheckbox(card.id, !datos[card.id])}
-                        className={`p-4 rounded-2xl border flex flex-col justify-between cursor-pointer transition-all min-h-[140px] ${
+                        className={`p-4 rounded-2xl border flex flex-col justify-between cursor-pointer transition-all min-h-[125px] ${
                           datos[card.id] 
                             ? 'bg-primary-fixed/20 border-primary-container/40 shadow-xs ring-1 ring-primary-container/20' 
                             : 'bg-surface-container-low/40 border-surface-container hover:bg-surface-container-low'
                         }`}
                       >
-                        <div className="flex justify-between items-start">
-                          <span className={`material-symbols-outlined text-[24px] ${card.color}`}>{card.icon}</span>
+                        <div className="flex justify-end items-start">
                           <input 
                             type="checkbox" 
                             checked={Boolean(datos[card.id])} 
@@ -525,7 +524,7 @@ export default function FormularioPropiedadUI({ datos, alCambiarDato, alCambiarC
                             className="w-4 h-4 rounded text-primary-container focus:ring-0 cursor-pointer"
                           />
                         </div>
-                        <div className="mt-4">
+                        <div className="mt-3">
                           <p className="font-display font-semibold text-xs text-on-surface leading-tight">{card.label}</p>
                           <p className="text-[11px] text-outline mt-1 leading-snug">{card.desc}</p>
                         </div>
