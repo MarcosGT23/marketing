@@ -127,7 +127,6 @@ export default function PanelVideoContainer() {
             cargando={cargando}
             alCambiarCheck={manejarCambioCheck}
             alCambiarCampo={manejarCambioCampo}
-            alGuardar={manejarGuardar}
         />
     );
 }
