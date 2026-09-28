@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import LiquidStateSelector from './LiquidStateSelector';
 
 function StyledInput({ icon, ...rest }) {
     const [focused, setFocused] = useState(false);
@@ -571,18 +572,20 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
 
                 {/* Controls: Solo Estado y Guardar */}
                 <div className="px-4 sm:px-5 py-3 sm:py-4 space-y-3 bg-surface-container-low/20">
-                    <div className="flex flex-col gap-1.5">
-                        <label className="font-label-sm text-xs font-semibold" style={{ color: 'var(--color-on-surface-variant)' }}>
-                            Estado de la Tarea
-                        </label>
-                        <StyledSelect 
-                            value={tarea.estado || 'Por Hacer'}
-                            onChange={(e) => alCambiarCampo(tarea.id_tarea, 'estado', e.target.value)}>
-                            <option value="Por Hacer">Por Hacer (0%)</option>
-                            <option value="En Proceso">En Proceso (50%)</option>
-                            <option value="Revisión">Revisión (75%)</option>
-                            <option value="Finalizado">Finalizado (100%)</option>
-                        </StyledSelect>
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between">
+                            <label className="font-label-sm text-xs font-semibold" style={{ color: 'var(--color-on-surface-variant)' }}>
+                                Estado de la Tarea
+                            </label>
+                            <span className="text-[10px] text-outline flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[12px]">touch_app</span>
+                                Arrastra o clica
+                            </span>
+                        </div>
+                        <LiquidStateSelector 
+                            estadoActual={tarea.estado || 'Por Hacer'}
+                            alCambiarEstado={(nuevoEstado) => alCambiarCampo(tarea.id_tarea, 'estado', nuevoEstado)}
+                        />
                     </div>
 
                     <button
