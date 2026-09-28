@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { SlideConfirm } from '../../../diseno/presentation/components/SlideConfirm';
 import '../../../diseno/presentation/components/SlideConfirm.css';
 import { ChecklistRequerimientos } from './ChecklistRequerimientos';
@@ -572,6 +573,15 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
         const progreso = video.progreso_porcentaje ?? 0;
         const estaBloqueada = Boolean(tarjetasBloqueadas[video.id_tarea] ?? (video.estado === 'Finalizado'));
 
+        // "cuando solo se presiones foto automaticamente aparesca el apartado de fase y un apartado de descripcion"
+        const esSoloFotos = Boolean(video.req_fotos) &&
+            !video.req_guion &&
+            !video.req_grabacion &&
+            !video.req_edicion &&
+            !video.req_voz_off;
+
+        const mostrarFaseYDescripcion = esSoloFotos || (Boolean(video.req_fotos) && Boolean(video.Descripcion));
+
         return (
             <div key={video.id_tarea || item.id_requerimiento}
                 className={`rounded-2xl shadow-sm flex flex-col justify-between overflow-hidden transition-all hover:shadow-md border ${
@@ -662,32 +672,73 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                 {/* Controls */}
                 <div className="px-4 sm:px-5 py-3 sm:py-4 space-y-3"
                     style={{ background: estaBloqueada ? 'rgba(16, 185, 129, 0.04)' : 'var(--color-surface-container-low/20)' }}>
-                    <div className={estaBloqueada ? 'pointer-events-none opacity-80' : ''}>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div className="flex flex-col gap-1.5">
-                                <label className="font-label-sm text-[11px]" style={{ color: 'var(--color-on-surface-variant)' }}>Fase</label>
-                                <StyledSelect value={video.estado || 'Por Hacer'}
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        alCambiarCampo(video.id_tarea, 'estado', val);
-                                        if (val === 'Finalizado') {
-                                            actualizarBloqueo(video.id_tarea, true);
-                                        }
-                                    }}>
-                                    <option value="Por Hacer">Por Hacer (0%)</option>
-                                    <option value="Grabando">🎥 Grabando (40%)</option>
-                                    <option value="En Edición">💻 En Edición (75%)</option>
-                                    <option value="Finalizado">✅ Finalizado (100%)</option>
-                                </StyledSelect>
-                            </div>
-                            <div className="flex flex-col gap-1.5">
-                                <label className="font-label-sm text-[11px]" style={{ color: 'var(--color-on-surface-variant)' }}>Progreso (%)</label>
-                                <StyledInput type="number" min="0" max="100" icon="percent"
-                                    value={video.progreso_porcentaje ?? 0}
-                                    onChange={(e) => alCambiarCampo(video.id_tarea, 'progreso_porcentaje', parseInt(e.target.value, 10) || 0)} />
-                            </div>
-                        </div>
-                    </div>
+
+                    {/* Apartado animado: Aparece automáticamente cuando se activa solo Fotos (o tiene notas de foto) */}
+                    <AnimatePresence>
+                        {mostrarFaseYDescripcion && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0, scale: 0.96 }}
+                                animate={{ opacity: 1, height: 'auto', scale: 1 }}
+                                exit={{ opacity: 0, height: 0, scale: 0.96 }}
+                                transition={{ type: "spring", stiffness: 450, damping: 30 }}
+                                className="overflow-hidden"
+                            >
+                                <div className={`p-3.5 rounded-xl border border-emerald-500/25 bg-emerald-500/5 dark:bg-emerald-950/20 space-y-3 mb-1 ${
+                                    estaBloqueada ? 'pointer-events-none opacity-80' : ''
+                                }`}>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                                            <span className="material-symbols-outlined text-[16px]">photo_camera</span>
+                                            Fase & Descripción de Fotografía
+                                        </span>
+                                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
+                                            {esSoloFotos ? 'Solo Fotos' : 'Requerimiento de Fotos'}
+                                        </span>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {/* Apartado de Fase */}
+                                        <div className="flex flex-col gap-1.5">
+                                            <label className="font-label-sm text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-[14px] text-emerald-600">checklist</span>
+                                                Fase de Fotos
+                                            </label>
+                                            <StyledSelect
+                                                value={video.estado || 'Por Hacer'}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    alCambiarCampo(video.id_tarea, 'estado', val);
+                                                    if (val === 'Finalizado') {
+                                                        actualizarBloqueo(video.id_tarea, true);
+                                                    }
+                                                }}
+                                            >
+                                                <option value="Por Hacer">Por Hacer (0%)</option>
+                                                <option value="Grabando">📸 En Sesión de Fotos (40%)</option>
+                                                <option value="En Edición">💻 En Retoque / Edición (75%)</option>
+                                                <option value="Finalizado">✅ Entrega Finalizada (100%)</option>
+                                            </StyledSelect>
+                                        </div>
+
+                                        {/* Apartado de Descripción */}
+                                        <div className="flex flex-col gap-1.5">
+                                            <label className="font-label-sm text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-[14px] text-emerald-600">edit_note</span>
+                                                Descripción de Fotografía
+                                            </label>
+                                            <textarea
+                                                rows={2}
+                                                placeholder="Detalles de las tomas, ambientes clave, iluminación requerida..."
+                                                value={video.Descripcion || video.descripcion || ''}
+                                                onChange={(e) => alCambiarCampo(video.id_tarea, 'Descripcion', e.target.value)}
+                                                className="w-full text-xs p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-surface-container-lowest text-on-surface focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none font-sans"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
                     {estaBloqueada ? (
                         <div className="pt-1 flex flex-col gap-2.5">

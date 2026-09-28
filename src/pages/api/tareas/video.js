@@ -5,7 +5,7 @@ export const prerender = false;
 export async function PATCH({ request }) {
   try {
     const body = await request.json();
-    const { id_tarea, req_guion, req_fotos, req_grabacion, req_edicion, req_voz_off, estado, progreso_porcentaje } = body;
+    const { id_tarea, req_guion, req_fotos, req_grabacion, req_edicion, req_voz_off, estado, progreso_porcentaje, Descripcion, descripcion } = body;
 
     if (!id_tarea) {
       return new Response(JSON.stringify({ error: 'id_tarea es requerido' }), { status: 400 });
@@ -19,6 +19,8 @@ export async function PATCH({ request }) {
     if (req_voz_off !== undefined) updateFields.req_voz_off = Boolean(req_voz_off);
     if (estado !== undefined) updateFields.estado = estado;
     if (progreso_porcentaje !== undefined) updateFields.progreso_porcentaje = progreso_porcentaje;
+    if (Descripcion !== undefined) updateFields.Descripcion = Descripcion;
+    else if (descripcion !== undefined) updateFields.Descripcion = descripcion;
 
     const { data, error } = await supabaseServer
       .from('tareas_video')

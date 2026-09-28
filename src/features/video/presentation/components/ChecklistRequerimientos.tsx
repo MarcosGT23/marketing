@@ -6,6 +6,7 @@ export interface ItemChecklist {
   id: string;
   label: string;
   desc: string;
+  porcentaje: number;
   icon: React.ComponentType<{ size?: number; className?: string; strokeWidth?: number; color?: string }>;
   color: string;
   bgLight: string;
@@ -17,6 +18,7 @@ export const ITEMS_DEFECTO: ItemChecklist[] = [
     id: "req_guion",
     label: "Guion",
     desc: "Narrativa y estructura",
+    porcentaje: 20,
     icon: FileText,
     color: "#2563eb",
     bgLight: "rgba(37, 99, 235, 0.1)",
@@ -26,6 +28,7 @@ export const ITEMS_DEFECTO: ItemChecklist[] = [
     id: "req_fotos",
     label: "Fotos",
     desc: "Tomas fijas de calidad",
+    porcentaje: 20,
     icon: Camera,
     color: "#059669",
     bgLight: "rgba(16, 185, 129, 0.1)",
@@ -35,6 +38,7 @@ export const ITEMS_DEFECTO: ItemChecklist[] = [
     id: "req_grabacion",
     label: "Grabación",
     desc: "Rodaje audiovisual",
+    porcentaje: 20,
     icon: Video,
     color: "#9333ea",
     bgLight: "rgba(147, 51, 234, 0.1)",
@@ -44,6 +48,7 @@ export const ITEMS_DEFECTO: ItemChecklist[] = [
     id: "req_edicion",
     label: "Edición",
     desc: "Montaje, ritmo y color",
+    porcentaje: 20,
     icon: Film,
     color: "#4f46e5",
     bgLight: "rgba(79, 70, 229, 0.1)",
@@ -53,6 +58,7 @@ export const ITEMS_DEFECTO: ItemChecklist[] = [
     id: "req_voz_off",
     label: "Voz en Off",
     desc: "Locución y audio",
+    porcentaje: 20,
     icon: Mic,
     color: "#ea580c",
     bgLight: "rgba(234, 88, 12, 0.1)",
@@ -76,6 +82,7 @@ export function ChecklistRequerimientos({
   // Separar completados y pendientes
   const completados = items.filter((item) => Boolean(valores[item.id]));
   const pendientes = items.filter((item) => !Boolean(valores[item.id]));
+  const porcentajeTotal = completados.reduce((acc, curr) => acc + (curr.porcentaje || 0), 0);
 
   return (
     <div className="w-full space-y-3">
@@ -84,7 +91,7 @@ export function ChecklistRequerimientos({
         <div className="flex items-center justify-between mb-2">
           <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            Actividades Realizadas ({completados.length}/{items.length})
+            Actividades Realizadas ({completados.length}/{items.length} · {porcentajeTotal}%)
           </span>
           {completados.length > 0 && !deshabilitado && (
             <span className="text-[10px] text-slate-400">Clic en burbuja para desmarcar</span>
@@ -109,7 +116,7 @@ export function ChecklistRequerimientos({
                   whileHover={deshabilitado ? undefined : { scale: 1.05, y: -2 }}
                   whileTap={deshabilitado ? undefined : { scale: 0.95 }}
                   transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                  className={`group flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-full text-xs font-semibold shadow-xs border transition-all select-none ${
+                  className={`group flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-full text-xs font-semibold shadow-xs border transition-all select-none ${
                     deshabilitado ? "cursor-default" : "cursor-pointer hover:shadow-md"
                   }`}
                   style={{
@@ -128,6 +135,14 @@ export function ChecklistRequerimientos({
                   </span>
 
                   <span className="font-semibold text-[12px]">{item.label}</span>
+
+                  {/* Badge de Porcentaje asignado */}
+                  <span
+                    className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                    style={{ background: "rgba(255, 255, 255, 0.8)", color: item.color }}
+                  >
+                    {item.porcentaje}%
+                  </span>
 
                   <Check size={13} strokeWidth={3} className="text-emerald-600 dark:text-emerald-400 ml-0.5" />
 
@@ -194,9 +209,14 @@ export function ChecklistRequerimientos({
                       <Icono size={16} strokeWidth={2.2} color={item.color} />
                     </div>
                     <div className="min-w-0">
-                      <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block truncate">
-                        {item.label}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block truncate">
+                          {item.label}
+                        </span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
+                          +{item.porcentaje}%
+                        </span>
+                      </div>
                       <span className="text-[10px] text-slate-400 block truncate">
                         {item.desc}
                       </span>
