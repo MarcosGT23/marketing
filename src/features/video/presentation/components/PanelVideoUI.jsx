@@ -393,7 +393,7 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                                             <strong className="text-indigo-600 font-bold">{agente.enEdicion}</strong>
                                         </div>
                                         <div>
-                                            <span className="uppercase text-[10px] font-bold block" style={{ color: 'var(--color-outline)' }}>Listas</span>
+                                            <span className="uppercase text-[10px] font-bold block" style={{ color: 'var(--color-outline)' }}>Finalizado</span>
                                             <strong className="text-emerald-600 font-bold">{agente.finalizadas}</strong>
                                         </div>
                                     </div>
@@ -469,21 +469,34 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
 
                         {/* Badges del Agente */}
                         <div className="flex flex-wrap items-center gap-2">
-                            <span className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5"
-                                style={{ background: 'var(--color-error-container)', color: 'var(--color-on-error-container)' }}>
-                                <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                                {agenteActivo.grabando} Rodaje
-                            </span>
-                            <span className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5"
-                                style={{ background: 'var(--color-tertiary-fixed)', color: 'var(--color-on-tertiary-fixed-variant)' }}>
-                                <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
-                                {agenteActivo.enEdicion} Edición
-                            </span>
-                            <span className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5"
-                                style={{ background: 'var(--color-secondary-container)', color: 'var(--color-on-secondary-container)' }}>
-                                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                {agenteActivo.finalizadas} Listas
-                            </span>
+                            {agenteActivo.porHacer > 0 && (
+                                <span className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5"
+                                    style={{ background: 'var(--color-surface-container)', color: 'var(--color-outline)' }}>
+                                    <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                                    {agenteActivo.porHacer} Por Hacer
+                                </span>
+                            )}
+                            {agenteActivo.grabando > 0 && (
+                                <span className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5"
+                                    style={{ background: 'var(--color-error-container)', color: 'var(--color-on-error-container)' }}>
+                                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                                    {agenteActivo.grabando} Rodaje
+                                </span>
+                            )}
+                            {agenteActivo.enEdicion > 0 && (
+                                <span className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5"
+                                    style={{ background: 'var(--color-tertiary-fixed)', color: 'var(--color-on-tertiary-fixed-variant)' }}>
+                                    <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                                    {agenteActivo.enEdicion} Edición
+                                </span>
+                            )}
+                            {agenteActivo.finalizadas > 0 && (
+                                <span className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5"
+                                    style={{ background: 'var(--color-secondary-container)', color: 'var(--color-on-secondary-container)' }}>
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                    {agenteActivo.finalizadas} Finalizado
+                                </span>
+                            )}
                         </div>
                     </div>
 

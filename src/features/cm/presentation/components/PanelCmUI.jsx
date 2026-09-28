@@ -253,7 +253,7 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
                       <strong className="text-amber-600 font-bold">{agente.porHacer}</strong>
                     </div>
                     <div>
-                      <span className="text-outline uppercase text-[10px] font-bold block">Listas</span>
+                      <span className="text-outline uppercase text-[10px] font-bold block">Finalizado</span>
                       <strong className="text-primary-container font-bold">{agente.finalizadas}</strong>
                     </div>
                   </div>
@@ -318,18 +318,24 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
 
             {/* Badges de Estado del Agente */}
             <div className="flex flex-wrap items-center gap-2">
-              <span className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 text-xs font-semibold flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                {agenteActivo.campanasActivas} Activas
-              </span>
-              <span className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 text-xs font-semibold flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                {agenteActivo.porHacer} Por Hacer
-              </span>
-              <span className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-surface-container text-on-surface-variant text-xs font-semibold flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-primary-container"></span>
-                {agenteActivo.finalizadas} Listas
-              </span>
+              {agenteActivo.campanasActivas > 0 && (
+                <span className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 text-xs font-semibold flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  {agenteActivo.campanasActivas} Activas
+                </span>
+              )}
+              {agenteActivo.porHacer > 0 && (
+                <span className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 text-xs font-semibold flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                  {agenteActivo.porHacer} Por Hacer
+                </span>
+              )}
+              {agenteActivo.finalizadas > 0 && (
+                <span className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-surface-container text-on-surface-variant text-xs font-semibold flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-primary-container"></span>
+                  {agenteActivo.finalizadas} Finalizado
+                </span>
+              )}
             </div>
           </div>
 

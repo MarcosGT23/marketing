@@ -373,7 +373,7 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
                                             <strong className="text-purple-600 font-bold">{agente.revision}</strong>
                                         </div>
                                         <div>
-                                            <span className="uppercase text-[10px] font-bold block" style={{ color: 'var(--color-outline)' }}>Listas</span>
+                                            <span className="uppercase text-[10px] font-bold block" style={{ color: 'var(--color-outline)' }}>Finalizado</span>
                                             <strong className="text-emerald-600 font-bold">{agente.finalizadas}</strong>
                                         </div>
                                     </div>
@@ -449,21 +449,34 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
 
                         {/* Badges del Agente */}
                         <div className="flex flex-wrap items-center gap-2">
-                            <span className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5"
-                                style={{ background: 'var(--color-surface-container-high)', color: 'var(--color-on-surface-variant)' }}>
-                                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                                {agenteActivo.enProceso} En Proceso
-                            </span>
-                            <span className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5"
-                                style={{ background: 'rgba(219,225,255,0.6)', color: 'var(--color-on-primary-fixed-variant)' }}>
-                                <span className="w-2 h-2 rounded-full bg-purple-500"></span>
-                                {agenteActivo.revision} Revisión
-                            </span>
-                            <span className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5"
-                                style={{ background: 'var(--color-secondary-container)', color: 'var(--color-on-secondary-container)' }}>
-                                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                {agenteActivo.finalizadas} Listas
-                            </span>
+                            {agenteActivo.porHacer > 0 && (
+                                <span className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5"
+                                    style={{ background: 'var(--color-surface-container)', color: 'var(--color-outline)' }}>
+                                    <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                                    {agenteActivo.porHacer} Por Hacer
+                                </span>
+                            )}
+                            {agenteActivo.enProceso > 0 && (
+                                <span className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5"
+                                    style={{ background: 'var(--color-surface-container-high)', color: 'var(--color-on-surface-variant)' }}>
+                                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                                    {agenteActivo.enProceso} En Proceso
+                                </span>
+                            )}
+                            {agenteActivo.revision > 0 && (
+                                <span className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5"
+                                    style={{ background: 'rgba(219,225,255,0.6)', color: 'var(--color-on-primary-fixed-variant)' }}>
+                                    <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                                    {agenteActivo.revision} Revisión
+                                </span>
+                            )}
+                            {agenteActivo.finalizadas > 0 && (
+                                <span className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5"
+                                    style={{ background: 'var(--color-secondary-container)', color: 'var(--color-on-secondary-container)' }}>
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                    {agenteActivo.finalizadas} Finalizado
+                                </span>
+                            )}
                         </div>
                     </div>
 
