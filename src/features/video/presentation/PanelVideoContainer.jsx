@@ -16,7 +16,9 @@ export default function PanelVideoContainer() {
                 setDatos([]);
                 return;
             }
-            setDatos(Array.isArray(json) ? json : []);
+            // Solo mostrar si tiene tarea de video creada por el trigger
+            const tareasFiltradas = (Array.isArray(json) ? json : []).filter(item => item.tareas_video && item.tareas_video.length > 0);
+            setDatos(tareasFiltradas);
         } catch (err) {
             console.error(err);
             alert('Error cargando producciones de video: ' + err.message);
