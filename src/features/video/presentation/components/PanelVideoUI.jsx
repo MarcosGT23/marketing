@@ -631,9 +631,15 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                     {/* Checklist & Progress */}
                     <div className={estaBloqueada ? 'pointer-events-none opacity-80' : ''}>
                         {/* Checklist */}
-                        <div className="px-5 py-4 border-b" style={{ borderColor: 'var(--color-surface-container-low)' }}>
+                        <div className="p-4 border-b" style={{ borderColor: 'var(--color-surface-container-low)' }}>
                             <ChecklistRequerimientos
-                                valores={video}
+                                valores={{
+                                    req_guion: Boolean(video.req_guion),
+                                    req_fotos: Boolean(video.req_fotos),
+                                    req_grabacion: Boolean(video.req_grabacion),
+                                    req_edicion: Boolean(video.req_edicion),
+                                    req_voz_off: Boolean(video.req_voz_off),
+                                }}
                                 alCambiar={(campo, activo) => alCambiarCheck(video.id_tarea, campo, activo)}
                                 deshabilitado={estaBloqueada}
                             />
