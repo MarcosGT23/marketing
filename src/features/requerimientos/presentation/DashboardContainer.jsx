@@ -14,10 +14,19 @@ export default function DashboardContainer() {
                 : '/api/requerimientos';
             const res = await fetch(url);
             const json = await res.json();
-            setCampanas(json);
+
+            if (!res.ok || json?.error) {
+                console.error("Error API dashboard:", json);
+                alert(json?.error || 'Error cargando datos del dashboard');
+                setCampanas([]);
+                return;
+            }
+
+            setCampanas(Array.isArray(json) ? json : []);
         } catch (err) {
             console.error(err);
-            alert('Error cargando datos del dashboard');
+            alert('Error cargando datos del dashboard: ' + err.message);
+            setCampanas([]);
         } finally {
             setCargando(false);
         }

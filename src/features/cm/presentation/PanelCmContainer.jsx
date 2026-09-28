@@ -15,10 +15,17 @@ export default function PanelCmContainer() {
     try {
       const res = await fetch('/api/requerimientos');
       const json = await res.json();
-      setDatos(json);
+      if (!res.ok || json?.error) {
+        console.error("Error API CM:", json);
+        alert(json?.error || 'Error cargando pautas de CM');
+        setDatos([]);
+        return;
+      }
+      setDatos(Array.isArray(json) ? json : []);
     } catch (err) {
       console.error(err);
-      alert('Error cargando pautas de CM');
+      alert('Error cargando pautas de CM: ' + err.message);
+      setDatos([]);
     } finally {
       setCargando(false);
     }

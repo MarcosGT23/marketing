@@ -10,10 +10,17 @@ export default function TableroDisenoContainer() {
         try {
             const res = await fetch('/api/requerimientos');
             const json = await res.json();
-            setDatos(json);
+            if (!res.ok || json?.error) {
+                console.error("Error API Diseño:", json);
+                alert(json?.error || 'Error cargando tareas de diseño');
+                setDatos([]);
+                return;
+            }
+            setDatos(Array.isArray(json) ? json : []);
         } catch (err) {
             console.error(err);
-            alert('Error cargando tareas de diseño');
+            alert('Error cargando tareas de diseño: ' + err.message);
+            setDatos([]);
         } finally {
             setCargando(false);
         }

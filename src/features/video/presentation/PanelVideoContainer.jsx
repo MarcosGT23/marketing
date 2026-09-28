@@ -10,10 +10,17 @@ export default function PanelVideoContainer() {
         try {
             const res = await fetch('/api/requerimientos');
             const json = await res.json();
-            setDatos(json);
+            if (!res.ok || json?.error) {
+                console.error("Error API Video:", json);
+                alert(json?.error || 'Error cargando producciones de video');
+                setDatos([]);
+                return;
+            }
+            setDatos(Array.isArray(json) ? json : []);
         } catch (err) {
             console.error(err);
-            alert('Error cargando producciones de video');
+            alert('Error cargando producciones de video: ' + err.message);
+            setDatos([]);
         } finally {
             setCargando(false);
         }

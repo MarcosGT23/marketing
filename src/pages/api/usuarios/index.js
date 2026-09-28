@@ -13,7 +13,10 @@ export async function GET({ url }) {
       .order('nombre', { ascending: true });
 
     if (error) {
-      return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+      return new Response(JSON.stringify({ error: error.message }), { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
     return new Response(JSON.stringify(data), {
@@ -21,6 +24,9 @@ export async function GET({ url }) {
       headers: { 'Content-Type': 'application/json' }
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: 'Error obteniendo usuarios' }), { status: 500 });
+    return new Response(JSON.stringify({ error: err.message || 'Error obteniendo usuarios' }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }

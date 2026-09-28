@@ -25,15 +25,21 @@ export async function GET({ url }) {
     const { data, error } = await consulta;
 
     if (error) {
-      return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+      return new Response(JSON.stringify({ error: error.message }), { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
-    return new Response(JSON.stringify(data), {
+    return new Response(JSON.stringify(data || []), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: 'Error al consultar requerimientos' }), { status: 500 });
+    return new Response(JSON.stringify({ error: err.message || 'Error al consultar requerimientos' }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
 
