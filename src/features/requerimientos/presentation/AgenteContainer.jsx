@@ -24,6 +24,11 @@ export default function AgenteContainer() {
         req_grabacion: false,
         req_edicion: false,
         req_voz_off: false,
+        req_arte_estatico: false,
+        req_carrusel: false,
+        req_reel: false,
+        fecha_rodaje: '',
+        notas_produccion: '',
         canales: [],
         presupuesto: ''
     });

@@ -405,30 +405,162 @@ export default function FormularioPropiedadUI({ datos, alCambiarDato, alCambiarC
                     </div>
                 </section>
 
-                {/* ── Card 3: Audiovisual ── */}
-                <section id="sec-audiovisual" className="rounded-xl p-6 md:p-8 shadow-sm transition-all hover:shadow-md"
-                    style={{ background: 'var(--color-surface-container-lowest)' }}>
-                    <SectionHeader num="3" title="Requerimientos Audiovisuales" color="tertiary"
-                        subtitle="Marca las tareas técnicas que el equipo de video (Sebas y Marco) debe ejecutar."
-                        tag="Sebas / Marco" tagIcon="videocam" />
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
-                        {AV_TASKS.map(({ key, icon, iconColor, label, sub }) => (
-                            <CheckboxCard key={key} icon={icon} iconColor={iconColor} label={label} sub={sub}
-                                checked={datos[key]} onChange={(e) => alCambiarCheckbox(key, e.target.checked)} />
-                        ))}
+                {/* 3. Formatos y Requerimientos de Producción */}
+                <section id="sec-audiovisual" className="bg-surface-container-lowest p-4 sm:p-6 md:p-8 rounded-2xl shadow-sm transition-all hover:shadow-md border border-surface-container space-y-6">
+                  
+                  {/* Cabecera idéntica a la imagen */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2">
+                    <div className="flex items-center gap-3">
+                      <span className="w-8 h-8 rounded-lg bg-tertiary-fixed text-on-tertiary-fixed-variant flex items-center justify-center font-bold text-sm">
+                        3
+                      </span>
+                      <div>
+                        <h2 className="font-display font-bold text-lg text-on-surface">Formatos y Requerimientos de Producción</h2>
+                        <p className="text-xs text-outline">
+                          Define el tipo de entregable para asignar automáticamente a Diseño (Isac) y/o Video (Sebas y Marco).
+                        </p>
+                      </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="flex flex-col gap-1.5">
-                            <label className="font-label-sm" style={{ color: 'var(--color-on-surface)' }}>Fecha Tentativa de Rodaje</label>
-                            <StyledInput icon="calendar_today" placeholder="Ej: Jueves 17 Sept, 16:30 hrs" type="text" />
-                        </div>
-                        <div className="md:col-span-2 flex flex-col gap-1.5">
-                            <label className="font-label-sm" style={{ color: 'var(--color-on-surface)' }}>Notas Técnicas para la Producción</label>
-                            <StyledInput placeholder="Ej: Pedir llaves en portería con el código 402, mejor luz natural al atardecer." type="text" />
-                        </div>
+                    <div className="flex items-center gap-2">
+                      {(datos.req_arte_estatico || datos.req_carrusel) && (
+                        <span className="px-2.5 py-1 rounded-full bg-secondary-container text-on-secondary-container text-xs font-semibold flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[14px]">palette</span> Isac
+                        </span>
+                      )}
+                      {datos.req_reel && (
+                        <span className="px-2.5 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant text-xs font-semibold flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[14px]">videocam</span> Sebas / Marco
+                        </span>
+                      )}
                     </div>
+                  </div>
+
+                  {/* Selector de Entregables Principales */}
+                  <div className="p-4 bg-surface-container-low/60 rounded-xl border border-surface-container space-y-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-outline block">
+                      Tipo de Entregables a Producir *
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <label className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
+                        datos.req_arte_estatico ? 'bg-secondary-container/20 border-secondary text-on-surface shadow-xs' : 'bg-surface-container-lowest border-surface-container text-outline hover:bg-surface-container-low'
+                      }`}>
+                        <div className="flex items-center gap-2.5">
+                          <span className="material-symbols-outlined text-secondary text-[20px]">image</span>
+                          <div>
+                            <p className="text-xs font-bold text-on-surface">Arte Estático</p>
+                            <p className="text-[10px] text-outline">Asignado a Isac</p>
+                          </div>
+                        </div>
+                        <input 
+                          type="checkbox" 
+                          checked={Boolean(datos.req_arte_estatico)} 
+                          onChange={(e) => alCambiarCheckbox('req_arte_estatico', e.target.checked)} 
+                          className="w-4 h-4 rounded text-secondary focus:ring-0" 
+                        />
+                      </label>
+
+                      <label className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
+                        datos.req_carrusel ? 'bg-secondary-container/20 border-secondary text-on-surface shadow-xs' : 'bg-surface-container-lowest border-surface-container text-outline hover:bg-surface-container-low'
+                      }`}>
+                        <div className="flex items-center gap-2.5">
+                          <span className="material-symbols-outlined text-secondary text-[20px]">view_carousel</span>
+                          <div>
+                            <p className="text-xs font-bold text-on-surface">Carrusel</p>
+                            <p className="text-[10px] text-outline">Asignado a Isac</p>
+                          </div>
+                        </div>
+                        <input 
+                          type="checkbox" 
+                          checked={Boolean(datos.req_carrusel)} 
+                          onChange={(e) => alCambiarCheckbox('req_carrusel', e.target.checked)} 
+                          className="w-4 h-4 rounded text-secondary focus:ring-0" 
+                        />
+                      </label>
+
+                      <label className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
+                        datos.req_reel ? 'bg-tertiary-fixed/30 border-tertiary text-on-surface shadow-xs' : 'bg-surface-container-lowest border-surface-container text-outline hover:bg-surface-container-low'
+                      }`}>
+                        <div className="flex items-center gap-2.5">
+                          <span className="material-symbols-outlined text-tertiary text-[20px]">movie</span>
+                          <div>
+                            <p className="text-xs font-bold text-on-surface">Grabación Reel</p>
+                            <p className="text-[10px] text-outline">Asignado a Sebas / Marco</p>
+                          </div>
+                        </div>
+                        <input 
+                          type="checkbox" 
+                          checked={Boolean(datos.req_reel)} 
+                          onChange={(e) => alCambiarCheckbox('req_reel', e.target.checked)} 
+                          className="w-4 h-4 rounded text-tertiary focus:ring-0" 
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Tarjetas de Tareas Técnicas (Captura de Imagen) */}
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                    {[
+                      { id: 'req_guion', label: 'Guion Técnico', desc: 'Storyline & estructura de ganchos', icon: 'description', color: 'text-primary' },
+                      { id: 'req_fotos', label: 'Sesión de Fotos', desc: 'HDR, gran angular y detalles', icon: 'photo_camera', color: 'text-secondary' },
+                      { id: 'req_reel', label: 'Grabación Reel', desc: 'Tomas verticales + Drone 4K', icon: 'videocam', color: 'text-tertiary' },
+                      { id: 'req_edicion', label: 'Postproducción', desc: 'Cortes dinámicos, sound fx', icon: 'movie_edit', color: 'text-primary-container' },
+                      { id: 'req_voz_off', label: 'Voz en Off', desc: 'Locución profesional neutra', icon: 'mic', color: 'text-outline' }
+                    ].map(card => (
+                      <div 
+                        key={card.id} 
+                        onClick={() => alCambiarCheckbox(card.id, !datos[card.id])}
+                        className={`p-4 rounded-2xl border flex flex-col justify-between cursor-pointer transition-all min-h-[140px] ${
+                          datos[card.id] 
+                            ? 'bg-primary-fixed/20 border-primary-container/40 shadow-xs ring-1 ring-primary-container/20' 
+                            : 'bg-surface-container-low/40 border-surface-container hover:bg-surface-container-low'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <span className={`material-symbols-outlined text-[24px] ${card.color}`}>{card.icon}</span>
+                          <input 
+                            type="checkbox" 
+                            checked={Boolean(datos[card.id])} 
+                            onChange={(e) => { e.stopPropagation(); alCambiarCheckbox(card.id, e.target.checked); }}
+                            className="w-4 h-4 rounded text-primary-container focus:ring-0 cursor-pointer"
+                          />
+                        </div>
+                        <div className="mt-4">
+                          <p className="font-display font-semibold text-xs text-on-surface leading-tight">{card.label}</p>
+                          <p className="text-[11px] text-outline mt-1 leading-snug">{card.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Inputs Inferiores: Fecha de Rodaje y Notas Técnicas */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <div>
+                      <label className="block text-xs font-semibold text-outline mb-1.5">Fecha Tentativa de Rodaje</label>
+                      <div className="relative">
+                        <span className="material-symbols-outlined absolute left-3 top-2.5 text-outline text-[18px]">calendar_today</span>
+                        <input 
+                          type="text" 
+                          value={datos.fecha_rodaje || ''} 
+                          onChange={(e) => alCambiarDato('fecha_rodaje', e.target.value)}
+                          placeholder="Ej: Jueves 17 Sept, 16:30 hrs" 
+                          className="w-full pl-10 pr-3 py-2 bg-surface-container-low rounded-xl text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container border-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-outline mb-1.5">Notas Técnicas para la Producción</label>
+                      <input 
+                        type="text" 
+                        value={datos.notas_produccion || ''} 
+                        onChange={(e) => alCambiarDato('notas_produccion', e.target.value)}
+                        placeholder="Ej: Pedir llaves en portería con el código 402, mejor luz al atardecer." 
+                        className="w-full px-3 py-2 bg-surface-container-low rounded-xl text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container border-none"
+                      />
+                    </div>
+                  </div>
+
                 </section>
 
                 {/* ── Card 4: Pauta Digital ── */}
