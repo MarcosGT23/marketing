@@ -1,0 +1,73 @@
+.slide-confirm-container {
+  position: relative;
+  user-select: none;
+  touch-action: none;
+  width: 100%;
+}
+
+.slide-confirm-track {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background: var(--color-surface-container);
+  border: 1px solid var(--color-surface-container-high);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  transition: border-color 0.3s ease, background 0.3s ease;
+}
+
+.slide-confirm-track.is-confirmed {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.slide-confirm-track.is-disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.slide-confirm-fill {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  bottom: 4px;
+  background: linear-gradient(90deg, rgba(37, 99, 235, 0.2), rgba(16, 185, 129, 0.35));
+  pointer-events: none;
+  z-index: 1;
+}
+
+.slide-confirm-track.is-confirmed .slide-confirm-fill {
+  background: rgba(16, 185, 129, 0.2);
+}
+
+.slide-confirm-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 2;
+  font-size: 13px;
+  letter-spacing: 0.01em;
+}
+
+.slide-confirm-thumb {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-primary), #1d4ed8);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35), 0 1px 3px rgba(0, 0, 0, 0.1);
+  cursor: grab;
+  transition: box-shadow 0.2s ease;
+}
+
+.slide-confirm-thumb:active {
+  cursor: grabbing;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.45);
+}

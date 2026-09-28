@@ -12,10 +12,10 @@ function useGoo(blur = 2.4, cut = 26) {
   const rawId = useId().replace(/:/g, "");
   const id = `goo-${rawId}`;
   const goo = (
-    <svg 
-      className="liq-defs" 
-      aria-hidden="true" 
-      focusable="false" 
+    <svg
+      className="liq-defs"
+      aria-hidden="true"
+      focusable="false"
       style={{ position: 'absolute', width: 0, height: 0, pointerEvents: 'none' }}
     >
       <defs>
@@ -41,10 +41,10 @@ function useGoo(blur = 2.4, cut = 26) {
 }
 
 const ESTADOS = [
-  { id: 'Por Hacer',  label: 'Por Hacer',  short: 'Hacer',  pct: 0,   icon: 'pending',     tint: '#64748b' },
-  { id: 'En Proceso', label: 'En Proceso', short: 'Diseño', pct: 50,  icon: 'autorenew',   tint: '#2563eb' },
-  { id: 'Revisión',   label: 'Revisión',   short: 'Revisar',pct: 75,  icon: 'rate_review', tint: '#7c3aed' },
-  { id: 'Finalizado', label: 'Finalizado', short: 'Listo',  pct: 100, icon: 'task_alt',    tint: '#10b981' },
+  { id: 'Por Hacer', label: 'Por Hacer', short: 'Hacer', pct: 0, icon: 'pending', tint: '#64748b' },
+  { id: 'En Proceso', label: 'En Proceso', short: 'Diseño', pct: 50, icon: 'autorenew', tint: '#2563eb' },
+  { id: 'Revisión', label: 'Revisión', short: 'Revisar', pct: 75, icon: 'rate_review', tint: '#7c3aed' },
+  { id: 'Finalizado', label: 'Finalizado', short: 'Listo', pct: 100, icon: 'task_alt', tint: '#10b981' },
 ];
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -145,7 +145,7 @@ export default function LiquidStateSelector({ estadoActual = 'Por Hacer', alCamb
       setHeld(true);
       try {
         e.currentTarget.setPointerCapture(e.pointerId);
-      } catch {}
+      } catch { }
     }
 
     if (!g.isDragging) return;
@@ -219,9 +219,9 @@ export default function LiquidStateSelector({ estadoActual = 'Por Hacer', alCamb
         }}
       >
         {/* Capa 1: Blob metaball líquido con filtro SVG goo perfectamente delimitado por inset-1 */}
-        <div 
-          className="absolute inset-1 pointer-events-none" 
-          aria-hidden="true" 
+        <div
+          className="absolute inset-1 pointer-events-none"
+          aria-hidden="true"
           style={{ filter: gooUrl }}
         >
           <motion.div
@@ -256,14 +256,13 @@ export default function LiquidStateSelector({ estadoActual = 'Por Hacer', alCamb
                   e.stopPropagation();
                   handleSelectSlot(idx);
                 }}
-                className={`relative flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-0.5 sm:px-1 rounded-xl cursor-pointer transition-colors duration-200 outline-none select-none active:scale-95 ${
-                  isSelected || isHovered
-                    ? 'text-white font-bold drop-shadow-xs'
-                    : 'text-on-surface-variant hover:text-on-surface'
-                }`}
+                className={`relative flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-0.5 sm:px-1 rounded-xl cursor-pointer transition-colors duration-200 outline-none select-none active:scale-95 ${isSelected || isHovered
+                  ? 'text-white font-bold drop-shadow-xs'
+                  : 'text-on-surface-variant hover:text-on-surface'
+                  }`}
                 title={`${est.label} (${est.pct}%)`}
               >
-                <span 
+                <span
                   className="material-symbols-outlined text-[16px] sm:text-[17px] transition-transform duration-200 pointer-events-none leading-none flex-shrink-0"
                   style={{
                     transform: isSelected ? 'scale(1.12)' : 'scale(1)',
@@ -280,10 +279,9 @@ export default function LiquidStateSelector({ estadoActual = 'Por Hacer', alCamb
                     {est.short}
                   </span>
 
-                  <span 
-                    className={`text-[8.5px] sm:text-[9.5px] px-1 py-0.2 rounded-full font-mono transition-opacity ${
-                      isSelected ? 'bg-black/25 text-white' : 'opacity-65 text-outline'
-                    }`}
+                  <span
+                    className={`text-[8.5px] sm:text-[9.5px] px-1 py-0.2 rounded-full font-mono transition-opacity ${isSelected ? 'bg-black/25 text-white' : 'opacity-65 text-outline'
+                      }`}
                   >
                     {est.pct}%
                   </span>

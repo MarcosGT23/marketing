@@ -1,5 +1,7 @@
 import { useState, useMemo } from 'react';
 import LiquidStateSelector from './LiquidStateSelector';
+import { SlideConfirm } from "./SlideConfirm";
+import "./SlideConfirm.css";
 
 function StyledInput({ icon, ...rest }) {
     const [focused, setFocused] = useState(false);
@@ -99,6 +101,7 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
     const [agenteSeleccionadoId, setAgenteSeleccionadoId] = useState(null);
     const [vistaModo, setVistaModo] = useState('agentes'); // 'agentes' | 'todos'
     const [busqueda, setBusqueda] = useState('');
+    const [tarjetasBloqueadas, setTarjetasBloqueadas] = useState({});
 
     // Agrupar tareas de diseño por agente
     const agentes = useMemo(() => {
@@ -527,16 +530,26 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
         const agente = item.usuarios?.nombre || 'Sin agente';
         const s = getStatusStyle(tarea.estado);
         const progreso = ESTADO_PROGRESO[tarea.estado] ?? (tarea.progreso_porcentaje ?? 0);
+        const estaBloqueada = Boolean(tarjetasBloqueadas[tarea.id_tarea] ?? (tarea.estado === 'Finalizado'));
 
         return (
             <div key={tarea.id_tarea || item.id_requerimiento}
-                className="rounded-2xl shadow-sm flex flex-col justify-between overflow-hidden transition-all hover:shadow-md border"
-                style={{ background: 'var(--color-surface-container-lowest)', borderColor: 'var(--color-surface-container)' }}>
+                className={`rounded-2xl shadow-sm flex flex-col justify-between overflow-hidden transition-all duration-300 hover:shadow-md border ${
+                    estaBloqueada ? 'ring-1 ring-emerald-500/30' : ''
+                }`}
+                style={{ 
+                    background: estaBloqueada ? 'rgba(16, 185, 129, 0.06)' : 'var(--color-surface-container-lowest)', 
+                    borderColor: estaBloqueada ? 'rgba(16, 185, 129, 0.4)' : 'var(--color-surface-container)',
+                    boxShadow: estaBloqueada ? '0 4px 20px -2px rgba(16, 185, 129, 0.12)' : 'none'
+                }}>
 
                 <div>
                     {/* Card header */}
                     <div className="px-4 sm:px-5 py-3.5 sm:py-4 flex items-start justify-between gap-3 border-b"
-                        style={{ background: 'var(--color-surface-container-low)', borderColor: 'var(--color-surface-container)' }}>
+                        style={{ 
+                            background: estaBloqueada ? 'rgba(16, 185, 129, 0.12)' : 'var(--color-surface-container-low)', 
+                            borderColor: estaBloqueada ? 'rgba(16, 185, 129, 0.2)' : 'var(--color-surface-container)' 
+                        }}>
                         <div className="min-w-0">
                             <h3 className="font-title-md truncate font-semibold" style={{ color: 'var(--color-on-surface)', fontSize: '15px' }}>
                                 {item.nombre_propiedad}
@@ -545,11 +558,19 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
                                 Agente: <strong>{agente}</strong> · {item.tipo} · {item.categoria}
                             </p>
                         </div>
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-label-sm text-[11px] flex-shrink-0 font-medium"
-                            style={{ background: s.bg, color: s.color }}>
-                            <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>{s.icon}</span>
-                            {tarea.estado || 'Por Hacer'}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                            {estaBloqueada && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 border border-emerald-500/30">
+                                    <span className="material-symbols-outlined text-[12px]">lock</span>
+                                    Bloqueada
+                                </span>
+                            )}
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-label-sm text-[11px] flex-shrink-0 font-medium"
+                                style={{ background: s.bg, color: s.color }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>{s.icon}</span>
+                                {tarea.estado || 'Por Hacer'}
+                            </span>
+                        </div>
                     </div>
 
                     {/* Meta info */}
@@ -583,39 +604,62 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
                     </div>
                 </div>
 
-                {/* Controls: Solo Estado y Guardar */}
-                <div className="px-4 sm:px-5 py-3 sm:py-4 space-y-3 bg-surface-container-low/20">
+                {/* Controls: Estado y SlideConfirm / Desbloquear */}
+                <div className="px-4 sm:px-5 py-3 sm:py-4 space-y-3"
+                    style={{ background: estaBloqueada ? 'rgba(16, 185, 129, 0.04)' : 'var(--color-surface-container-low/20)' }}>
                     <div className="flex flex-col gap-2">
                         <div className="flex items-center justify-between">
                             <label className="font-label-sm text-xs font-semibold" style={{ color: 'var(--color-on-surface-variant)' }}>
                                 Estado de la Tarea
                             </label>
-                            <span className="text-[10px] text-outline flex items-center gap-1">
-                                <span className="material-symbols-outlined text-[12px]">touch_app</span>
-                                Arrastra o clica
-                            </span>
+                            {estaBloqueada ? (
+                                <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-[12px]">lock</span>
+                                    Guardado y bloqueado
+                                </span>
+                            ) : (
+                                <span className="text-[10px] text-outline flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-[12px]">touch_app</span>
+                                    Arrastra o clica
+                                </span>
+                            )}
                         </div>
-                        <LiquidStateSelector 
-                            estadoActual={tarea.estado || 'Por Hacer'}
-                            alCambiarEstado={(nuevoEstado) => alCambiarCampo(tarea.id_tarea, 'estado', nuevoEstado)}
-                        />
+                        <div className={estaBloqueada ? 'pointer-events-none opacity-80' : ''}>
+                            <LiquidStateSelector 
+                                estadoActual={tarea.estado || 'Por Hacer'}
+                                alCambiarEstado={(nuevoEstado) => alCambiarCampo(tarea.id_tarea, 'estado', nuevoEstado)}
+                            />
+                        </div>
                     </div>
 
-                    <button
-                        className="w-full flex items-center justify-center gap-2 font-label-md font-medium transition-all active:scale-95"
-                        style={{
-                            height: '42px', borderRadius: '0.5rem',
-                            background: 'var(--color-primary-container)',
-                            color: 'var(--color-on-primary)',
-                            border: 'none', cursor: 'pointer', fontSize: '14px',
-                            boxShadow: '0 2px 8px rgba(37,99,235,0.2)',
-                        }}
-                        onClick={() => alGuardar(tarea.id_tarea)}
-                        onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'var(--color-primary-container)'}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>save</span>
-                        Guardar Progreso
-                    </button>
+                    {estaBloqueada ? (
+                        <div className="pt-1 flex flex-col gap-2">
+                            <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                                <span className="material-symbols-outlined text-[17px]">verified</span>
+                                <span>Progreso guardado y bloqueado</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setTarjetasBloqueadas(prev => ({ ...prev, [tarea.id_tarea]: false }))}
+                                className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-xs font-semibold border border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-500/20 active:scale-98 transition-all cursor-pointer shadow-xs"
+                            >
+                                <span className="material-symbols-outlined text-[16px]">lock_open</span>
+                                Desbloquear para editar
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="pt-1 flex justify-center">
+                            <SlideConfirm
+                                corner={28}
+                                speed={50}
+                                width={280}
+                                onConfirm={async () => {
+                                    setTarjetasBloqueadas(prev => ({ ...prev, [tarea.id_tarea]: true }));
+                                    await alGuardar(tarea.id_tarea);
+                                }}
+                            />
+                        </div>
+                    )}
                 </div>
             </div>
         );
