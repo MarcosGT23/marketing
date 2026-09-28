@@ -522,7 +522,7 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
 
                 <div>
                     {/* Card header */}
-                    <div className="px-5 py-4 flex items-start justify-between gap-3 border-b"
+                    <div className="px-4 sm:px-5 py-3.5 sm:py-4 flex items-start justify-between gap-3 border-b"
                         style={{ background: 'var(--color-surface-container-low)', borderColor: 'var(--color-surface-container)' }}>
                         <div className="min-w-0">
                             <h3 className="font-title-md truncate font-semibold" style={{ color: 'var(--color-on-surface)', fontSize: '15px' }}>
@@ -540,7 +540,7 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
                     </div>
 
                     {/* Meta info */}
-                    <div className="px-5 py-3 space-y-1.5 font-body-sm border-b text-xs"
+                    <div className="px-4 sm:px-5 py-3 space-y-1.5 font-body-sm border-b text-xs"
                         style={{ borderColor: 'var(--color-surface-container-low)', background: 'var(--color-surface-container-low)' }}>
                         <p style={{ color: 'var(--color-on-surface-variant)' }}>
                             <span style={{ color: 'var(--color-outline)' }}>Ubicación:</span> {item.ubicacion || 'No especificada'}
@@ -558,7 +558,7 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
                     </div>
 
                     {/* Progress Bar vinculada al Estado */}
-                    <div className="px-5 py-3.5 border-b" style={{ borderColor: 'var(--color-surface-container-low)' }}>
+                    <div className="px-4 sm:px-5 py-3 sm:py-3.5 border-b" style={{ borderColor: 'var(--color-surface-container-low)' }}>
                         <div className="flex justify-between font-label-sm text-[11px] mb-2">
                             <span style={{ color: 'var(--color-outline)' }}>Avance ({tarea.estado || 'Por Hacer'})</span>
                             <span style={{ color: s.bar || 'var(--color-secondary)', fontWeight: 700 }}>{progreso}%</span>

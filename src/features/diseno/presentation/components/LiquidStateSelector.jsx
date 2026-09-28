@@ -68,49 +68,58 @@ export default function LiquidStateSelector({ estadoActual = 'Por Hacer', alCamb
   const vel = useMotionValue(0);
   const squash = useTransform(vel, (v) => 1 + clamp(Math.abs(v) * 0.12, 0, 0.35));
   const wide = useTransform(squash, (q) => 1 / q);
-  const tilt = useTransform(vel, (v) => clamp(v * 2.8, -12, 12));
+  const tilt = useTransform(vel, (v) => clamp(v * 2.8, -10, 10));
 
-  // Ancho dinámico de cada ranura
-  const getSlotWidth = () => {
-    if (!containerRef.current) return 70;
-    return containerRef.current.offsetWidth / ESTADOS.length;
+  // Cálculo simétrico exacto del ancho de ranura considerando los 4px de padding interno (inset-1)
+  const getMetrics = () => {
+    if (!containerRef.current) return { slotW: 70, innerW: 280, pad: 4 };
+    const pad = 4; // p-1 = 4px
+    const totalW = containerRef.current.clientWidth;
+    const innerW = Math.max(0, totalW - pad * 2);
+    const slotW = innerW / ESTADOS.length;
+    return { slotW, innerW, pad };
   };
 
-  // Posicionar la cápsula cuando cambia el estado o se redimensiona
+  // Posicionar la cápsula cuando cambia activeIndex o se redimensiona
   useEffect(() => {
     if (held) return;
-    const slotW = getSlotWidth();
+    const { slotW } = getMetrics();
     animate(x, activeIndex * slotW, LIQUID);
   }, [activeIndex, held]);
 
+  // ResizeObserver para mantener simetría matemática ante cualquier cambio de pantalla o grid
   useEffect(() => {
-    const handleResize = () => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const ro = new ResizeObserver(() => {
       if (held) return;
-      const slotW = getSlotWidth();
+      const { slotW } = getMetrics();
       x.set(activeIndex * slotW);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    });
+
+    ro.observe(el);
+    return () => ro.disconnect();
   }, [activeIndex, held, x]);
 
   // Selección directa por clic
   const handleSelectSlot = (index) => {
-    const slotW = getSlotWidth();
+    const { slotW } = getMetrics();
     animate(x, index * slotW, LIQUID);
-    if (alCambiarEstado) {
+    if (alCambiarEstado && ESTADOS[index].id !== estadoActual) {
       alCambiarEstado(ESTADOS[index].id);
     }
   };
 
-  // Pointer Handlers que diferencian con precisión CLIC vs ARRASTRE
+  // Pointer Handlers con discriminación precisa de Clic vs Arrastre
   const onPointerDown = (e) => {
     const el = containerRef.current;
     if (!el) return;
 
     const rect = el.getBoundingClientRect();
-    const currentPointerX = e.clientX - rect.left;
-    const slotW = getSlotWidth();
-    const clickedSlot = clamp(Math.floor(currentPointerX / slotW), 0, ESTADOS.length - 1);
+    const { slotW, pad, innerW } = getMetrics();
+    const pointerRelativeX = clamp(e.clientX - rect.left - pad, 0, innerW - 1);
+    const clickedSlot = clamp(Math.floor(pointerRelativeX / slotW), 0, ESTADOS.length - 1);
 
     grabRef.current = {
       startX: e.clientX,
@@ -130,7 +139,7 @@ export default function LiquidStateSelector({ estadoActual = 'Por Hacer', alCamb
 
     const distMoved = Math.hypot(e.clientX - g.startX, e.clientY - g.startY);
 
-    // Si se desplaza más de 4px, se activa el modo arrastre (drag)
+    // Si se mueve más de 4px, entra en modo arrastre (drag)
     if (!g.isDragging && distMoved > 4) {
       g.isDragging = true;
       setHeld(true);
@@ -141,8 +150,7 @@ export default function LiquidStateSelector({ estadoActual = 'Por Hacer', alCamb
 
     if (!g.isDragging) return;
 
-    const el = containerRef.current;
-    const slotW = getSlotWidth();
+    const { slotW } = getMetrics();
     const maxDrag = slotW * (ESTADOS.length - 1);
 
     const deltaX = e.clientX - g.startX;
@@ -164,9 +172,9 @@ export default function LiquidStateSelector({ estadoActual = 'Por Hacer', alCamb
     const g = grabRef.current;
     if (!g) return;
 
-    const slotW = getSlotWidth();
+    const { slotW } = getMetrics();
 
-    // 1. Caso CLIC / TAP directo (sin arrastrar)
+    // 1. Caso CLIC directo (sin arrastre)
     if (!g.isDragging) {
       const targetIndex = g.clickedSlot;
       grabRef.current = null;
@@ -177,7 +185,7 @@ export default function LiquidStateSelector({ estadoActual = 'Por Hacer', alCamb
       return;
     }
 
-    // 2. Caso ARRASTRE finalizado
+    // 2. Caso ARRASTRE
     const currentX = x.get();
     const targetIndex = clamp(Math.round(currentX / slotW), 0, ESTADOS.length - 1);
 
@@ -188,7 +196,7 @@ export default function LiquidStateSelector({ estadoActual = 'Por Hacer', alCamb
 
     animate(x, targetIndex * slotW, LIQUID);
 
-    if (alCambiarEstado) {
+    if (alCambiarEstado && ESTADOS[targetIndex].id !== estadoActual) {
       alCambiarEstado(ESTADOS[targetIndex].id);
     }
   };
@@ -205,19 +213,19 @@ export default function LiquidStateSelector({ estadoActual = 'Por Hacer', alCamb
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        className="relative h-11 w-full rounded-xl p-1 overflow-hidden cursor-pointer touch-none transition-all shadow-inner border border-surface-container"
+        className="relative h-12 w-full rounded-2xl p-1 overflow-hidden cursor-pointer touch-none select-none transition-all shadow-inner border border-surface-container"
         style={{
           background: 'var(--color-surface-container-low)',
         }}
       >
-        {/* Capa 1: Blob metaball líquido con filtro SVG goo */}
+        {/* Capa 1: Blob metaball líquido con filtro SVG goo perfectamente delimitado por inset-1 */}
         <div 
-          className="absolute inset-0 pointer-events-none p-1" 
+          className="absolute inset-1 pointer-events-none" 
           aria-hidden="true" 
           style={{ filter: gooUrl }}
         >
           <motion.div
-            className="h-full rounded-lg shadow-sm"
+            className="h-full rounded-xl shadow-sm"
             style={{
               x,
               width: `${100 / ESTADOS.length}%`,
@@ -227,15 +235,15 @@ export default function LiquidStateSelector({ estadoActual = 'Por Hacer', alCamb
               skewX: tilt,
             }}
             animate={{
-              scale: held ? 1.05 : 1,
-              filter: held ? 'brightness(1.1)' : 'brightness(1)',
+              scale: held ? 1.04 : 1,
+              filter: held ? 'brightness(1.08)' : 'brightness(1)',
             }}
             transition={LIQUID}
           />
         </div>
 
-        {/* Capa 2: Ranuras y botones (Cliqueables directamente) */}
-        <div className="relative z-10 grid grid-cols-4 h-full w-full">
+        {/* Capa 2: 4 Ranuras proporcionales y simétricas en mobile y desktop */}
+        <div className="absolute inset-1 z-10 grid grid-cols-4 h-full w-full">
           {ESTADOS.map((est, idx) => {
             const isSelected = activeIndex === idx;
             const isHovered = held && hoveredIdx === idx;
@@ -248,36 +256,38 @@ export default function LiquidStateSelector({ estadoActual = 'Por Hacer', alCamb
                   e.stopPropagation();
                   handleSelectSlot(idx);
                 }}
-                className={`relative flex items-center justify-center gap-1 sm:gap-1.5 px-1 py-0.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors duration-150 outline-none select-none active:scale-95 ${
+                className={`relative flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-0.5 sm:px-1 rounded-xl cursor-pointer transition-colors duration-200 outline-none select-none active:scale-95 ${
                   isSelected || isHovered
                     ? 'text-white font-bold drop-shadow-xs'
                     : 'text-on-surface-variant hover:text-on-surface'
                 }`}
-                title={`Cambiar a: ${est.label} (${est.pct}%)`}
+                title={`${est.label} (${est.pct}%)`}
               >
                 <span 
-                  className="material-symbols-outlined text-[15px] sm:text-[16px] transition-transform duration-200 pointer-events-none"
+                  className="material-symbols-outlined text-[16px] sm:text-[17px] transition-transform duration-200 pointer-events-none leading-none flex-shrink-0"
                   style={{
-                    transform: isSelected ? 'scale(1.15)' : 'scale(1)',
+                    transform: isSelected ? 'scale(1.12)' : 'scale(1)',
                   }}
                 >
                   {est.icon}
                 </span>
 
-                <span className="hidden sm:inline truncate text-[11px] leading-none pointer-events-none">
-                  {est.label}
-                </span>
-                <span className="inline sm:hidden truncate text-[10px] leading-none pointer-events-none">
-                  {est.short}
-                </span>
+                <div className="flex items-center gap-1 pointer-events-none leading-none min-w-0">
+                  <span className="hidden sm:inline truncate text-[11px] font-semibold">
+                    {est.label}
+                  </span>
+                  <span className="inline sm:hidden truncate text-[10px] font-semibold">
+                    {est.short}
+                  </span>
 
-                <span 
-                  className={`text-[9px] px-1 py-0.2 rounded-full font-mono transition-opacity pointer-events-none ${
-                    isSelected ? 'bg-black/20 text-white' : 'opacity-60 text-outline'
-                  }`}
-                >
-                  {est.pct}%
-                </span>
+                  <span 
+                    className={`text-[8.5px] sm:text-[9.5px] px-1 py-0.2 rounded-full font-mono transition-opacity ${
+                      isSelected ? 'bg-black/25 text-white' : 'opacity-65 text-outline'
+                    }`}
+                  >
+                    {est.pct}%
+                  </span>
+                </div>
               </button>
             );
           })}
