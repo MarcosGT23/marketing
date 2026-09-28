@@ -36,9 +36,21 @@ export default function TableroDisenoContainer() {
         setDatos(prev => prev.map(item => {
             const td = item.tareas_diseno?.[0];
             if (td && td.id_tarea === idTarea) {
+                const actualizado = { ...td, [campo]: valor };
+                if (campo === 'estado') {
+                    const porcentajes = {
+                        'Por Hacer': 0,
+                        'En Proceso': 50,
+                        'Revisión': 75,
+                        'Finalizado': 100
+                    };
+                    if (porcentajes[valor] !== undefined) {
+                        actualizado.progreso_porcentaje = porcentajes[valor];
+                    }
+                }
                 return {
                     ...item,
-                    tareas_diseno: [{ ...td, [campo]: valor }]
+                    tareas_diseno: [actualizado]
                 };
             }
             return item;

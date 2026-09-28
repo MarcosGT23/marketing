@@ -61,13 +61,21 @@ function StyledSelect({ children, ...rest }) {
     );
 }
 
+const ESTADO_PROGRESO = {
+    'Por Hacer': 0,
+    'En Proceso': 50,
+    'Revisión': 75,
+    'Finalizado': 100
+};
+
 function getStatusStyle(estado) {
     const map = {
-        'Finalizado': { bg: 'var(--color-secondary-container)', color: 'var(--color-on-secondary-container)', icon: 'check_circle' },
-        'En Proceso':  { bg: 'var(--color-surface-container-high)', color: 'var(--color-on-surface-variant)', icon: 'sync' },
-        'Revisión':    { bg: 'rgba(219,225,255,0.6)', color: 'var(--color-on-primary-fixed-variant)', icon: 'rate_review' },
+        'Finalizado': { bg: 'rgba(16, 185, 129, 0.15)', color: '#059669', icon: 'check_circle', bar: '#10b981' },
+        'Revisión':    { bg: 'rgba(99, 102, 241, 0.15)', color: '#4f46e5', icon: 'rate_review', bar: '#6366f1' },
+        'En Proceso':  { bg: 'rgba(59, 130, 246, 0.15)', color: '#2563eb', icon: 'sync', bar: '#3b82f6' },
+        'Por Hacer':   { bg: 'var(--color-surface-container)', color: 'var(--color-outline)', icon: 'pending', bar: 'var(--color-outline)' },
     };
-    return map[estado] || { bg: 'var(--color-surface-container)', color: 'var(--color-outline)', icon: 'pending' };
+    return map[estado] || { bg: 'var(--color-surface-container)', color: 'var(--color-outline)', icon: 'pending', bar: 'var(--color-outline)' };
 }
 
 const COLORES_AVATAR = [
@@ -504,7 +512,7 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
         const tarea = item.tareas_diseno?.[0] || {};
         const agente = item.usuarios?.nombre || 'Sin agente';
         const s = getStatusStyle(tarea.estado);
-        const progreso = tarea.progreso_porcentaje ?? 0;
+        const progreso = ESTADO_PROGRESO[tarea.estado] ?? (tarea.progreso_porcentaje ?? 0);
 
         return (
             <div key={tarea.id_tarea || item.id_requerimiento}
@@ -523,7 +531,7 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
                                 Agente: <strong>{agente}</strong> · {item.tipo} · {item.categoria}
                             </p>
                         </div>
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-label-sm text-[11px] flex-shrink-0"
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-label-sm text-[11px] flex-shrink-0 font-medium"
                             style={{ background: s.bg, color: s.color }}>
                             <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>{s.icon}</span>
                             {tarea.estado || 'Por Hacer'}
@@ -548,45 +556,35 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
                         )}
                     </div>
 
-                    {/* Progress */}
-                    <div className="px-5 py-3 border-b" style={{ borderColor: 'var(--color-surface-container-low)' }}>
+                    {/* Progress Bar vinculada al Estado */}
+                    <div className="px-5 py-3.5 border-b" style={{ borderColor: 'var(--color-surface-container-low)' }}>
                         <div className="flex justify-between font-label-sm text-[11px] mb-2">
-                            <span style={{ color: 'var(--color-outline)' }}>Avance</span>
-                            <span style={{ color: 'var(--color-secondary)', fontWeight: 600 }}>{progreso}%</span>
+                            <span style={{ color: 'var(--color-outline)' }}>Avance ({tarea.estado || 'Por Hacer'})</span>
+                            <span style={{ color: s.bar || 'var(--color-secondary)', fontWeight: 700 }}>{progreso}%</span>
                         </div>
-                        <div className="w-full rounded-full overflow-hidden" style={{ height: '6px', background: 'var(--color-surface-container)' }}>
+                        <div className="w-full rounded-full overflow-hidden" style={{ height: '7px', background: 'var(--color-surface-container)' }}>
                             <div className="h-full rounded-full transition-all duration-500"
-                                style={{ width: `${progreso}%`, background: 'var(--color-secondary)' }} />
+                                style={{ width: `${progreso}%`, background: s.bar || 'var(--color-secondary)' }} />
                         </div>
                     </div>
                 </div>
 
-                {/* Controls */}
+                {/* Controls: Solo Estado y Guardar */}
                 <div className="px-4 sm:px-5 py-3 sm:py-4 space-y-3 bg-surface-container-low/20">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="flex flex-col gap-1.5">
-                            <label className="font-label-sm text-[11px]" style={{ color: 'var(--color-on-surface-variant)' }}>Estado</label>
-                            <StyledSelect value={tarea.estado || 'Por Hacer'}
-                                onChange={(e) => alCambiarCampo(tarea.id_tarea, 'estado', e.target.value)}>
-                                <option value="Por Hacer">Por Hacer</option>
-                                <option value="En Proceso">En Proceso</option>
-                                <option value="Revisión">Revisión</option>
-                                <option value="Finalizado">Finalizado</option>
-                            </StyledSelect>
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                            <label className="font-label-sm text-[11px]" style={{ color: 'var(--color-on-surface-variant)' }}>Avance (%)</label>
-                            <StyledInput type="number" min="0" max="100" icon="percent"
-                                value={tarea.progreso_porcentaje ?? 0}
-                                onChange={(e) => alCambiarCampo(tarea.id_tarea, 'progreso_porcentaje', parseInt(e.target.value, 10) || 0)} />
-                        </div>
-                    </div>
                     <div className="flex flex-col gap-1.5">
-                        <label className="font-label-sm text-[11px]" style={{ color: 'var(--color-on-surface-variant)' }}>Fecha Límite</label>
-                        <StyledInput type="date" icon="event"
-                            value={tarea.fecha_limite || ''}
-                            onChange={(e) => alCambiarCampo(tarea.id_tarea, 'fecha_limite', e.target.value)} />
+                        <label className="font-label-sm text-xs font-semibold" style={{ color: 'var(--color-on-surface-variant)' }}>
+                            Estado de la Tarea
+                        </label>
+                        <StyledSelect 
+                            value={tarea.estado || 'Por Hacer'}
+                            onChange={(e) => alCambiarCampo(tarea.id_tarea, 'estado', e.target.value)}>
+                            <option value="Por Hacer">Por Hacer (0%)</option>
+                            <option value="En Proceso">En Proceso (50%)</option>
+                            <option value="Revisión">Revisión (75%)</option>
+                            <option value="Finalizado">Finalizado (100%)</option>
+                        </StyledSelect>
                     </div>
+
                     <button
                         className="w-full flex items-center justify-center gap-2 font-label-md font-medium transition-all active:scale-95"
                         style={{
