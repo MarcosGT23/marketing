@@ -10,7 +10,7 @@ export default function AgenteContainer() {
         id_agente: '',
         periodo_mensual: 'Septiembre 2026',
         nombre_propiedad: '',
-        categoria: 'Casa',
+        categoria: 'Departamento',
         tipo: 'Venta',
         ubicacion: '',
         precio: '',
@@ -19,17 +19,20 @@ export default function AgenteContainer() {
         descripcion_propiedad: '',
         elemento_destacar: '',
         publico_objetivo: '',
+        // Enrutamiento de entregables
+        req_arte_estatico: true,
+        req_carrusel: false,
+        req_reel: false,
+        // Especificaciones técnicas
         req_guion: false,
         req_fotos: false,
         req_grabacion: false,
         req_edicion: false,
         req_voz_off: false,
-        req_arte_estatico: false,
-        req_carrusel: false,
-        req_reel: false,
         fecha_rodaje: '',
         notas_produccion: '',
-        canales: [],
+        canales: ['Facebook / Instagram'],
+        plataforma: 'Facebook / Instagram',
         presupuesto: ''
     });
 
@@ -51,10 +54,13 @@ export default function AgenteContainer() {
     }, []);
 
     const manejarCambioDato = (campo, valor) => {
-        setFormData((prev) => ({
-            ...prev,
-            [campo]: valor
-        }));
+        setFormData((prev) => {
+            const next = { ...prev, [campo]: valor };
+            if (campo === 'canales') {
+                next.plataforma = Array.isArray(valor) ? valor.join(', ') : valor;
+            }
+            return next;
+        });
     };
 
     const manejarCambioCheckbox = (campo, estaMarcado) => {
