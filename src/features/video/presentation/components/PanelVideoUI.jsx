@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { SlideConfirm } from '../../../diseno/presentation/components/SlideConfirm';
 import '../../../diseno/presentation/components/SlideConfirm.css';
+import { ChecklistRequerimientos } from './ChecklistRequerimientos';
 
 function StyledSelect({ children, ...rest }) {
     const [focused, setFocused] = useState(false);
@@ -631,16 +632,11 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                     <div className={estaBloqueada ? 'pointer-events-none opacity-80' : ''}>
                         {/* Checklist */}
                         <div className="px-5 py-4 border-b" style={{ borderColor: 'var(--color-surface-container-low)' }}>
-                            <p className="font-label-sm uppercase tracking-wider mb-3 text-[11px]" style={{ color: 'var(--color-outline)' }}>
-                                Checklist de Requerimientos
-                            </p>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                {AV_CHECKS.map(({ key, icon, color, label }) => (
-                                    <CheckCard key={key} icon={icon} iconColor={color} label={label}
-                                        checked={Boolean(video[key])}
-                                        onChange={(e) => alCambiarCheck(video.id_tarea, key, e.target.checked)} />
-                                ))}
-                            </div>
+                            <ChecklistRequerimientos
+                                valores={video}
+                                alCambiar={(campo, activo) => alCambiarCheck(video.id_tarea, campo, activo)}
+                                deshabilitado={estaBloqueada}
+                            />
                         </div>
 
                         {/* Progress */}
