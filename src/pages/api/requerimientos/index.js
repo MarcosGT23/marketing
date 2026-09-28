@@ -57,14 +57,12 @@ export async function POST({ request }) {
     }
 
     // 2. Insertar en la tabla maestra
-    const periodoActual = body.periodo_mensual || new Date().toLocaleString('es-ES', { month: 'long', year: 'numeric' });
-
     const { data: requerimiento, error: errorReq } = await supabaseServer
       .from('requerimientos_propiedad')
       .insert([
         {
-          id_agente: (body.id_agente && !isNaN(Number(body.id_agente))) ? parseInt(body.id_agente, 10) : null,
-          periodo_mensual: periodoActual,
+          id_agente: body.id_agente ? (isNaN(Number(body.id_agente)) ? body.id_agente : parseInt(body.id_agente, 10)) : null,
+          periodo_mensual: body.periodo_mensual || 'Septiembre 2026',
           nombre_propiedad: body.nombre_propiedad,
           categoria: body.categoria,
           ubicacion: body.ubicacion,
@@ -74,30 +72,52 @@ export async function POST({ request }) {
           elemento_destacar: body.elemento_destacar,
           publico_objetivo: body.publico_objetivo,
           superficie: body.superficie,
-          habitaciones: body.habitaciones ? parseInt(body.habitaciones, 10) : null
+          habitaciones: body.habitaciones ? parseInt(body.habitaciones, 10) : null,
+          // Nuevos formatos de entregable
+          req_arte_estatico: Boolean(body.req_arte_estatico),
+          req_carrusel: Boolean(body.req_carrusel),
+          req_reel: Boolean(body.req_reel),
+          fecha_rodaje: body.fecha_rodaje || null,
+          notas_produccion: body.notas_produccion || null
         }
       ])
       .select()
       .single();
 
     if (errorReq) {
-      return new Response(JSON.stringify({ error: errorReq.message }), { status: 500 });
+      return new Response(JSON.stringify({ error: errorReq.message }), { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
     const idReq = requerimiento.id_requerimiento;
 
     // 3. Actualizar configuraciones específicas generadas por el Trigger
-    // Actualizar Video (checklist específico)
-    await supabaseServer
-      .from('tareas_video')
-      .update({
-        req_guion: Boolean(body.req_guion),
-        req_fotos: Boolean(body.req_fotos),
-        req_grabacion: Boolean(body.req_grabacion),
-        req_edicion: Boolean(body.req_edicion),
-        req_voz_off: Boolean(body.req_voz_off)
-      })
-      .eq('id_requerimiento', idReq);
+    // Si se pidió Reel, actualizar los detalles técnicos de video
+    if (body.req_reel) {
+      await supabaseServer
+        .from('tareas_video')
+        .update({
+          req_guion: Boolean(body.req_guion),
+          req_fotos: Boolean(body.req_fotos),
+          req_grabacion: true,
+          req_edicion: Boolean(body.req_edicion),
+          req_voz_off: Boolean(body.req_voz_off)
+        })
+        .eq('id_requerimiento', idReq);
+    } else {
+      await supabaseServer
+        .from('tareas_video')
+        .update({
+          req_guion: Boolean(body.req_guion),
+          req_fotos: Boolean(body.req_fotos),
+          req_grabacion: Boolean(body.req_grabacion),
+          req_edicion: Boolean(body.req_edicion),
+          req_voz_off: Boolean(body.req_voz_off)
+        })
+        .eq('id_requerimiento', idReq);
+    }
 
     // Actualizar CM (plataforma y presupuesto)
     await supabaseServer
