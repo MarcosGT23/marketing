@@ -178,13 +178,6 @@ export default function FormularioPropiedadUI({ datos, alCambiarDato, alCambiarC
         setSubmitted(false);
     };
 
-    const AV_TASKS = [
-        { key: 'req_guion',    icon: 'description', iconColor: 'var(--color-primary)',           label: 'Guion Técnico',   sub: 'Storyline & estructura de ganchos' },
-        { key: 'req_fotos',    icon: 'photo_camera', iconColor: 'var(--color-secondary)',         label: 'Sesión de Fotos', sub: 'HDR, gran angular y detalles' },
-        { key: 'req_grabacion',icon: 'videocam',     iconColor: 'var(--color-tertiary)',           label: 'Grabación Reel',  sub: 'Tomas verticales + Drone 4K' },
-        { key: 'req_edicion',  icon: 'movie_edit',   iconColor: 'var(--color-primary-container)', label: 'Postproducción',  sub: 'Cortes dinámicos, sound fx' },
-        { key: 'req_voz_off',  icon: 'mic',          iconColor: 'var(--color-outline)',            label: 'Voz en Off',      sub: 'Locución profesional neutra' },
-    ];
 
     return (
         <div className="w-full flex flex-col gap-0">
@@ -498,39 +491,6 @@ export default function FormularioPropiedadUI({ datos, alCambiarDato, alCambiarC
                     </div>
                   </div>
 
-                  {/* Tarjetas de Tareas Técnicas (Captura de Imagen) */}
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                    {[
-                      { id: 'req_guion', label: 'Guion Técnico', desc: 'Storyline & estructura de ganchos' },
-                      { id: 'req_fotos', label: 'Sesión de Fotos', desc: 'HDR, gran angular y detalles' },
-                      { id: 'req_reel', label: 'Grabación Reel', desc: 'Tomas verticales + Drone 4K' },
-                      { id: 'req_edicion', label: 'Postproducción', desc: 'Cortes dinámicos, sound fx' },
-                      { id: 'req_voz_off', label: 'Voz en Off', desc: 'Locución profesional neutra' }
-                    ].map(card => (
-                      <div 
-                        key={card.id} 
-                        onClick={() => alCambiarCheckbox(card.id, !datos[card.id])}
-                        className={`p-4 rounded-2xl border flex flex-col justify-between cursor-pointer transition-all min-h-[125px] ${
-                          datos[card.id] 
-                            ? 'bg-primary-fixed/20 border-primary-container/40 shadow-xs ring-1 ring-primary-container/20' 
-                            : 'bg-surface-container-low/40 border-surface-container hover:bg-surface-container-low'
-                        }`}
-                      >
-                        <div className="flex justify-end items-start">
-                          <input 
-                            type="checkbox" 
-                            checked={Boolean(datos[card.id])} 
-                            onChange={(e) => { e.stopPropagation(); alCambiarCheckbox(card.id, e.target.checked); }}
-                            className="w-4 h-4 rounded text-primary-container focus:ring-0 cursor-pointer"
-                          />
-                        </div>
-                        <div className="mt-3">
-                          <p className="font-display font-semibold text-xs text-on-surface leading-tight">{card.label}</p>
-                          <p className="text-[11px] text-outline mt-1 leading-snug">{card.desc}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
 
                   {/* Inputs Inferiores: Fecha de Rodaje y Notas Técnicas */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
