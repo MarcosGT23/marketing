@@ -16,7 +16,9 @@ export default function TableroDisenoContainer() {
                 setDatos([]);
                 return;
             }
-            setDatos(Array.isArray(json) ? json : []);
+            // Solo mostrar si tiene tarea de diseño creada por el trigger
+            const tareasFiltradas = (Array.isArray(json) ? json : []).filter(item => item.tareas_diseno && item.tareas_diseno.length > 0);
+            setDatos(tareasFiltradas);
         } catch (err) {
             console.error(err);
             alert('Error cargando tareas de diseño: ' + err.message);
