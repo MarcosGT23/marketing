@@ -317,7 +317,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-outline mb-1">CTR - Clic (%)</label>
+                <label className="block text-[11px] font-semibold text-outline mb-1">CTR - Clic</label>
                 <input 
                   type="number" 
                   step="0.01"
@@ -424,7 +424,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                       <th className="text-right px-3 py-2 text-outline font-semibold">Costo/Lead</th>
                       <th className="text-right px-3 py-2 text-outline font-semibold">Inversión</th>
                       <th className="text-right px-3 py-2 text-outline font-semibold">Alcance</th>
-                      <th className="text-right px-3 py-2 text-outline font-semibold">CTR%</th>
+                      <th className="text-right px-3 py-2 text-outline font-semibold">CTR</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -460,7 +460,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                           <td className="px-3 py-2 text-right text-on-surface">${a.costo_por_lead}</td>
                           <td className="px-3 py-2 text-right text-on-surface">${a.inversion}</td>
                           <td className="px-3 py-2 text-right text-on-surface">{a.alcance?.toLocaleString()}</td>
-                          <td className="px-3 py-2 text-right text-on-surface">{a.ctr_clics}%</td>
+                          <td className="px-3 py-2 text-right text-on-surface">{a.ctr_clics}</td>
                         </tr>
                       ))
                     )}
@@ -475,7 +475,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                         <td className="px-3 py-2 text-right text-on-surface">${subtotalesVista.costo_por_lead}</td>
                         <td className="px-3 py-2 text-right text-on-surface">${subtotalesVista.inversion}</td>
                         <td className="px-3 py-2 text-right text-on-surface">{subtotalesVista.alcance?.toLocaleString()}</td>
-                        <td className="px-3 py-2 text-right text-on-surface">{subtotalesVista.ctr_clics}%</td>
+                        <td className="px-3 py-2 text-right text-on-surface">{subtotalesVista.ctr_clics}</td>
                       </tr>
                     </tfoot>
                   )}
