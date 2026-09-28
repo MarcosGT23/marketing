@@ -1,0 +1,15 @@
+---
+import Layout from "../../core/layouts/Layout.astro";
+import DashboardContainer from "../../features/requerimientos/presentation/DashboardContainer.jsx";
+---
+
+<Layout title="Dashboard General">
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold text-slate-900">Hola, Equipo</h1>
+        <p class="text-slate-500 mt-1">
+            Aquí tienes el resumen de todas las operaciones activas.
+        </p>
+    </div>
+
+    <DashboardContainer client:load />
+</Layout>

@@ -1,0 +1,220 @@
+---
+const { title } = Astro.props;
+const pathname = Astro.url.pathname;
+import "../../styles/global.css";
+---
+
+<html lang="es">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="description" content="Panel de control inmobiliario para gestión de campañas, diseño, video y pauta digital." />
+        <title>{title} | PanelInmobiliario PRO</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    </head>
+    <body class="bg-[var(--color-surface)] font-body-md text-[var(--color-on-surface)] antialiased min-h-screen flex flex-col">
+
+        <!-- Header / Nav -->
+        <header class="fixed top-0 left-0 right-0 z-50 backdrop-blur-md shadow-[0_1px_8px_rgba(0,0,0,0.04)]" style="background-color:rgba(255,255,255,0.95)">
+            <div class="h-16 max-w-7xl mx-auto px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4">
+
+                <!-- Logo + Nav -->
+                <div class="flex items-center gap-4 sm:gap-8 min-w-0">
+                    <a href="/agente/dashboard" class="flex items-center gap-2 group cursor-pointer shrink-0">
+                        <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center shadow-sm" style="background-color:var(--color-primary-container)">
+                            <span class="material-symbols-outlined text-white text-[18px] sm:text-[20px]">domain</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <span class="font-headline-md tracking-tight text-sm sm:text-base" style="color:var(--color-on-surface)">
+                                Panel<span style="color:var(--color-primary-container)">Inmobiliario</span>
+                            </span>
+                            <span class="hidden xs:inline-block ml-0.5 sm:ml-1 px-1.5 py-0.5 rounded font-label-sm text-[9px] sm:text-[10px]" style="background-color:var(--color-primary-fixed);color:var(--color-on-primary-fixed-variant)">PRO</span>
+                        </div>
+                    </a>
+
+                    <nav class="hidden xl:flex items-center gap-6">
+                        <a
+                            href="/agente/dashboard"
+                            class={`py-1 transition-colors font-label-md text-sm relative ${pathname === '/agente/dashboard' ? 'after:content-[\'\'] after:absolute after:bottom-[-22px] after:left-0 after:right-0 after:h-[2.5px] after:rounded-full' : ''}`}
+                            style={pathname === '/agente/dashboard' ? 'color:var(--color-primary-container);font-weight:600' : 'color:var(--color-on-surface-variant)'}
+                        >Dashboard</a>
+                        <a
+                            href="/agente/nuevo"
+                            class="flex items-center gap-1.5 py-1 transition-colors font-label-md text-sm"
+                            style={pathname === '/agente/nuevo' ? 'color:var(--color-primary-container);font-weight:600' : 'color:var(--color-on-surface-variant)'}
+                        >
+                            <span>Nuevo Requerimiento</span>
+                            <span class="material-symbols-outlined text-[16px]" style="color:var(--color-primary-container)">add_circle</span>
+                        </a>
+                        <a
+                            href="/equipo/diseno"
+                            class="flex items-center gap-1.5 py-1 transition-colors font-label-md text-sm"
+                            style={pathname === '/equipo/diseno' ? 'color:var(--color-primary-container);font-weight:600' : 'color:var(--color-on-surface-variant)'}
+                        >
+                            <span>Diseño (Isac)</span>
+                            <span class="px-1.5 py-0.5 rounded-full font-label-sm text-[11px]" style="background-color:var(--color-secondary-container);color:var(--color-on-secondary-container)">4</span>
+                        </a>
+                        <a
+                            href="/equipo/video"
+                            class="flex items-center gap-1.5 py-1 transition-colors font-label-md text-sm"
+                            style={pathname === '/equipo/video' ? 'color:var(--color-primary-container);font-weight:600' : 'color:var(--color-on-surface-variant)'}
+                        >
+                            <span>Video (Sebas / Marco)</span>
+                            <span class="px-1.5 py-0.5 rounded-full font-label-sm text-[11px]" style="background-color:var(--color-tertiary-fixed);color:var(--color-on-tertiary-fixed-variant)">2</span>
+                        </a>
+                        <a
+                            href="/equipo/cm"
+                            class="flex items-center gap-1.5 py-1 transition-colors font-label-md text-sm"
+                            style={pathname === '/equipo/cm' ? 'color:var(--color-primary-container);font-weight:600' : 'color:var(--color-on-surface-variant)'}
+                        >
+                            <span>CM (Brenda)</span>
+                            <span class="px-1.5 py-0.5 rounded-full font-label-sm text-[11px]" style="background-color:var(--color-surface-container-high);color:var(--color-on-surface-variant)">5</span>
+                        </a>
+                    </nav>
+                </div>
+
+                <!-- Right Side -->
+                <div class="flex items-center gap-2">
+                    <!-- Notification Bell -->
+                    <div class="relative">
+                        <button aria-label="Notificaciones" class="w-9 h-9 rounded-lg flex items-center justify-center transition-colors" style="color:var(--color-on-surface-variant)">
+                            <span class="material-symbols-outlined" style="font-size:20px">notifications</span>
+                            <span class="absolute top-2 right-2 w-2 h-2 rounded-full ring-2" style="background-color:var(--color-error);ring-color:white"></span>
+                        </button>
+                    </div>
+
+                    <div class="h-6 w-px hidden sm:block" style="background-color:var(--color-surface-container-high)"></div>
+
+                    <!-- User Profile -->
+                    <div class="flex items-center gap-2 cursor-pointer group pl-1">
+                        <div class="text-right hidden lg:block leading-tight">
+                            <p class="font-label-md text-sm" style="color:var(--color-on-surface)">Carlos Morales</p>
+                            <p class="text-[11px]" style="color:var(--color-outline)">Agente General</p>
+                        </div>
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center" style="background-color:var(--color-primary)">
+                            <span class="material-symbols-outlined" style="color:var(--color-on-primary);font-size:18px">person</span>
+                        </div>
+                        <span class="material-symbols-outlined hidden sm:block" style="color:var(--color-outline);font-size:18px">expand_more</span>
+                    </div>
+
+                    <!-- Mobile hamburger -->
+                    <button id="btn-mobile-menu" aria-label="Abrir menú" class="xl:hidden w-9 h-9 rounded-lg flex items-center justify-center transition-colors hover:bg-surface-container" style="color:var(--color-on-surface-variant)">
+                        <span class="material-symbols-outlined" style="font-size:24px">menu</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mobile Drawer Navigation -->
+            <div id="mobile-drawer" class="hidden xl:hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs">
+                <div class="fixed top-0 right-0 bottom-0 w-72 max-w-[85vw] bg-white shadow-2xl p-6 flex flex-col justify-between overflow-y-auto" style="background-color:var(--color-surface-container-lowest)">
+                    <div>
+                        <div class="flex items-center justify-between pb-4 border-b" style="border-color:var(--color-surface-container)">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white" style="background-color:var(--color-primary-container)">
+                                    <span class="material-symbols-outlined text-[18px]">domain</span>
+                                </div>
+                                <span class="font-bold text-sm" style="color:var(--color-on-surface)">Menú Navegación</span>
+                            </div>
+                            <button id="btn-close-drawer" class="p-1 rounded-lg text-outline hover:text-on-surface">
+                                <span class="material-symbols-outlined text-[20px]">close</span>
+                            </button>
+                        </div>
+
+                        <nav class="flex flex-col gap-1.5 mt-4">
+                            <a href="/agente/dashboard" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+                                style={pathname === '/agente/dashboard' ? 'background:rgba(37,99,235,0.08);color:var(--color-primary-container)' : 'color:var(--color-on-surface)'}>
+                                <span class="material-symbols-outlined text-[20px]">dashboard</span>
+                                <span>Dashboard</span>
+                            </a>
+                            <a href="/agente/nuevo" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+                                style={pathname === '/agente/nuevo' ? 'background:rgba(37,99,235,0.08);color:var(--color-primary-container)' : 'color:var(--color-on-surface)'}>
+                                <span class="material-symbols-outlined text-[20px]">add_circle</span>
+                                <span>Nuevo Requerimiento</span>
+                            </a>
+                            <div class="my-2 border-t" style="border-color:var(--color-surface-container)"></div>
+                            <span class="px-3 text-[10px] font-bold uppercase tracking-wider text-outline">Paneles del Equipo</span>
+                            <a href="/equipo/cm" class="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+                                style={pathname === '/equipo/cm' ? 'background:rgba(37,99,235,0.08);color:var(--color-primary-container)' : 'color:var(--color-on-surface)'}>
+                                <div class="flex items-center gap-3">
+                                    <span class="material-symbols-outlined text-[20px]">campaign</span>
+                                    <span>CM (Brenda)</span>
+                                </div>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary-fixed text-on-primary-fixed-variant">Reporte 28</span>
+                            </a>
+                            <a href="/equipo/video" class="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+                                style={pathname === '/equipo/video' ? 'background:rgba(37,99,235,0.08);color:var(--color-primary-container)' : 'color:var(--color-on-surface)'}>
+                                <div class="flex items-center gap-3">
+                                    <span class="material-symbols-outlined text-[20px]">movie</span>
+                                    <span>Video (Sebas / Marco)</span>
+                                </div>
+                            </a>
+                            <a href="/equipo/diseno" class="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+                                style={pathname === '/equipo/diseno' ? 'background:rgba(37,99,235,0.08);color:var(--color-primary-container)' : 'color:var(--color-on-surface)'}>
+                                <div class="flex items-center gap-3">
+                                    <span class="material-symbols-outlined text-[20px]">palette</span>
+                                    <span>Diseño (Isac)</span>
+                                </div>
+                            </a>
+                        </nav>
+                    </div>
+
+                    <div class="pt-4 border-t" style="border-color:var(--color-surface-container)">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-full flex items-center justify-center text-white" style="background-color:var(--color-primary)">
+                                <span class="material-symbols-outlined text-[18px]">person</span>
+                            </div>
+                            <div>
+                                <p class="text-xs font-bold" style="color:var(--color-on-surface)">Carlos Morales</p>
+                                <p class="text-[11px] text-outline">Agente General</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <script is:inline>
+            const btnOpen = document.getElementById('btn-mobile-menu');
+            const drawer = document.getElementById('mobile-drawer');
+            const btnClose = document.getElementById('btn-close-drawer');
+            if (btnOpen && drawer) {
+                btnOpen.addEventListener('click', () => drawer.classList.remove('hidden'));
+            }
+            if (btnClose && drawer) {
+                btnClose.addEventListener('click', () => drawer.classList.add('hidden'));
+            }
+            if (drawer) {
+                drawer.addEventListener('click', (e) => {
+                    if (e.target === drawer) drawer.classList.add('hidden');
+                });
+            }
+        </script>
+
+        <!-- Page Content -->
+        <main class="flex-1 w-full pt-16" style="background-color:var(--color-surface)">
+            <div class="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
+                <slot />
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="w-full shadow-[0_-1px_8px_rgba(0,0,0,0.02)]" style="background-color:var(--color-surface-container-lowest)">
+            <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 font-body-sm" style="color:var(--color-on-surface-variant)">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined" style="color:var(--color-primary-container);font-size:18px">domain</span>
+                    <span class="font-label-md" style="color:var(--color-on-surface)">PanelInmobiliario</span>
+                    <span>© 2026 Workspace de Marketing & Campañas.</span>
+                </div>
+                <div class="flex items-center gap-6 font-label-sm">
+                    <a href="#" class="transition-colors hover:text-[var(--color-primary-container)]">Soporte Operativo</a>
+                    <a href="#" class="transition-colors hover:text-[var(--color-primary-container)]">Guías de Marca</a>
+                    <a href="#" class="transition-colors hover:text-[var(--color-primary-container)]">Estado del Sistema</a>
+                </div>
+            </div>
+        </footer>
+
+    </body>
+</html>

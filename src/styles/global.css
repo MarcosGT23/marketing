@@ -1,0 +1,247 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap");
+@import "tailwindcss";
+
+@theme {
+  /* Color Tokens */
+  --color-primary:                  #004ac6;
+  --color-on-primary:               #ffffff;
+  --color-primary-container:        #2563eb;
+  --color-on-primary-container:     #eeefff;
+  --color-primary-fixed:            #dbe1ff;
+  --color-primary-fixed-dim:        #b4c5ff;
+  --color-on-primary-fixed:         #00174b;
+  --color-on-primary-fixed-variant: #003ea8;
+  --color-inverse-primary:          #b4c5ff;
+
+  --color-secondary:                  #006c49;
+  --color-on-secondary:               #ffffff;
+  --color-secondary-container:        #6cf8bb;
+  --color-on-secondary-container:     #00714d;
+  --color-secondary-fixed:            #6ffbbe;
+  --color-secondary-fixed-dim:        #4edea3;
+  --color-on-secondary-fixed:         #002113;
+  --color-on-secondary-fixed-variant: #005236;
+
+  --color-tertiary:                  #632ecd;
+  --color-on-tertiary:               #ffffff;
+  --color-tertiary-container:        #7d4ce7;
+  --color-on-tertiary-container:     #f6edff;
+  --color-tertiary-fixed:            #e9ddff;
+  --color-tertiary-fixed-dim:        #d0bcff;
+  --color-on-tertiary-fixed:         #23005c;
+  --color-on-tertiary-fixed-variant: #5516be;
+
+  --color-error:              #ba1a1a;
+  --color-on-error:           #ffffff;
+  --color-error-container:    #ffdad6;
+  --color-on-error-container: #93000a;
+
+  --color-background:    #f8f9ff;
+  --color-on-background: #0b1c30;
+  --color-surface:       #f8f9ff;
+  --color-on-surface:    #0b1c30;
+  --color-surface-variant:    #d3e4fe;
+  --color-on-surface-variant: #434655;
+
+  --color-surface-dim:               #cbdbf5;
+  --color-surface-bright:            #f8f9ff;
+  --color-surface-container-lowest:  #ffffff;
+  --color-surface-container-low:     #eff4ff;
+  --color-surface-container:         #e5eeff;
+  --color-surface-container-high:    #dce9ff;
+  --color-surface-container-highest: #d3e4fe;
+
+  --color-inverse-surface:    #213145;
+  --color-inverse-on-surface: #eaf1ff;
+
+  --color-outline:         #737686;
+  --color-outline-variant: #c3c6d7;
+  --color-surface-tint:    #0053db;
+
+  /* Font Families */
+  --font-sans:        "Inter", system-ui, sans-serif;
+  --font-display:     "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-headline-md: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-headline-lg: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-display-lg:  "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-stat-metric: "Plus Jakarta Sans", system-ui, sans-serif;
+
+  /* Spacing */
+  --spacing-space-xs:  0.25rem;
+  --spacing-space-sm:  0.5rem;
+  --spacing-space-md:  1rem;
+  --spacing-space-lg:  1.5rem;
+  --spacing-space-xl:  2rem;
+  --spacing-space-2xl: 3rem;
+  --spacing-gutter:    1.5rem;
+  --spacing-margin:    2rem;
+}
+
+/* Base Layer */
+@layer base {
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: "Inter", system-ui, sans-serif;
+    background-color: var(--color-surface);
+    color: var(--color-on-surface);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior: none;
+    min-height: 100vh;
+  }
+
+  ::-webkit-scrollbar { display: none; }
+  * { box-sizing: border-box; }
+  main > :first-child { margin-top: 0 !important; }
+  main > :last-child  { margin-bottom: 0 !important; }
+}
+
+/* Typography Utilities */
+@layer utilities {
+  .font-display-lg {
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    font-size: 32px;
+    line-height: 40px;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+  }
+  .font-headline-lg {
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    font-size: 24px;
+    line-height: 32px;
+    letter-spacing: -0.015em;
+    font-weight: 600;
+  }
+  .font-headline-md {
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    font-size: 20px;
+    line-height: 28px;
+    letter-spacing: -0.01em;
+    font-weight: 600;
+  }
+  .font-title-md {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 600;
+  }
+  .font-body-lg {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 400;
+  }
+  .font-body-md {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 400;
+  }
+  .font-body-sm {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 400;
+  }
+  .font-label-md {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 500;
+  }
+  .font-label-sm {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 12px;
+    line-height: 16px;
+    letter-spacing: 0.02em;
+    font-weight: 600;
+  }
+  .font-stat-metric {
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    font-size: 28px;
+    line-height: 32px;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+  }
+
+  /* Status Badges */
+  .badge-approved {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+    background-color: var(--color-secondary-container);
+    color: var(--color-on-secondary-container);
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .badge-pending {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+    background-color: var(--color-surface-container);
+    color: var(--color-outline);
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .badge-review {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+    background-color: var(--color-surface-container-high);
+    color: var(--color-on-surface-variant);
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .badge-error {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+    background-color: var(--color-error-container);
+    color: var(--color-on-error-container);
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .badge-active {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+    background-color: var(--color-primary-fixed);
+    color: var(--color-on-primary-fixed-variant);
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .badge-video {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+    background-color: var(--color-tertiary-fixed);
+    color: var(--color-on-tertiary-fixed-variant);
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  /* Material Symbols icon helper */
+  .material-symbols-outlined {
+    font-family: "Material Symbols Outlined";
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+    font-size: inherit;
+    line-height: 1;
+    display: inline-block;
+    vertical-align: middle;
+    user-select: none;
+  }
+}

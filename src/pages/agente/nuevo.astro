@@ -1,0 +1,11 @@
+---
+// Importa el contenedor inteligente, no la UI directamente
+import AgenteContainer from "../../features/requerimientos/presentation/AgenteContainer.jsx";
+import Layout from "../../core/layouts/Layout.astro";
+import "../../styles/global.css";
+---
+
+<Layout title="Nuevo Requerimiento">
+    <!-- client:load hidrata React en el navegador para que funcione la interactividad -->
+    <AgenteContainer client:load />
+</Layout>
