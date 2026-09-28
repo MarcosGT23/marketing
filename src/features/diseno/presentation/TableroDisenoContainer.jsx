@@ -52,7 +52,9 @@ export default function TableroDisenoContainer() {
         cargarRequerimientos();
     }, []);
 
-    const manejarCambioCampo = (idTarea, campo, valor) => {
+    const manejarCambioCampo = async (idTarea, campo, valor) => {
+        let datosActualizados = null;
+
         setDatos(prev => prev.map(item => {
             const td = item.tareas_diseno?.[0];
             if (td && td.id_tarea === idTarea) {
@@ -68,6 +70,7 @@ export default function TableroDisenoContainer() {
                         actualizado.progreso_porcentaje = porcentajes[valor];
                     }
                 }
+                datosActualizados = { item, tareaActualizada: actualizado };
                 return {
                     ...item,
                     tareas_diseno: [actualizado]
@@ -75,23 +78,21 @@ export default function TableroDisenoContainer() {
             }
             return item;
         }));
-    };
 
-    const manejarGuardar = async (idTarea) => {
-        const item = datos.find(d => d.tareas_diseno?.[0]?.id_tarea === idTarea);
-        if (!item) return;
-        const { estado, progreso_porcentaje, fecha_limite } = item.tareas_diseno[0];
-
-        try {
-            await actualizarTareaDiseno(idTarea, {
-                estado,
-                progreso_porcentaje,
-                fecha_limite,
-                id_requerimiento: item.id_requerimiento,
-                usuario: 'Isaac (Diseño)'
-            });
-        } catch (err) {
-            alert(`Error al guardar: ${err.message}`);
+        // Auto-guardado instantáneo a Supabase e historial
+        if (datosActualizados) {
+            const { item, tareaActualizada } = datosActualizados;
+            try {
+                await actualizarTareaDiseno(idTarea, {
+                    estado: tareaActualizada.estado,
+                    progreso_porcentaje: tareaActualizada.progreso_porcentaje,
+                    fecha_limite: tareaActualizada.fecha_limite,
+                    id_requerimiento: item.id_requerimiento,
+                    usuario: 'Isaac (Diseño)'
+                });
+            } catch (err) {
+                console.error("Error auto-guardando diseño:", err);
+            }
         }
     };
 
@@ -100,7 +101,6 @@ export default function TableroDisenoContainer() {
             tareas={datos}
             cargando={cargando}
             alCambiarCampo={manejarCambioCampo}
-            alGuardar={manejarGuardar}
         />
     );
 }

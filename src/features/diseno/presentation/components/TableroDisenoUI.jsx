@@ -646,37 +646,46 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
                         <div className={estaBloqueada ? 'pointer-events-none opacity-80' : ''}>
                             <LiquidStateSelector 
                                 estadoActual={tarea.estado || 'Por Hacer'}
-                                alCambiarEstado={(nuevoEstado) => alCambiarCampo(tarea.id_tarea, 'estado', nuevoEstado)}
+                                alCambiarEstado={(nuevoEstado) => {
+                                    alCambiarCampo(tarea.id_tarea, 'estado', nuevoEstado);
+                                    if (nuevoEstado === 'Finalizado') {
+                                        actualizarBloqueo(tarea.id_tarea, true);
+                                    }
+                                }}
                             />
                         </div>
                     </div>
 
                     {estaBloqueada ? (
-                        <div className="pt-1 flex flex-col gap-2">
+                        <div className="pt-1 flex flex-col gap-2.5">
                             <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
                                 <span className="material-symbols-outlined text-[17px]">verified</span>
-                                <span>Progreso guardado y bloqueado</span>
+                                <span>Tarea finalizada y bloqueada</span>
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => actualizarBloqueo(tarea.id_tarea, false)}
-                                className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-xs font-semibold border border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-500/20 active:scale-98 transition-all cursor-pointer shadow-xs"
-                            >
-                                <span className="material-symbols-outlined text-[16px]">lock_open</span>
-                                Desbloquear para editar
-                            </button>
+                            <div className="flex justify-center">
+                                <SlideConfirm
+                                    corner={28}
+                                    speed={50}
+                                    width={280}
+                                    text="Desliza para desbloquear"
+                                    confirmedText="¡Desbloqueado!"
+                                    icon="lock_open"
+                                    confirmedIcon="lock_open"
+                                    onConfirm={() => {
+                                        actualizarBloqueo(tarea.id_tarea, false);
+                                    }}
+                                />
+                            </div>
                         </div>
                     ) : (
-                        <div className="pt-1 flex justify-center">
-                            <SlideConfirm
-                                corner={28}
-                                speed={50}
-                                width={280}
-                                onConfirm={async () => {
-                                    actualizarBloqueo(tarea.id_tarea, true);
-                                    await alGuardar(tarea.id_tarea);
-                                }}
-                            />
+                        <div className="pt-1 flex items-center justify-between text-[11px] px-1">
+                            <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                                <span className="material-symbols-outlined text-[14px]">cloud_done</span>
+                                Auto-guardado activo
+                            </span>
+                            <span className="text-[10px] text-outline font-medium">
+                                Arrastra o clica para cambiar
+                            </span>
                         </div>
                     )}
                 </div>

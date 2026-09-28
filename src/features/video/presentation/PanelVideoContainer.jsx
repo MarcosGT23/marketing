@@ -52,20 +52,46 @@ export default function PanelVideoContainer() {
         cargarRequerimientos();
     }, []);
 
+    const dispararAutoGuardado = async (item, tareaActualizada) => {
+        try {
+            await actualizarTareaVideo(tareaActualizada.id_tarea, {
+                req_guion: tareaActualizada.req_guion,
+                req_fotos: tareaActualizada.req_fotos,
+                req_grabacion: tareaActualizada.req_grabacion,
+                req_edicion: tareaActualizada.req_edicion,
+                req_voz_off: tareaActualizada.req_voz_off,
+                estado: tareaActualizada.estado,
+                progreso_porcentaje: tareaActualizada.progreso_porcentaje,
+                id_requerimiento: item.id_requerimiento,
+                usuario: 'Marcos (Video)'
+            });
+        } catch (err) {
+            console.error("Error auto-guardando video:", err);
+        }
+    };
+
     const manejarCambioCheck = (idTarea, campo, checked) => {
+        let datosActualizados = null;
         setDatos(prev => prev.map(item => {
             const tv = item.tareas_video?.[0];
             if (tv && tv.id_tarea === idTarea) {
+                const actualizado = { ...tv, [campo]: checked };
+                datosActualizados = { item, tareaActualizada: actualizado };
                 return {
                     ...item,
-                    tareas_video: [{ ...tv, [campo]: checked }]
+                    tareas_video: [actualizado]
                 };
             }
             return item;
         }));
+
+        if (datosActualizados) {
+            dispararAutoGuardado(datosActualizados.item, datosActualizados.tareaActualizada);
+        }
     };
 
     const manejarCambioCampo = (idTarea, campo, valor) => {
+        let datosActualizados = null;
         setDatos(prev => prev.map(item => {
             const tv = item.tareas_video?.[0];
             if (tv && tv.id_tarea === idTarea) {
@@ -81,6 +107,7 @@ export default function PanelVideoContainer() {
                         actualizado.progreso_porcentaje = porcentajes[valor];
                     }
                 }
+                datosActualizados = { item, tareaActualizada: actualizado };
                 return {
                     ...item,
                     tareas_video: [actualizado]
@@ -88,27 +115,9 @@ export default function PanelVideoContainer() {
             }
             return item;
         }));
-    };
 
-    const manejarGuardar = async (idTarea) => {
-        const item = datos.find(d => d.tareas_video?.[0]?.id_tarea === idTarea);
-        if (!item) return;
-        const { req_guion, req_fotos, req_grabacion, req_edicion, req_voz_off, estado, progreso_porcentaje } = item.tareas_video[0];
-
-        try {
-            await actualizarTareaVideo(idTarea, {
-                req_guion,
-                req_fotos,
-                req_grabacion,
-                req_edicion,
-                req_voz_off,
-                estado,
-                progreso_porcentaje,
-                id_requerimiento: item.id_requerimiento,
-                usuario: 'Marcos (Video)'
-            });
-        } catch (err) {
-            alert(`Error al guardar: ${err.message}`);
+        if (datosActualizados) {
+            dispararAutoGuardado(datosActualizados.item, datosActualizados.tareaActualizada);
         }
     };
 

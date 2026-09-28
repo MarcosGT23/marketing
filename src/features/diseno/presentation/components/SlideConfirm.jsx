@@ -9,6 +9,8 @@ export function SlideConfirm({
   onConfirm,
   text = "Desliza para guardar",
   confirmedText = "Guardado con éxito",
+  icon = "arrow_forward",
+  confirmedIcon = "check_circle",
   disabled = false,
   isConfirmed = false,
 }) {
@@ -115,7 +117,7 @@ export function SlideConfirm({
         >
           {confirmed ? (
             <span className="flex items-center justify-center gap-1.5 font-bold text-emerald-700 dark:text-emerald-300">
-              <span className="material-symbols-outlined text-[18px]">check_circle</span>
+              <span className="material-symbols-outlined text-[18px]">{confirmedIcon}</span>
               {confirmedText}
             </span>
           ) : (
@@ -146,7 +148,7 @@ export function SlideConfirm({
             whileTap={{ scale: 0.98, cursor: "grabbing" }}
           >
             <span className="material-symbols-outlined text-[20px] text-white pointer-events-none select-none">
-              arrow_forward
+              {icon}
             </span>
           </motion.div>
         )}
