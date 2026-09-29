@@ -1,7 +1,52 @@
 /**
+ * Detecta el idioma del CSV basado en los encabezados y contenido de muestra.
+ * Soporta Español, Inglés y Portugués (los principales idiomas de exportación de Meta Ads).
+ */
+export function detectarIdiomaCsv(encabezados = [], lineasMuestra = []) {
+  const textoHeaders = encabezados.join(' ').toLowerCase();
+  const textoMuestra = lineasMuestra.join(' ').toLowerCase();
+  const todo = `${textoHeaders} ${textoMuestra}`;
+
+  let scoreEs = 0;
+  let scoreEn = 0;
+  let scorePt = 0;
+
+  // Español
+  const tokensEs = [
+    'anuncio', 'entrega', 'nombre del anuncio', 'entrega del anuncio', 'importe gastado',
+    'costo por resultado', 'coste por resultado', 'resultados', 'circulacion', 'pausado',
+    'desactivado', 'alcance', 'clics en el enlace', 'campana'
+  ];
+  tokensEs.forEach(t => { if (todo.includes(t)) scoreEs += 2; });
+
+  // Inglés
+  const tokensEn = [
+    'ad name', 'ad delivery', 'amount spent', 'cost per result', 'reach', 'results',
+    'link clicks', 'click-through rate', 'delivering', 'paused', 'inactive', 'active',
+    'campaign name', 'completed'
+  ];
+  tokensEn.forEach(t => { if (todo.includes(t)) scoreEn += 2; });
+
+  // Portugués
+  const tokensPt = [
+    'veiculacao', 'nome do anuncio', 'veiculacao do anuncio', 'valor gasto', 'custo por resultado',
+    'taxa de cliques', 'em veiculacao', 'desativado', 'ativo', 'campanha'
+  ];
+  tokensPt.forEach(t => { if (todo.includes(t)) scorePt += 2; });
+
+  if (scoreEn > scoreEs && scoreEn > scorePt) {
+    return { codigo: 'en', nombre: 'Inglés (English)', icono: '🇺🇸' };
+  }
+  if (scorePt > scoreEs && scorePt > scoreEn) {
+    return { codigo: 'pt', nombre: 'Portugués (Português)', icono: '🇧🇷' };
+  }
+  return { codigo: 'es', nombre: 'Español', icono: '🇪🇸' };
+}
+
+/**
  * Parsea un archivo CSV exportado de Meta Ads (Reporte 28 días).
- * Devuelve un array de anuncios individuales con sus métricas y su estado basado
- * en la columna 'Entrega del anuncio' (filtrado frontend).
+ * Detecta el idioma (Español, Inglés, Portugués), normaliza delimitadores y columnas,
+ * y separa anuncios en Activos e Inactivos.
  */
 export function procesarCsvMeta(textoCsv) {
   // Limpiar BOM de UTF-8 y dividir líneas
@@ -31,23 +76,39 @@ export function procesarCsvMeta(textoCsv) {
   const encabezadosRaw = parsearFilaCsv(primeraLinea, delimitador);
   const encabezados = encabezadosRaw.map(normalizar);
 
-  // 1. Identificar columna del Nombre del anuncio
+  // 0. Detectar idioma del archivo
+  const idiomaInfo = detectarIdiomaCsv(encabezados, lineas.slice(1, 6));
+
+  // 1. Identificar columna del Nombre del anuncio (Multilingüe: ES, EN, PT)
   const idxNombre = encabezados.findIndex(h =>
-    h.includes('nombre del anuncio') || h.includes('ad name') || h.includes('nombre de campana') || h.includes('campaign name') || h.includes('nombre')
+    h.includes('nombre del anuncio') || 
+    h.includes('ad name') || 
+    h.includes('nome do anuncio') || 
+    h.includes('campaign name') || 
+    h.includes('nombre de campana') || 
+    h.includes('nome da campanha') || 
+    h.includes('nombre') || 
+    h === 'name' || 
+    h.includes('ad_name')
   );
 
-  // 2. Identificar columna de Entrega del anuncio (prioridad máxima a "entrega del anuncio")
+  // 2. Identificar columna de Entrega del anuncio (Multilingüe: ES, EN, PT)
   let idxEstado = encabezados.findIndex(h =>
-    h.includes('entrega del anuncio') || h.includes('ad delivery')
+    h.includes('entrega del anuncio') || 
+    h.includes('ad delivery') || 
+    h.includes('veiculacao do anuncio') ||
+    h.includes('delivery status') ||
+    h.includes('estado de la entrega') ||
+    h.includes('status da veiculacao')
   );
 
   if (idxEstado === -1) {
     idxEstado = encabezados.findIndex(h =>
-      h.includes('estado de la entrega') ||
       h.includes('estado del anuncio') ||
       h.includes('configuracion de la entrega') ||
-      h.includes('entrega') ||
       h.includes('delivery') ||
+      h.includes('entrega') ||
+      h.includes('veiculacao') ||
       h === 'estado' ||
       h === 'status'
     );
@@ -55,7 +116,10 @@ export function procesarCsvMeta(textoCsv) {
 
   // Si aún no se encontró en los encabezados, inspeccionar las primeras filas para detectar la columna
   if (idxEstado === -1) {
-    const palabrasClave = ['circulacion', 'desactiv', 'pausad', 'inactiv', 'active', 'inactive'];
+    const palabrasClave = [
+      'circulacion', 'desactiv', 'pausad', 'inactiv', 'active', 'inactive',
+      'paused', 'delivering', 'completed', 'veiculand', 'ativo', 'desativ'
+    ];
     for (let r = 1; r < Math.min(lineas.length, 5); r++) {
       const filaPrueba = parsearFilaCsv(lineas[r], delimitador);
       for (let c = 0; c < filaPrueba.length; c++) {
@@ -69,21 +133,54 @@ export function procesarCsvMeta(textoCsv) {
     }
   }
 
-  // 3. Identificar columnas numéricas
+  // 3. Identificar columnas numéricas (Multilingüe: ES, EN, PT)
   const idxLeads = encabezados.findIndex(h =>
-    h.includes('resultados') || h.includes('clientes potenciales') || h.includes('leads')
+    h.includes('resultados') || 
+    h.includes('results') || 
+    h.includes('clientes potenciales') || 
+    h.includes('leads') || 
+    h.includes('cadastro') || 
+    h.includes('contatos')
   );
+
   const idxCostoLead = encabezados.findIndex(h =>
-    h.includes('costo por resultado') || h.includes('coste por resultado') || h.includes('costo por cliente potencial')
+    h.includes('costo por resultado') || 
+    h.includes('coste por resultado') || 
+    h.includes('cost per result') || 
+    h.includes('custo por resultado') || 
+    h.includes('costo por cliente potencial') ||
+    h.includes('cost per lead') ||
+    h.includes('custo por lead') ||
+    h.includes('cost per') ||
+    h.includes('costo por') ||
+    h.includes('coste por') ||
+    h.includes('custo por')
   );
+
   const idxInversion = encabezados.findIndex(h =>
-    h.includes('importe gastado') || h.includes('inversion') || h.includes('amount spent')
+    h.includes('importe gastado') || 
+    h.includes('amount spent') || 
+    h.includes('valor gasto') || 
+    h.includes('inversion') || 
+    h.includes('spend') ||
+    h.includes('gastos')
   );
+
   const idxAlcance = encabezados.findIndex(h =>
-    h.includes('alcance') || h.includes('reach')
+    h.includes('alcance') || 
+    h.includes('reach')
   );
+
   const idxCtr = encabezados.findIndex(h =>
-    h.includes('ctr (porcentaje de clics en el enlace)') || h.includes('ctr') || h.includes('clics en el enlace')
+    h.includes('ctr (porcentaje de clics en el enlace)') || 
+    h.includes('ctr (link click-through rate)') || 
+    h.includes('ctr (taxa de cliques no link)') || 
+    h.includes('link click-through rate') || 
+    h.includes('porcentaje de clics en el enlace') || 
+    h.includes('taxa de cliques no link') || 
+    h.includes('ctr') || 
+    h.includes('clics en el enlace') ||
+    h.includes('link clicks')
   );
 
   const limpiarNumero = (val) => {
@@ -115,42 +212,81 @@ export function procesarCsvMeta(textoCsv) {
 
     // Saltar fila de totales si el CSV la incluye
     const nombreNorm = normalizar(nombre);
-    if (nombreNorm.includes('total') || nombreNorm.includes('resultado de')) continue;
+    if (
+      nombreNorm.includes('total') || 
+      nombreNorm.includes('resultado de') || 
+      nombreNorm.includes('results of') ||
+      nombreNorm.includes('summary')
+    ) continue;
 
     // Extraer y evaluar el estado de 'Entrega del anuncio'
     const rawEstado = idxEstado !== -1 ? String(fila[idxEstado] || '').trim() : '';
     const estadoMin = normalizar(rawEstado);
 
-    // Criterios de inactividad
+    // Criterios de inactividad (Multilingüe: ES, EN, PT)
     const esInactivo = (
+      // Español
       estadoMin.includes('desactiv') ||
       estadoMin.includes('inactiv') ||
       estadoMin.includes('pausad') ||
-      estadoMin.includes('pause') ||
       estadoMin.includes('archivad') ||
       estadoMin.includes('rechazad') ||
       estadoMin.includes('completad') ||
-      estadoMin.includes('completed') ||
       estadoMin.includes('finalizad') ||
       estadoMin.includes('eliminad') ||
-      estadoMin.includes('deleted') ||
       estadoMin.includes('no en circulaci') ||
       estadoMin.includes('no se entrega') ||
-      estadoMin.includes('not delivering') ||
-      estadoMin.includes('error') ||
       estadoMin.includes('sin publicar') ||
-      estadoMin === 'off'
+      // Inglés
+      estadoMin.includes('pause') ||
+      estadoMin.includes('paused') ||
+      estadoMin.includes('inactive') ||
+      estadoMin.includes('disabled') ||
+      estadoMin.includes('archive') ||
+      estadoMin.includes('archived') ||
+      estadoMin.includes('reject') ||
+      estadoMin.includes('rejected') ||
+      estadoMin.includes('completed') ||
+      estadoMin.includes('delete') ||
+      estadoMin.includes('deleted') ||
+      estadoMin.includes('not delivering') ||
+      estadoMin.includes('not in circulation') ||
+      estadoMin.includes('unpublished') ||
+      estadoMin === 'off' ||
+      // Portugués
+      estadoMin.includes('desativ') ||
+      estadoMin.includes('inativ') ||
+      estadoMin.includes('concluid') ||
+      estadoMin.includes('excluid') ||
+      estadoMin.includes('rejeitad') ||
+      estadoMin.includes('nao esta veiculand') ||
+      estadoMin.includes('desligad') ||
+      // Generales
+      estadoMin.includes('error')
     );
 
-    // Criterios de actividad
+    // Criterios de actividad (Multilingüe: ES, EN, PT)
     const esActivo = (
+      // Español
       estadoMin.includes('activ') ||
       estadoMin.includes('circulaci') ||
       estadoMin.includes('marcha') ||
-      estadoMin.includes('running') ||
       estadoMin.includes('programad') ||
       estadoMin.includes('revision') ||
-      estadoMin.includes('aprendizaje')
+      estadoMin.includes('aprendizaje') ||
+      // Inglés
+      estadoMin.includes('active') ||
+      estadoMin.includes('delivering') ||
+      estadoMin.includes('running') ||
+      estadoMin.includes('scheduled') ||
+      estadoMin.includes('in review') ||
+      estadoMin.includes('learning') ||
+      estadoMin === 'on' ||
+      // Portugués
+      estadoMin.includes('veiculand') ||
+      estadoMin.includes('em veiculacao') ||
+      estadoMin.includes('analise') ||
+      estadoMin.includes('aprendizado')
     ) && !esInactivo;
 
     // Determinación final de activo (frontend)
@@ -165,7 +301,8 @@ export function procesarCsvMeta(textoCsv) {
       alcance: idxAlcance !== -1 ? limpiarNumero(fila[idxAlcance]) : 0,
       ctr_clics: idxCtr !== -1 ? limpiarNumero(fila[idxCtr]) : 0,
       activo,
-      estado_texto
+      estado_texto,
+      idioma: idiomaInfo.codigo
     });
   }
 
@@ -173,7 +310,12 @@ export function procesarCsvMeta(textoCsv) {
     throw new Error('No se encontraron anuncios válidos en el CSV.');
   }
 
-  console.log(`[parseMetaCsv] Total: ${anuncios.length} anuncios | Activos: ${anuncios.filter(a => a.activo).length} | Inactivos: ${anuncios.filter(a => !a.activo).length}`);
+  // Adjuntar metadatos de idioma al array resultante
+  anuncios.idiomaInfo = idiomaInfo;
+  anuncios.idioma = idiomaInfo.codigo;
+  anuncios.idiomaNombre = idiomaInfo.nombre;
+
+  console.log(`[parseMetaCsv] Idioma detectado: ${idiomaInfo.nombre} (${idiomaInfo.codigo}) | Total: ${anuncios.length} anuncios | Activos: ${anuncios.filter(a => a.activo).length} | Inactivos: ${anuncios.filter(a => !a.activo).length}`);
 
   return anuncios;
 }

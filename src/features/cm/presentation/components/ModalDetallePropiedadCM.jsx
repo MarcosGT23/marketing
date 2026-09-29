@@ -51,6 +51,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
   const [cargandoArchivo, setCargandoArchivo] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [nombreArchivo, setNombreArchivo] = useState('');
+  const [idiomaCsv, setIdiomaCsv] = useState(null);
 
   // Sincronizar estado cuando cambia la propiedad o llega el reporte del servidor
   useEffect(() => {
@@ -92,6 +93,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
     setPlataforma(tcm.plataforma || 'Facebook / Instagram');
     setPresupuesto(tcm.presupuesto || '');
     setNombreArchivo('');
+    setIdiomaCsv(null);
     const hayActivos = lista.some(a => a.activo);
     const hayInactivos = lista.some(a => !a.activo);
     setFiltroEstado(hayActivos ? 'activos' : (hayInactivos ? 'inactivos' : 'todos'));
@@ -114,7 +116,11 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
     reader.onload = (event) => {
       try {
         const texto = event.target?.result;
-        const resultado = procesarCsvMeta(texto).map(normalizarAnuncio);
+        const rawResultado = procesarCsvMeta(texto);
+        if (rawResultado.idiomaInfo) {
+          setIdiomaCsv(rawResultado.idiomaInfo);
+        }
+        const resultado = rawResultado.map(normalizarAnuncio);
         setListaAnuncios(resultado);
 
         // Separar activos para el cálculo de totales principales
@@ -282,10 +288,19 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
               Filtra y clasifica anuncios en circulación vs. pausados o inactivos.
             </p>
             {nombreArchivo && (
-              <span className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold max-w-full truncate shadow-xs"
-                style={{ background: 'var(--color-secondary-container)', color: 'var(--color-on-secondary-container)' }}>
-                <span className="material-symbols-outlined text-[14px]">check</span> <span className="truncate">{nombreArchivo}</span>
-              </span>
+              <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold max-w-full truncate shadow-xs"
+                  style={{ background: 'var(--color-secondary-container)', color: 'var(--color-on-secondary-container)' }}>
+                  <span className="material-symbols-outlined text-[14px]">check</span> <span className="truncate">{nombreArchivo}</span>
+                </span>
+                {idiomaCsv && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold shadow-xs"
+                    style={{ background: 'var(--color-primary-fixed)', color: 'var(--color-on-primary-fixed-variant)' }}>
+                    <span>{idiomaCsv.icono}</span>
+                    <span>Idioma detectado: <strong>{idiomaCsv.nombre}</strong></span>
+                  </span>
+                )}
+              </div>
             )}
           </div>
 
