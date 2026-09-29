@@ -88,8 +88,18 @@ export function procesarCsvMeta(textoCsv) {
 
   const limpiarNumero = (val) => {
     if (!val) return 0;
-    const limpio = String(val).replace(/["'\$%]/g, '').trim();
-    return parseFloat(limpio) || 0;
+    let limpio = String(val).replace(/["'\$%]/g, '').trim();
+    if (limpio.includes(',') && !limpio.includes('.')) {
+      limpio = limpio.replace(',', '.');
+    } else if (limpio.includes(',') && limpio.includes('.')) {
+      if (limpio.indexOf('.') < limpio.indexOf(',')) {
+        limpio = limpio.replace(/\./g, '').replace(',', '.');
+      } else {
+        limpio = limpio.replace(/,/g, '');
+      }
+    }
+    const num = parseFloat(limpio);
+    return isNaN(num) ? 0 : Math.round(num);
   };
 
   // Procesar todas las filas de anuncios
@@ -149,10 +159,10 @@ export function procesarCsvMeta(textoCsv) {
 
     anuncios.push({
       nombre_anuncio: nombre.trim(),
-      leads: idxLeads !== -1 ? Math.round(limpiarNumero(fila[idxLeads])) : 0,
+      leads: idxLeads !== -1 ? limpiarNumero(fila[idxLeads]) : 0,
       costo_por_lead: idxCostoLead !== -1 ? limpiarNumero(fila[idxCostoLead]) : 0,
       inversion: idxInversion !== -1 ? limpiarNumero(fila[idxInversion]) : 0,
-      alcance: idxAlcance !== -1 ? Math.round(limpiarNumero(fila[idxAlcance])) : 0,
+      alcance: idxAlcance !== -1 ? limpiarNumero(fila[idxAlcance]) : 0,
       ctr_clics: idxCtr !== -1 ? limpiarNumero(fila[idxCtr]) : 0,
       activo,
       estado_texto

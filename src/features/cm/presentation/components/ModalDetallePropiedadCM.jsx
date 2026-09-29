@@ -25,6 +25,11 @@ const normalizarAnuncio = (a) => {
   return {
     ...a,
     nombre_anuncio: nombreLimpio || 'Sin nombre',
+    leads: Math.round(Number(a.leads) || 0),
+    costo_por_lead: Math.round(Number(a.costo_por_lead) || 0),
+    inversion: Math.round(Number(a.inversion) || 0),
+    alcance: Math.round(Number(a.alcance) || 0),
+    ctr_clics: Math.round(Number(a.ctr_clics) || 0),
     activo: !esInactivo,
     estado_texto
   };
@@ -62,20 +67,20 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
     // Totales: si existen en el reporte de BD se muestran; si no, calculados de los activos
     if (rep && (rep.leads != null || rep.inversion != null)) {
       setTotales({
-        leads: rep.leads ?? 0,
-        costo_por_lead: rep.costo_por_lead ?? 0,
-        inversion: rep.inversion ?? 0,
-        alcance: rep.alcance ?? 0,
-        ctr_clics: rep.ctr_clics ?? 0
+        leads: Math.round(Number(rep.leads) || 0),
+        costo_por_lead: Math.round(Number(rep.costo_por_lead) || 0),
+        inversion: Math.round(Number(rep.inversion) || 0),
+        alcance: Math.round(Number(rep.alcance) || 0),
+        ctr_clics: Math.round(Number(rep.ctr_clics) || 0)
       });
     } else if (lista.length > 0) {
       const activos = lista.filter(a => a.activo);
       const base = activos.length > 0 ? activos : lista;
-      const leads = base.reduce((s, a) => s + (a.leads || 0), 0);
-      const inversion = parseFloat(base.reduce((s, a) => s + (a.inversion || 0), 0).toFixed(2));
-      const alcance = base.reduce((s, a) => s + (a.alcance || 0), 0);
-      const costo_por_lead = parseFloat((base.reduce((s, a) => s + (a.costo_por_lead || 0), 0) / base.length).toFixed(2));
-      const ctr_clics = parseFloat((base.reduce((s, a) => s + (a.ctr_clics || 0), 0) / base.length).toFixed(2));
+      const leads = Math.round(base.reduce((s, a) => s + (a.leads || 0), 0));
+      const inversion = Math.round(base.reduce((s, a) => s + (a.inversion || 0), 0));
+      const alcance = Math.round(base.reduce((s, a) => s + (a.alcance || 0), 0));
+      const costo_por_lead = Math.round(base.reduce((s, a) => s + (a.costo_por_lead || 0), 0) / base.length);
+      const ctr_clics = Math.round(base.reduce((s, a) => s + (a.ctr_clics || 0), 0) / base.length);
       setTotales({ leads, costo_por_lead, inversion, alcance, ctr_clics });
     } else {
       setTotales({ leads: 0, costo_por_lead: 0, inversion: 0, alcance: 0, ctr_clics: 0 });
@@ -116,11 +121,11 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
         const base = activos.length > 0 ? activos : resultado;
 
         if (base.length > 0) {
-          const leads = base.reduce((s, a) => s + (a.leads || 0), 0);
-          const inversion = parseFloat(base.reduce((s, a) => s + (a.inversion || 0), 0).toFixed(2));
-          const alcance = base.reduce((s, a) => s + (a.alcance || 0), 0);
-          const costo_por_lead = parseFloat((base.reduce((s, a) => s + (a.costo_por_lead || 0), 0) / base.length).toFixed(2));
-          const ctr_clics = parseFloat((base.reduce((s, a) => s + (a.ctr_clics || 0), 0) / base.length).toFixed(2));
+          const leads = Math.round(base.reduce((s, a) => s + (a.leads || 0), 0));
+          const inversion = Math.round(base.reduce((s, a) => s + (a.inversion || 0), 0));
+          const alcance = Math.round(base.reduce((s, a) => s + (a.alcance || 0), 0));
+          const costo_por_lead = Math.round(base.reduce((s, a) => s + (a.costo_por_lead || 0), 0) / base.length);
+          const ctr_clics = Math.round(base.reduce((s, a) => s + (a.ctr_clics || 0), 0) / base.length);
           setTotales({ leads, costo_por_lead, inversion, alcance, ctr_clics });
         }
 
@@ -147,11 +152,11 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
         plataforma,
         presupuesto,
         metricas: {
-          leads: parseInt(totales.leads, 10) || 0,
-          costo_por_lead: parseFloat(totales.costo_por_lead) || 0,
-          inversion: parseFloat(totales.inversion) || 0,
-          alcance: parseInt(totales.alcance, 10) || 0,
-          ctr_clics: parseFloat(totales.ctr_clics) || 0
+          leads: Math.round(Number(totales.leads) || 0),
+          costo_por_lead: Math.round(Number(totales.costo_por_lead) || 0),
+          inversion: Math.round(Number(totales.inversion) || 0),
+          alcance: Math.round(Number(totales.alcance) || 0),
+          ctr_clics: Math.round(Number(totales.ctr_clics) || 0)
         },
         anuncios: listaAnuncios  // array completo con propiedad 'activo'
       });
@@ -177,14 +182,14 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
 
   // Subtotales dinámicos de la vista actual
   const subtotalesVista = {
-    leads: anunciosAMostrar.reduce((s, a) => s + (a.leads || 0), 0),
+    leads: Math.round(anunciosAMostrar.reduce((s, a) => s + (a.leads || 0), 0)),
     costo_por_lead: anunciosAMostrar.length > 0
-      ? parseFloat((anunciosAMostrar.reduce((s, a) => s + (a.costo_por_lead || 0), 0) / anunciosAMostrar.length).toFixed(2))
+      ? Math.round(anunciosAMostrar.reduce((s, a) => s + (a.costo_por_lead || 0), 0) / anunciosAMostrar.length)
       : 0,
-    inversion: parseFloat(anunciosAMostrar.reduce((s, a) => s + (a.inversion || 0), 0).toFixed(2)),
-    alcance: anunciosAMostrar.reduce((s, a) => s + (a.alcance || 0), 0),
+    inversion: Math.round(anunciosAMostrar.reduce((s, a) => s + (a.inversion || 0), 0)),
+    alcance: Math.round(anunciosAMostrar.reduce((s, a) => s + (a.alcance || 0), 0)),
     ctr_clics: anunciosAMostrar.length > 0
-      ? parseFloat((anunciosAMostrar.reduce((s, a) => s + (a.ctr_clics || 0), 0) / anunciosAMostrar.length).toFixed(2))
+      ? Math.round(anunciosAMostrar.reduce((s, a) => s + (a.ctr_clics || 0), 0) / anunciosAMostrar.length)
       : 0
   };
 
@@ -297,10 +302,10 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
               {[
                 { label: 'Leads (Lids)', key: 'leads', type: 'number', step: '1', placeholder: '0' },
-                { label: 'Cost. por Lids ($)', key: 'costo_por_lead', type: 'number', step: '0.01', placeholder: '0.00' },
-                { label: 'Inversión ($)', key: 'inversion', type: 'number', step: '0.01', placeholder: '0.00' },
+                { label: 'Cost. por Lids ($)', key: 'costo_por_lead', type: 'number', step: '1', placeholder: '0' },
+                { label: 'Inversión ($)', key: 'inversion', type: 'number', step: '1', placeholder: '0' },
                 { label: 'Alcance', key: 'alcance', type: 'number', step: '1', placeholder: '0' },
-                { label: 'CTR - Clic', key: 'ctr_clics', type: 'number', step: '0.01', placeholder: '0.00' },
+                { label: 'CTR - Clic', key: 'ctr_clics', type: 'number', step: '1', placeholder: '0' },
               ].map(field => (
                 <div key={field.key}>
                   <label className="block text-[11px] font-semibold mb-1" style={{ color: 'var(--color-outline)' }}>{field.label}</label>
@@ -308,7 +313,13 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                     type={field.type} 
                     step={field.step}
                     value={totales[field.key]} 
-                    onChange={(e) => setTotales({ ...totales, [field.key]: e.target.value })}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setTotales({
+                        ...totales,
+                        [field.key]: val === '' ? '' : (parseInt(val, 10) || 0)
+                      });
+                    }}
                     placeholder={field.placeholder}
                     className="w-full px-3 py-2 rounded-xl text-sm font-semibold focus:outline-none transition-all"
                     style={{
@@ -325,6 +336,10 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                       e.currentTarget.style.borderColor = 'var(--color-outline-variant)';
                       e.currentTarget.style.boxShadow = 'none';
                       e.currentTarget.style.background = 'var(--color-surface-container-low)';
+                      const curVal = totales[field.key];
+                      if (curVal !== '' && curVal != null) {
+                        setTotales(prev => ({ ...prev, [field.key]: Math.round(Number(curVal) || 0) }));
+                      }
                     }}
                   />
                 </div>

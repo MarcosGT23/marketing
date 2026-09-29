@@ -33,11 +33,11 @@ export async function POST({ request }) {
         id_requerimiento,
         periodo_mensual: periodo,
         fecha_reporte: fecha,
-        leads: Number(metricas.leads) || 0,
-        costo_por_lead: Number(metricas.costo_por_lead) || 0,
-        inversion: Number(metricas.inversion) || 0,
-        alcance: Number(metricas.alcance) || 0,
-        ctr_clics: Number(metricas.ctr_clics) || 0
+        leads: Math.round(Number(metricas.leads) || 0),
+        costo_por_lead: Math.round(Number(metricas.costo_por_lead) || 0),
+        inversion: Math.round(Number(metricas.inversion) || 0),
+        alcance: Math.round(Number(metricas.alcance) || 0),
+        ctr_clics: Math.round(Number(metricas.ctr_clics) || 0)
       }])
       .select()
       .single();
@@ -52,11 +52,11 @@ export async function POST({ request }) {
       const payloadAnuncios = anuncios.map(a => ({
         id_reporte: reportePadre.id_reporte,
         nombre_anuncio: (a.nombre_anuncio || 'Sin nombre').trim(),
-        leads: Number(a.leads) || 0,
-        costo_por_lead: Number(a.costo_por_lead) || 0,
-        inversion: Number(a.inversion) || 0,
-        alcance: Number(a.alcance) || 0,
-        ctr_clics: Number(a.ctr_clics) || 0
+        leads: Math.round(Number(a.leads) || 0),
+        costo_por_lead: Math.round(Number(a.costo_por_lead) || 0),
+        inversion: Math.round(Number(a.inversion) || 0),
+        alcance: Math.round(Number(a.alcance) || 0),
+        ctr_clics: Math.round(Number(a.ctr_clics) || 0)
       }));
 
       const { data: dataAnuncios, error: errorAnuncios } = await supabaseServer
