@@ -49,15 +49,22 @@ export async function POST({ request }) {
     // 3. Si hay anuncios individuales del CSV, insertarlos en 'reportes_meta_anuncios'
     let anunciosGuardados = [];
     if (Array.isArray(anuncios) && anuncios.length > 0) {
-      const payloadAnuncios = anuncios.map(a => ({
-        id_reporte: reportePadre.id_reporte,
-        nombre_anuncio: (a.nombre_anuncio || 'Sin nombre').trim(),
-        leads: Math.round(Number(a.leads) || 0),
-        costo_por_lead: Math.round(Number(a.costo_por_lead) || 0),
-        inversion: Math.round(Number(a.inversion) || 0),
-        alcance: Math.round(Number(a.alcance) || 0),
-        ctr_clics: Math.round(Number(a.ctr_clics) || 0)
-      }));
+      const payloadAnuncios = anuncios.map(a => {
+        const esInactivo = a.activo === false;
+        const nombreBase = (a.nombre_anuncio || 'Sin nombre').replace(/^\[[^\]]+\]\s*/, '').trim();
+        const etiqueta = (a.estado_texto || 'Pausado').replace(/[\[\]]/g, '').trim();
+        const nombreFinal = esInactivo ? `[${etiqueta}] ${nombreBase}` : nombreBase;
+
+        return {
+          id_reporte: reportePadre.id_reporte,
+          nombre_anuncio: nombreFinal,
+          leads: Math.round(Number(a.leads) || 0),
+          costo_por_lead: Math.round(Number(a.costo_por_lead) || 0),
+          inversion: Math.round(Number(a.inversion) || 0),
+          alcance: Math.round(Number(a.alcance) || 0),
+          ctr_clics: Math.round(Number(a.ctr_clics) || 0)
+        };
+      });
 
       const { data: dataAnuncios, error: errorAnuncios } = await supabaseServer
         .from('reportes_meta_anuncios')
@@ -68,7 +75,15 @@ export async function POST({ request }) {
         return new Response(JSON.stringify({ error: errorAnuncios.message }), { status: 500 });
       }
 
-      anunciosGuardados = dataAnuncios || [];
+      anunciosGuardados = (dataAnuncios || []).map(a => {
+        const match = (a.nombre_anuncio || '').match(/^\[([^\]]+)\]\s*(.*)$/);
+        return {
+          ...a,
+          nombre_anuncio: match ? match[2].trim() : a.nombre_anuncio,
+          activo: !match,
+          estado_texto: match ? match[1].trim() : 'En circulación'
+        };
+      });
     }
 
     return new Response(JSON.stringify({

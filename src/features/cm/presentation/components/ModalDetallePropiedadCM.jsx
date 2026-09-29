@@ -92,7 +92,9 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
     setPlataforma(tcm.plataforma || 'Facebook / Instagram');
     setPresupuesto(tcm.presupuesto || '');
     setNombreArchivo('');
-    setFiltroEstado('activos');
+    const hayActivos = lista.some(a => a.activo);
+    const hayInactivos = lista.some(a => !a.activo);
+    setFiltroEstado(hayActivos ? 'activos' : (hayInactivos ? 'inactivos' : 'todos'));
   }, [item, reporte, anuncios]);
 
   // Manejador del archivo CSV con filtrado de activos/inactivos
@@ -362,37 +364,37 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
 
                 {/* Filtros Activos / Inactivos / Todos */}
                 <div 
-                  className="flex flex-wrap items-center gap-1 p-1 bg-surface-container-low rounded-xl text-xs w-full sm:w-auto"
+                  className="flex flex-wrap items-center gap-1.5 p-1 bg-surface-container-low rounded-xl text-xs w-full sm:w-auto"
                   style={{ border: '1px solid var(--color-outline-variant)' }}
                 >
                   <button
                     type="button"
                     onClick={() => setFiltroEstado('activos')}
-                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition-all ${
+                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
                       filtroEstado === 'activos'
-                        ? 'bg-emerald-600 text-white shadow-xs'
+                        ? 'bg-emerald-600 text-white shadow-xs font-bold'
                         : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
                     }`}
                   >
-                    <span className="w-2 h-2 rounded-full bg-emerald-300"></span>
+                    <span className={`w-2 h-2 rounded-full ${filtroEstado === 'activos' ? 'bg-emerald-300' : 'bg-emerald-500'}`}></span>
                     <span>Activos ({anunciosActivos.length})</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setFiltroEstado('inactivos')}
-                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition-all ${
+                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
                       filtroEstado === 'inactivos'
-                        ? 'bg-amber-600 text-white shadow-xs'
+                        ? 'bg-amber-600 text-white shadow-xs font-bold'
                         : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
                     }`}
                   >
-                    <span className="w-2 h-2 rounded-full bg-amber-300"></span>
+                    <span className={`w-2 h-2 rounded-full ${filtroEstado === 'inactivos' ? 'bg-amber-200' : 'bg-amber-400'}`}></span>
                     <span>Inactivos ({anunciosInactivos.length})</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setFiltroEstado('todos')}
-                    className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg font-semibold transition-all text-center ${
+                    className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg font-semibold transition-all text-center cursor-pointer ${
                       filtroEstado === 'todos'
                         ? 'bg-surface-container-highest text-on-surface shadow-xs font-bold'
                         : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'

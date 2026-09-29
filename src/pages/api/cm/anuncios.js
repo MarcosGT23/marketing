@@ -31,6 +31,18 @@ export async function GET({ url }) {
 
     const reporteActual = data && data.length > 0 ? data[0] : null;
 
+    if (reporteActual && Array.isArray(reporteActual.reportes_meta_anuncios)) {
+      reporteActual.reportes_meta_anuncios = reporteActual.reportes_meta_anuncios.map(a => {
+        const match = (a.nombre_anuncio || '').match(/^\[([^\]]+)\]\s*(.*)$/);
+        return {
+          ...a,
+          nombre_anuncio: match ? match[2].trim() : (a.nombre_anuncio || '').trim(),
+          activo: !match,
+          estado_texto: match ? match[1].trim() : 'En circulación'
+        };
+      });
+    }
+
     return new Response(JSON.stringify(reporteActual), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
