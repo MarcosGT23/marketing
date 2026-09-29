@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap");
 @import "tailwindcss";
 
@@ -37,9 +37,9 @@
   --color-error-container:    #ffdad6;
   --color-on-error-container: #93000a;
 
-  --color-background:    #f8f9ff;
+  --color-background:    #f4f6ff;
   --color-on-background: #0b1c30;
-  --color-surface:       #f8f9ff;
+  --color-surface:       #f4f6ff;
   --color-on-surface:    #0b1c30;
   --color-surface-variant:    #d3e4fe;
   --color-on-surface-variant: #434655;
@@ -92,10 +92,27 @@
     min-height: 100vh;
   }
 
-  ::-webkit-scrollbar { display: none; }
-  * { box-sizing: border-box; }
+  /* Thin custom scrollbar */
+  ::-webkit-scrollbar           { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track     { background: transparent; }
+  ::-webkit-scrollbar-thumb     { background: var(--color-outline-variant); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover{ background: var(--color-outline); }
+  * { box-sizing: border-box; scrollbar-width: thin; scrollbar-color: var(--color-outline-variant) transparent; }
+
   main > :first-child { margin-top: 0 !important; }
   main > :last-child  { margin-bottom: 0 !important; }
+
+  /* Smooth focus rings */
+  :focus-visible {
+    outline: 2px solid var(--color-primary-container);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  /* Prevent layout shift for Material Symbols */
+  .material-symbols-outlined {
+    font-display: block;
+  }
 }
 
 /* Typography Utilities */
@@ -243,5 +260,52 @@
     display: inline-block;
     vertical-align: middle;
     user-select: none;
+  }
+
+  /* ── Card elevation levels ── */
+  .card-0 { background: var(--color-surface-container-lowest); }
+  .card-1 { background: var(--color-surface-container-lowest); box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04); }
+  .card-2 { background: var(--color-surface-container-lowest); box-shadow: 0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04); }
+
+  /* ── Glass panel ── */
+  .glass-panel {
+    background: rgba(255,255,255,0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.55);
+  }
+
+  /* ── Shimmer skeleton ── */
+  @keyframes shimmer {
+    0%   { background-position: -600px 0; }
+    100% { background-position: 600px 0; }
+  }
+  .skeleton {
+    background: linear-gradient(90deg, var(--color-surface-container-low) 25%, var(--color-surface-container) 50%, var(--color-surface-container-low) 75%);
+    background-size: 1200px 100%;
+    animation: shimmer 1.6s infinite;
+    border-radius: 0.5rem;
+  }
+
+  /* ── Fade slide in ── */
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .fade-slide-in { animation: fadeSlideIn 0.3s cubic-bezier(0.16,1,0.3,1) both; }
+
+  /* ── Stagger helper ── */
+  .stagger-1 { animation-delay: 0.05s; }
+  .stagger-2 { animation-delay: 0.10s; }
+  .stagger-3 { animation-delay: 0.15s; }
+  .stagger-4 { animation-delay: 0.20s; }
+
+  /* ── Hover lift ── */
+  .hover-lift {
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+  }
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
   }
 }

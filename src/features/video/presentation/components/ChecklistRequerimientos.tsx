@@ -87,14 +87,19 @@ export function ChecklistRequerimientos({
   return (
     <div className="w-full space-y-3">
       {/* ── SECCIÓN SUPERIOR: Burbujas de Actividades Realizadas ── */}
-      <div className="rounded-2xl p-3 bg-surface-container-low/70 border border-surface-container transition-all">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+      <div className="rounded-2xl p-3.5 transition-all"
+        style={{
+          background: 'var(--color-surface-container-low)',
+          border: '1px solid var(--color-outline-variant)'
+        }}>
+        <div className="flex items-center justify-between mb-2.5">
+          <span className="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5"
+            style={{ color: 'var(--color-on-surface-variant)' }}>
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             Actividades Realizadas ({completados.length}/{items.length} · {porcentajeTotal}%)
           </span>
           {completados.length > 0 && !deshabilitado && (
-            <span className="text-[10px] text-slate-400">Clic en burbuja para desmarcar</span>
+            <span className="text-[10px]" style={{ color: 'var(--color-outline)' }}>Clic en burbuja para desmarcar</span>
           )}
         </div>
 
@@ -197,9 +202,13 @@ export function ChecklistRequerimientos({
                   whileHover={deshabilitado ? undefined : { scale: 1.02, y: -1 }}
                   whileTap={deshabilitado ? undefined : { scale: 0.96 }}
                   transition={{ type: "spring", stiffness: 520, damping: 28 }}
-                  className={`flex items-center justify-between p-2.5 rounded-xl border bg-surface-container-low/50 hover:bg-surface-container-low border-surface-container transition-colors text-left select-none ${
-                    deshabilitado ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:border-slate-300 shadow-xs"
+                  className={`flex items-center justify-between p-2.5 rounded-xl transition-all text-left select-none ${
+                    deshabilitado ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:shadow-xs active:scale-[0.98]"
                   }`}
+                  style={{
+                    background: 'var(--color-surface-container-low)',
+                    border: '1px solid var(--color-outline-variant)'
+                  }}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div
@@ -210,22 +219,32 @@ export function ChecklistRequerimientos({
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block truncate">
+                        <span className="text-xs font-semibold block truncate" style={{ color: 'var(--color-on-surface)' }}>
                           {item.label}
                         </span>
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700">
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                          style={{
+                            background: 'var(--color-surface-container-high)',
+                            color: 'var(--color-on-surface-variant)',
+                            border: '1px solid var(--color-outline-variant)'
+                          }}>
                           +{item.porcentaje}%
                         </span>
                       </div>
-                      <span className="text-[10px] text-slate-400 block truncate">
+                      <span className="text-[10px] block truncate" style={{ color: 'var(--color-outline)' }}>
                         {item.desc}
                       </span>
                     </div>
                   </div>
 
                   {/* Botón de acción rápida */}
-                  <div className="w-5 h-5 rounded-md flex items-center justify-center border border-slate-300 dark:border-slate-600 bg-surface-container-high shrink-0 ml-2 group-hover:border-primary">
-                    <span className="text-slate-400 text-xs font-bold leading-none">+</span>
+                  <div className="w-5 h-5 rounded-md flex items-center justify-center shrink-0 ml-2"
+                    style={{
+                      background: 'var(--color-surface-container-high)',
+                      border: '1px solid var(--color-outline-variant)',
+                      color: 'var(--color-outline)'
+                    }}>
+                    <span className="text-xs font-bold leading-none">+</span>
                   </div>
                 </motion.button>
               );

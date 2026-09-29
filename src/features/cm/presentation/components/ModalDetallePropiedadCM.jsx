@@ -189,73 +189,94 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-inverse-surface/50 backdrop-blur-xs p-0 sm:p-4 overflow-y-auto">
-      <div className="bg-surface-container-lowest w-full max-w-4xl rounded-t-3xl sm:rounded-2xl shadow-2xl border border-surface-container overflow-hidden max-h-[94vh] sm:max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto"
+      style={{ background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)' }}>
+      <div className="w-full max-w-4xl rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[94vh] sm:max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200"
+        style={{
+          background: 'var(--color-surface-container-lowest)',
+          border: '1px solid var(--color-outline-variant)'
+        }}>
         
         {/* Cabecera */}
-        <div className="p-3.5 sm:p-6 bg-gradient-to-r from-primary-fixed/30 to-surface-container-lowest border-b border-surface-container flex items-start justify-between gap-2 sm:gap-3">
+        <div className="p-4 sm:p-6 border-b flex items-start justify-between gap-2 sm:gap-3"
+          style={{
+            background: 'linear-gradient(to right, rgba(219, 225, 255, 0.35), var(--color-surface-container-lowest))',
+            borderColor: 'var(--color-outline-variant)'
+          }}>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-              <span className="px-2 py-0.5 rounded bg-primary-container text-on-primary text-[10px] font-bold uppercase tracking-wider shrink-0">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0"
+                style={{ background: 'var(--color-primary-container)', color: 'white' }}>
                 Detalle Requerimiento
               </span>
-              <span className="text-[11px] sm:text-xs font-semibold text-outline truncate">• {item.periodo_mensual}</span>
+              <span className="text-[11px] sm:text-xs font-semibold truncate" style={{ color: 'var(--color-outline)' }}>• {item.periodo_mensual}</span>
             </div>
-            <h2 className="font-display font-bold text-base sm:text-xl text-on-surface mt-1 truncate">{item.nombre_propiedad}</h2>
-            <p className="text-[11px] sm:text-xs text-on-surface-variant truncate mt-0.5">
+            <h2 className="font-display font-bold text-base sm:text-xl mt-1.5 truncate" style={{ color: 'var(--color-on-surface)' }}>{item.nombre_propiedad}</h2>
+            <p className="text-[11px] sm:text-xs truncate mt-0.5" style={{ color: 'var(--color-on-surface-variant)' }}>
               Agente: <strong>{item.usuarios?.nombre || 'General'}</strong> | Tipo: <strong>{item.tipo} - {item.categoria}</strong>
             </p>
           </div>
           <button 
             onClick={alCerrar} 
-            className="p-1.5 rounded-lg text-outline hover:text-on-surface hover:bg-surface-container transition-colors shrink-0"
+            className="p-1.5 rounded-xl transition-colors shrink-0 hover:bg-black/5"
+            style={{ color: 'var(--color-outline)' }}
           >
             <span className="material-symbols-outlined text-[20px] sm:text-[22px]">close</span>
           </button>
         </div>
 
         {/* Contenido */}
-        <div className="p-3.5 sm:p-6 overflow-y-auto space-y-4 sm:space-y-6">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-5">
           
           {/* Ficha técnica */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 bg-surface-container-low/60 p-3 sm:p-4 rounded-xl text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3.5 sm:p-4 rounded-xl text-xs"
+            style={{
+              background: 'var(--color-surface-container-low)',
+              border: '1px solid var(--color-outline-variant)'
+            }}>
             <div>
-              <span className="text-outline uppercase text-[10px] font-bold block mb-0.5">Precio</span>
-              <strong className="text-on-surface truncate block">{item.precio || 'Sin precio'}</strong>
+              <span className="uppercase text-[10px] font-bold block mb-0.5" style={{ color: 'var(--color-outline)' }}>Precio</span>
+              <strong className="truncate block" style={{ color: 'var(--color-on-surface)' }}>{item.precio || 'Sin precio'}</strong>
             </div>
             <div>
-              <span className="text-outline uppercase text-[10px] font-bold block mb-0.5">Ubicación</span>
-              <strong className="text-on-surface truncate block">{item.ubicacion || 'Sin especificar'}</strong>
+              <span className="uppercase text-[10px] font-bold block mb-0.5" style={{ color: 'var(--color-outline)' }}>Ubicación</span>
+              <strong className="truncate block" style={{ color: 'var(--color-on-surface)' }}>{item.ubicacion || 'Sin especificar'}</strong>
             </div>
             <div>
-              <span className="text-outline uppercase text-[10px] font-bold block mb-0.5">Superficie</span>
-              <strong className="text-on-surface truncate block">{item.superficie || 'N/A'}</strong>
+              <span className="uppercase text-[10px] font-bold block mb-0.5" style={{ color: 'var(--color-outline)' }}>Superficie</span>
+              <strong className="truncate block" style={{ color: 'var(--color-on-surface)' }}>{item.superficie || 'N/A'}</strong>
             </div>
             <div>
-              <span className="text-outline uppercase text-[10px] font-bold block mb-0.5">Habitaciones</span>
-              <strong className="text-on-surface truncate block">{item.habitaciones ?? 'N/A'}</strong>
+              <span className="uppercase text-[10px] font-bold block mb-0.5" style={{ color: 'var(--color-outline)' }}>Habitaciones</span>
+              <strong className="truncate block" style={{ color: 'var(--color-on-surface)' }}>{item.habitaciones ?? 'N/A'}</strong>
             </div>
           </div>
 
           {/* Subida CSV */}
-          <div className="p-4 sm:p-5 rounded-xl border-2 border-dashed border-primary-container/40 bg-primary-fixed/10 flex flex-col items-center justify-center text-center relative hover:bg-primary-fixed/20 transition-colors">
+          <div className="p-4 sm:p-5 rounded-2xl flex flex-col items-center justify-center text-center relative transition-all cursor-pointer"
+            style={{
+              border: '2px dashed rgba(37, 99, 235, 0.35)',
+              background: 'rgba(37, 99, 235, 0.03)'
+            }}>
             <input 
               type="file" 
               accept=".csv" 
               onChange={manejarSubidaCsv} 
               className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
             />
-            <div className="w-10 h-10 rounded-full bg-primary-container text-on-primary flex items-center justify-center mb-2 shadow-sm">
+            <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-2 shadow-xs"
+              style={{ background: 'var(--color-primary-container)', color: 'white' }}>
               <span className="material-symbols-outlined text-[22px]">upload_file</span>
             </div>
-            <p className="font-display font-semibold text-sm text-on-surface">
+            <p className="font-display font-semibold text-sm" style={{ color: 'var(--color-on-surface)' }}>
               {cargandoArchivo ? 'Analizando archivo...' : 'Sube el .CSV de Meta Ads'}
             </p>
-            <p className="text-[11px] text-outline mt-0.5">
+            <p className="text-[11px] mt-0.5" style={{ color: 'var(--color-outline)' }}>
               Filtra y clasifica anuncios en circulación vs. pausados o inactivos.
             </p>
             {nombreArchivo && (
-              <span className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary-container text-on-secondary-container text-xs font-semibold max-w-full truncate">
+              <span className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold max-w-full truncate shadow-xs"
+                style={{ background: 'var(--color-secondary-container)', color: 'var(--color-on-secondary-container)' }}>
                 <span className="material-symbols-outlined text-[14px]">check</span> <span className="truncate">{nombreArchivo}</span>
               </span>
             )}
@@ -264,7 +285,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
           {/* Métricas consolidadas (Campaña Activa) */}
           <div>
             <div className="flex flex-wrap items-center justify-between gap-1.5 mb-2.5">
-              <h3 className="text-xs font-bold text-outline uppercase tracking-wider">
+              <h3 className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-outline)' }}>
                 Métricas Consolidadas (Reporte 28)
               </h3>
               {anunciosInactivos.length > 0 && (
@@ -273,75 +294,62 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                 </span>
               )}
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
-              <div>
-                <label className="block text-[11px] font-semibold text-outline mb-1">Leads (Lids)</label>
-                <input 
-                  type="number" 
-                  value={totales.leads} 
-                  onChange={(e) => setTotales({ ...totales, leads: e.target.value })}
-                  placeholder="0"
-                  className="w-full px-3 py-2 bg-surface-container-low rounded-lg text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container font-semibold"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-semibold text-outline mb-1">Cost. por Lids ($)</label>
-                <input 
-                  type="number" 
-                  step="0.01"
-                  value={totales.costo_por_lead} 
-                  onChange={(e) => setTotales({ ...totales, costo_por_lead: e.target.value })}
-                  placeholder="0.00"
-                  className="w-full px-3 py-2 bg-surface-container-low rounded-lg text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container font-semibold"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-semibold text-outline mb-1">Inversión ($)</label>
-                <input 
-                  type="number" 
-                  step="0.01"
-                  value={totales.inversion} 
-                  onChange={(e) => setTotales({ ...totales, inversion: e.target.value })}
-                  placeholder="0.00"
-                  className="w-full px-3 py-2 bg-surface-container-low rounded-lg text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container font-semibold"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-semibold text-outline mb-1">Alcance</label>
-                <input 
-                  type="number" 
-                  value={totales.alcance} 
-                  onChange={(e) => setTotales({ ...totales, alcance: e.target.value })}
-                  placeholder="0"
-                  className="w-full px-3 py-2 bg-surface-container-low rounded-lg text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container font-semibold"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-semibold text-outline mb-1">CTR - Clic</label>
-                <input 
-                  type="number" 
-                  step="0.01"
-                  value={totales.ctr_clics} 
-                  onChange={(e) => setTotales({ ...totales, ctr_clics: e.target.value })}
-                  placeholder="0.00"
-                  className="w-full px-3 py-2 bg-surface-container-low rounded-lg text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container font-semibold"
-                />
-              </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+              {[
+                { label: 'Leads (Lids)', key: 'leads', type: 'number', step: '1', placeholder: '0' },
+                { label: 'Cost. por Lids ($)', key: 'costo_por_lead', type: 'number', step: '0.01', placeholder: '0.00' },
+                { label: 'Inversión ($)', key: 'inversion', type: 'number', step: '0.01', placeholder: '0.00' },
+                { label: 'Alcance', key: 'alcance', type: 'number', step: '1', placeholder: '0' },
+                { label: 'CTR - Clic', key: 'ctr_clics', type: 'number', step: '0.01', placeholder: '0.00' },
+              ].map(field => (
+                <div key={field.key}>
+                  <label className="block text-[11px] font-semibold mb-1" style={{ color: 'var(--color-outline)' }}>{field.label}</label>
+                  <input 
+                    type={field.type} 
+                    step={field.step}
+                    value={totales[field.key]} 
+                    onChange={(e) => setTotales({ ...totales, [field.key]: e.target.value })}
+                    placeholder={field.placeholder}
+                    className="w-full px-3 py-2 rounded-xl text-sm font-semibold focus:outline-none transition-all"
+                    style={{
+                      background: 'var(--color-surface-container-low)',
+                      border: '1px solid var(--color-outline-variant)',
+                      color: 'var(--color-on-surface)'
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--color-primary-container)';
+                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.12)';
+                      e.currentTarget.style.background = 'var(--color-surface-container-lowest)';
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--color-outline-variant)';
+                      e.currentTarget.style.boxShadow = 'none';
+                      e.currentTarget.style.background = 'var(--color-surface-container-low)';
+                    }}
+                  />
+                </div>
+              ))}
             </div>
           </div>
 
           {/* Tabla de Anuncios con Filtrado Activos / Inactivos */}
           {listaAnuncios.length > 0 && (
-            <div>
+            <div className="space-y-3">
               {/* Barra de pestañas y filtros */}
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                <h3 className="text-xs font-bold text-outline uppercase tracking-wider flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[15px]">table_chart</span>
-                  Anuncios Detectados ({listaAnuncios.length})
+              <div className="flex flex-wrap items-center justify-between gap-2.5">
+                <h3 className="text-xs font-bold text-on-surface uppercase tracking-wider flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[17px] text-primary-container">table_chart</span>
+                  <span>Anuncios Detectados</span>
+                  <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-surface-container-high text-on-surface-variant border border-outline-variant">
+                    {listaAnuncios.length}
+                  </span>
                 </h3>
 
                 {/* Filtros Activos / Inactivos / Todos */}
-                <div className="flex flex-wrap items-center gap-1 p-1 bg-surface-container-low rounded-xl border border-surface-container text-xs w-full sm:w-auto">
+                <div 
+                  className="flex flex-wrap items-center gap-1 p-1 bg-surface-container-low rounded-xl text-xs w-full sm:w-auto"
+                  style={{ border: '1px solid var(--color-outline-variant)' }}
+                >
                   <button
                     type="button"
                     onClick={() => setFiltroEstado('activos')}
@@ -382,9 +390,11 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
 
               {/* Mensaje de aviso informativo */}
               {filtroEstado === 'activos' && anunciosInactivos.length > 0 && (
-                <div className="mb-3 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs text-amber-800 dark:text-amber-200">
-                  <div className="flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-[16px] text-amber-600 dark:text-amber-400 shrink-0">info</span>
+                <div 
+                  className="px-3.5 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs text-amber-800 dark:text-amber-200"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[17px] text-amber-600 dark:text-amber-400 shrink-0">info</span>
                     <span>Se filtraron <strong>{anunciosInactivos.length} anuncio(s) pausados/inactivos</strong> de las métricas de circulación.</span>
                   </div>
                   <button 
@@ -398,9 +408,12 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
               )}
 
               {filtroEstado === 'inactivos' && (
-                <div className="mb-3 px-3 py-2 rounded-lg bg-surface-container-high border border-outline-variant/30 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs text-on-surface-variant">
-                  <div className="flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-[16px] text-outline shrink-0">pause_circle</span>
+                <div 
+                  className="px-3.5 py-2.5 rounded-xl bg-surface-container-high flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs text-on-surface-variant"
+                  style={{ border: '1px solid var(--color-outline-variant)' }}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[17px] text-outline shrink-0">pause_circle</span>
                     <span>Mostrando <strong>{anunciosInactivos.length} anuncio(s) pausados o desactivados</strong> en Meta Ads.</span>
                   </div>
                   <button 
@@ -414,23 +427,26 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
               )}
 
               {/* Tabla */}
-              <div className="overflow-x-auto rounded-xl border border-surface-container">
+              <div 
+                className="overflow-x-auto rounded-2xl bg-surface-container-lowest"
+                style={{ border: '1px solid var(--color-outline-variant)' }}
+              >
                 <table className="w-full text-xs min-w-[560px]">
-                  <thead className="bg-surface-container-low">
+                  <thead className="bg-surface-container-low" style={{ borderBottom: '1px solid var(--color-outline-variant)' }}>
                     <tr>
-                      <th className="text-left px-3 py-2 text-outline font-semibold">Entrega del anuncio</th>
-                      <th className="text-left px-3 py-2 text-outline font-semibold">Anuncio</th>
-                      <th className="text-right px-3 py-2 text-outline font-semibold">Leads</th>
-                      <th className="text-right px-3 py-2 text-outline font-semibold">Costo/Lead</th>
-                      <th className="text-right px-3 py-2 text-outline font-semibold">Inversión</th>
-                      <th className="text-right px-3 py-2 text-outline font-semibold">Alcance</th>
-                      <th className="text-right px-3 py-2 text-outline font-semibold">CTR</th>
+                      <th className="text-left px-3.5 py-2.5 text-on-surface-variant font-semibold">Entrega del anuncio</th>
+                      <th className="text-left px-3.5 py-2.5 text-on-surface-variant font-semibold">Anuncio</th>
+                      <th className="text-right px-3.5 py-2.5 text-on-surface-variant font-semibold">Leads</th>
+                      <th className="text-right px-3.5 py-2.5 text-on-surface-variant font-semibold">Costo/Lead</th>
+                      <th className="text-right px-3.5 py-2.5 text-on-surface-variant font-semibold">Inversión</th>
+                      <th className="text-right px-3.5 py-2.5 text-on-surface-variant font-semibold">Alcance</th>
+                      <th className="text-right px-3.5 py-2.5 text-on-surface-variant font-semibold">CTR</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y" style={{ borderColor: 'var(--color-outline-variant)' }}>
                     {anunciosAMostrar.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="px-3 py-6 text-center text-outline italic">
+                        <td colSpan={7} className="px-4 py-8 text-center text-outline italic">
                           No hay anuncios en esta sección ({filtroEstado}).
                         </td>
                       </tr>
@@ -438,44 +454,47 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                       anunciosAMostrar.map((a, i) => (
                         <tr 
                           key={i} 
-                          className={`border-t border-surface-container hover:bg-surface-container-low/40 transition-colors ${
-                            !a.activo ? 'opacity-80 bg-surface-container-low/20' : ''
+                          className={`hover:bg-surface-container-low/50 transition-colors ${
+                            !a.activo ? 'opacity-75 bg-surface-container-low/20' : ''
                           }`}
                         >
-                          <td className="px-3 py-2 whitespace-nowrap">
+                          <td className="px-3.5 py-2.5 whitespace-nowrap">
                             {a.activo ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Activo
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
                                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> {a.estado_texto || 'Pausado'}
                               </span>
                             )}
                           </td>
-                          <td className="px-3 py-2 text-on-surface font-medium max-w-[200px] truncate" title={a.nombre_anuncio}>
+                          <td className="px-3.5 py-2.5 text-on-surface font-medium max-w-[200px] truncate" title={a.nombre_anuncio}>
                             {a.nombre_anuncio}
                           </td>
-                          <td className="px-3 py-2 text-right text-primary-container font-bold">{a.leads}</td>
-                          <td className="px-3 py-2 text-right text-on-surface">${a.costo_por_lead}</td>
-                          <td className="px-3 py-2 text-right text-on-surface">${a.inversion}</td>
-                          <td className="px-3 py-2 text-right text-on-surface">{a.alcance?.toLocaleString()}</td>
-                          <td className="px-3 py-2 text-right text-on-surface">{a.ctr_clics}</td>
+                          <td className="px-3.5 py-2.5 text-right text-primary-container font-bold">{a.leads}</td>
+                          <td className="px-3.5 py-2.5 text-right text-on-surface font-medium">${a.costo_por_lead}</td>
+                          <td className="px-3.5 py-2.5 text-right text-on-surface font-medium">${a.inversion}</td>
+                          <td className="px-3.5 py-2.5 text-right text-on-surface font-medium">{a.alcance?.toLocaleString()}</td>
+                          <td className="px-3.5 py-2.5 text-right text-on-surface font-medium">{a.ctr_clics}</td>
                         </tr>
                       ))
                     )}
                   </tbody>
                   {anunciosAMostrar.length > 0 && (
-                    <tfoot className="bg-surface-container-low/60 font-bold border-t-2 border-surface-container">
+                    <tfoot 
+                      className="bg-surface-container-low/70 font-bold" 
+                      style={{ borderTop: '2px solid var(--color-outline-variant)' }}
+                    >
                       <tr>
-                        <td colSpan={2} className="px-3 py-2 text-outline uppercase text-[10px] tracking-wider">
+                        <td colSpan={2} className="px-3.5 py-2.5 text-on-surface uppercase text-[10px] tracking-wider">
                           Subtotales ({anunciosAMostrar.length} {filtroEstado})
                         </td>
-                        <td className="px-3 py-2 text-right text-primary-container">{subtotalesVista.leads}</td>
-                        <td className="px-3 py-2 text-right text-on-surface">${subtotalesVista.costo_por_lead}</td>
-                        <td className="px-3 py-2 text-right text-on-surface">${subtotalesVista.inversion}</td>
-                        <td className="px-3 py-2 text-right text-on-surface">{subtotalesVista.alcance?.toLocaleString()}</td>
-                        <td className="px-3 py-2 text-right text-on-surface">{subtotalesVista.ctr_clics}</td>
+                        <td className="px-3.5 py-2.5 text-right text-primary-container font-extrabold text-xs">{subtotalesVista.leads}</td>
+                        <td className="px-3.5 py-2.5 text-right text-on-surface font-bold text-xs">${subtotalesVista.costo_por_lead}</td>
+                        <td className="px-3.5 py-2.5 text-right text-on-surface font-bold text-xs">${subtotalesVista.inversion}</td>
+                        <td className="px-3.5 py-2.5 text-right text-on-surface font-bold text-xs">{subtotalesVista.alcance?.toLocaleString()}</td>
+                        <td className="px-3.5 py-2.5 text-right text-on-surface font-bold text-xs">{subtotalesVista.ctr_clics}</td>
                       </tr>
                     </tfoot>
                   )}
@@ -485,37 +504,88 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
           )}
 
           {/* Estado de Campaña */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-surface-container">
+          <div 
+            className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4" 
+            style={{ borderTop: '1px solid var(--color-outline-variant)' }}
+          >
             <div>
-              <label className="block text-[11px] font-semibold text-outline mb-1">Estado de Campaña</label>
-              <select
-                value={estadoCm}
-                onChange={(e) => setEstadoCm(e.target.value)}
-                className="w-full px-3 py-2 bg-surface-container-low rounded-lg text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container cursor-pointer font-medium"
-              >
-                <option value="Por Hacer">Por Hacer</option>
-                <option value="Configurando">Configurando Anuncio</option>
-                <option value="Campaña Activa">🔥 Campaña Activa</option>
-                <option value="Finalizado">✅ Finalizado (Reporte Listo)</option>
-              </select>
+              <label className="block text-[11px] font-semibold text-outline mb-1.5 uppercase tracking-wide">
+                Estado de Campaña
+              </label>
+              <div className="relative">
+                <select
+                  value={estadoCm}
+                  onChange={(e) => setEstadoCm(e.target.value)}
+                  className="w-full h-[42px] px-3.5 pr-8 bg-surface-container-lowest rounded-xl text-xs text-on-surface font-semibold appearance-none cursor-pointer transition-all"
+                  style={{ 
+                    border: '1px solid var(--color-outline-variant)',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--color-primary-container)';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.12)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--color-outline-variant)';
+                    e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.03)';
+                  }}
+                >
+                  <option value="Por Hacer">⏳ Por Hacer</option>
+                  <option value="Configurando">🛠️ Configurando Anuncio</option>
+                  <option value="Campaña Activa">🔥 Campaña Activa</option>
+                  <option value="Finalizado">✅ Finalizado (Reporte Listo)</option>
+                </select>
+                <span className="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">
+                  expand_more
+                </span>
+              </div>
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-outline mb-1">Plataforma</label>
+              <label className="block text-[11px] font-semibold text-outline mb-1.5 uppercase tracking-wide">
+                Plataforma
+              </label>
               <input 
                 type="text" 
                 value={plataforma} 
                 onChange={(e) => setPlataforma(e.target.value)}
-                className="w-full px-3 py-2 bg-surface-container-low rounded-lg text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container"
+                placeholder="Ej: Meta Ads / Instagram"
+                className="w-full h-[42px] px-3.5 bg-surface-container-lowest rounded-xl text-xs text-on-surface font-medium transition-all"
+                style={{ 
+                  border: '1px solid var(--color-outline-variant)',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--color-primary-container)';
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.12)';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--color-outline-variant)';
+                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.03)';
+                }}
               />
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-outline mb-1">Presupuesto Asignado</label>
+              <label className="block text-[11px] font-semibold text-outline mb-1.5 uppercase tracking-wide">
+                Presupuesto Asignado
+              </label>
               <input 
                 type="text" 
                 value={presupuesto} 
                 onChange={(e) => setPresupuesto(e.target.value)}
                 placeholder="Ej: $150 USD"
-                className="w-full px-3 py-2 bg-surface-container-low rounded-lg text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container"
+                className="w-full h-[42px] px-3.5 bg-surface-container-lowest rounded-xl text-xs text-on-surface font-medium transition-all"
+                style={{ 
+                  border: '1px solid var(--color-outline-variant)',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--color-primary-container)';
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.12)';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--color-outline-variant)';
+                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.03)';
+                }}
               />
             </div>
           </div>
@@ -523,11 +593,15 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
         </div>
 
         {/* Footer */}
-        <div className="p-3 sm:p-4 bg-surface-container-low flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 border-t border-surface-container">
+        <div 
+          className="p-4 sm:p-5 bg-surface-container-low flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3"
+          style={{ borderTop: '1px solid var(--color-outline-variant)' }}
+        >
           <button 
             type="button" 
             onClick={alCerrar}
-            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-surface-container text-on-surface-variant hover:text-on-surface text-xs font-semibold transition-colors text-center"
+            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-surface-container text-on-surface-variant hover:text-on-surface text-xs font-semibold transition-all text-center hover:bg-surface-container-high cursor-pointer"
+            style={{ border: '1px solid var(--color-outline-variant)' }}
           >
             Cancelar
           </button>
@@ -535,9 +609,10 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
             type="button" 
             disabled={guardando}
             onClick={manejarGuardar}
-            className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-6 py-2.5 rounded-xl bg-primary-container hover:bg-primary text-on-primary text-xs font-semibold transition-all shadow-sm active:scale-95 disabled:opacity-50"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-primary-container hover:bg-primary text-on-primary text-xs font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50 cursor-pointer"
+            style={{ boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)' }}
           >
-            <span className="material-symbols-outlined text-[16px]">save</span>
+            <span className="material-symbols-outlined text-[17px]">save</span>
             <span>{guardando ? 'Guardando en Supabase...' : 'Guardar Todo el Reporte'}</span>
           </button>
         </div>

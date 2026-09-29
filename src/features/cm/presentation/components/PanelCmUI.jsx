@@ -103,34 +103,60 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
     <div className="space-y-6">
       
       {/* ── Banner Principal ── */}
-      <div className="bg-surface-container-lowest p-4 sm:p-6 rounded-2xl shadow-sm border border-surface-container flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="font-display font-bold text-xl sm:text-2xl text-on-surface">Pauta Digital & Meta Ads (Brenda)</h1>
-            <span className="px-2.5 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed-variant text-[11px] sm:text-xs font-bold shrink-0">
-              Reporte 28
-            </span>
+      <section className="rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden"
+        style={{
+          background: 'var(--color-surface-container-lowest)',
+          border: '1px solid var(--color-outline-variant)',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
+        }}>
+        <div className="absolute top-0 right-0 w-80 h-80 rounded-full pointer-events-none opacity-20 blur-3xl -mr-20 -mt-20"
+          style={{ background: 'radial-gradient(circle, var(--color-primary-container) 0%, transparent 70%)' }} />
+
+        <div className="flex items-center gap-3.5 relative z-10">
+          <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl flex items-center justify-center shadow-xs shrink-0"
+            style={{ background: 'var(--color-primary-fixed)' }}>
+            <span className="material-symbols-outlined text-[24px] sm:text-[28px]" style={{ color: 'var(--color-on-primary-fixed-variant)' }}>ads_click</span>
           </div>
-          <p className="text-xs text-on-surface-variant mt-1">
-            Gestión de requerimientos publicitarios separados por agente inmobiliario.
-          </p>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="font-headline-md font-bold text-lg sm:text-xl" style={{ color: 'var(--color-on-surface)' }}>Pauta Digital & Meta Ads</h1>
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0"
+                style={{ background: 'var(--color-primary-fixed)', color: 'var(--color-on-primary-fixed-variant)' }}>
+                Reporte 28
+              </span>
+            </div>
+            <p className="font-body-sm text-xs mt-0.5" style={{ color: 'var(--color-outline)' }}>
+              Gestión de requerimientos publicitarios separados por agente inmobiliario
+            </p>
+          </div>
         </div>
 
         {/* Resumen Global */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <div className="px-3 py-1.5 sm:py-2 rounded-xl bg-surface-container-low border border-surface-container text-xs flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary-container text-[18px]">person</span>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 relative z-10">
+          <div className="px-3 py-1.5 sm:py-2 rounded-xl text-xs flex items-center gap-2 font-medium"
+            style={{
+              background: 'var(--color-surface-container-low)',
+              border: '1px solid var(--color-outline-variant)',
+              color: 'var(--color-on-surface)'
+            }}>
+            <span className="material-symbols-outlined text-[16px]" style={{ color: 'var(--color-primary-container)' }}>person</span>
             <span><strong>{agentes.length}</strong> Agentes</span>
           </div>
-          <div className="px-3 py-1.5 sm:py-2 rounded-xl bg-surface-container-low border border-surface-container text-xs flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span><strong>{tareas.length}</strong> Requerimientos</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 sm:py-2 rounded-full font-label-sm text-[11px] font-semibold shadow-xs"
+            style={{ background: 'var(--color-primary-fixed)', color: 'var(--color-on-primary-fixed-variant)' }}>
+            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--color-primary-container)' }} />
+            Brenda — Pauta Digital
           </div>
         </div>
-      </div>
+      </section>
 
       {/* ── Barra de Navegación / Menú de Agentes ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface-container-lowest p-2.5 sm:p-3 rounded-xl border border-surface-container">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2.5 sm:p-3 rounded-2xl"
+        style={{
+          background: 'var(--color-surface-container-lowest)',
+          border: '1px solid var(--color-outline-variant)',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
+        }}>
         
         {/* Selector de Modo / Navegación */}
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
@@ -139,17 +165,27 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
               <button
                 type="button"
                 onClick={() => setAgenteSeleccionadoId(null)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-xs font-semibold text-on-surface transition-all active:scale-95 shrink-0"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 shrink-0"
+                style={{
+                  background: 'var(--color-surface-container-low)',
+                  border: '1px solid var(--color-outline-variant)',
+                  color: 'var(--color-on-surface)'
+                }}
               >
                 <span className="material-symbols-outlined text-[16px]">arrow_back</span>
                 <span>Directorio</span>
               </button>
               
-              <div className="relative flex-1 sm:flex-initial min-w-[180px]">
+              <div className="relative flex-1 sm:flex-initial min-w-[200px]">
                 <select
                   value={agenteSeleccionadoId || ''}
                   onChange={(e) => setAgenteSeleccionadoId(e.target.value || null)}
-                  className="w-full px-3 py-2 pr-8 bg-surface-container-low border border-surface-container rounded-lg text-xs font-semibold text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container cursor-pointer"
+                  className="w-full px-3 py-2 pr-8 rounded-xl text-xs font-semibold cursor-pointer focus:outline-none transition-all"
+                  style={{
+                    background: 'var(--color-surface-container-low)',
+                    border: '1px solid var(--color-outline-variant)',
+                    color: 'var(--color-on-surface)'
+                  }}
                 >
                   {agentes.map((a) => (
                     <option key={a.id} value={a.id}>
@@ -160,15 +196,20 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-1 p-0.5 bg-surface-container-low rounded-lg border border-surface-container w-full sm:w-auto">
+            <div className="flex items-center gap-1 p-1 rounded-xl w-full sm:w-auto"
+              style={{
+                background: 'var(--color-surface-container-low)',
+                border: '1px solid var(--color-outline-variant)'
+              }}>
               <button
                 type="button"
                 onClick={() => { setVistaModo('agentes'); setAgenteSeleccionadoId(null); }}
-                className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                  vistaModo === 'agentes'
-                    ? 'bg-primary-container text-on-primary shadow-xs'
-                    : 'text-on-surface-variant hover:text-on-surface'
-                }`}
+                className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95"
+                style={{
+                  background: vistaModo === 'agentes' ? 'var(--color-primary-container)' : 'transparent',
+                  color: vistaModo === 'agentes' ? 'white' : 'var(--color-on-surface-variant)',
+                  boxShadow: vistaModo === 'agentes' ? '0 2px 6px rgba(37,99,235,0.25)' : 'none'
+                }}
               >
                 <span className="material-symbols-outlined text-[16px]">group</span>
                 <span>Por Agentes ({agentes.length})</span>
@@ -176,11 +217,12 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
               <button
                 type="button"
                 onClick={() => { setVistaModo('todos'); setAgenteSeleccionadoId(null); }}
-                className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                  vistaModo === 'todos'
-                    ? 'bg-primary-container text-on-primary shadow-xs'
-                    : 'text-on-surface-variant hover:text-on-surface'
-                }`}
+                className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95"
+                style={{
+                  background: vistaModo === 'todos' ? 'var(--color-primary-container)' : 'transparent',
+                  color: vistaModo === 'todos' ? 'white' : 'var(--color-on-surface-variant)',
+                  boxShadow: vistaModo === 'todos' ? '0 2px 6px rgba(37,99,235,0.25)' : 'none'
+                }}
               >
                 <span className="material-symbols-outlined text-[16px]">view_agenda</span>
                 <span>Propiedades ({tareas.length})</span>
@@ -190,8 +232,9 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
         </div>
 
         {/* Buscador */}
-        <div className="relative w-full sm:w-64">
-          <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none material-symbols-outlined text-outline text-[18px]">
+        <div className="relative w-full sm:w-72">
+          <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none material-symbols-outlined text-[18px]"
+            style={{ color: 'var(--color-outline)' }}>
             search
           </span>
           <input
@@ -199,7 +242,22 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             placeholder={agenteActivo ? `Buscar en ${agenteActivo.nombre}...` : "Buscar propiedad o agente..."}
-            className="w-full pl-8 pr-3 py-2 bg-surface-container-low border border-surface-container rounded-lg text-xs text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary-container"
+            className="w-full pl-9 pr-3.5 py-2 rounded-xl text-xs focus:outline-none transition-all"
+            style={{
+              background: 'var(--color-surface-container-low)',
+              border: '1px solid var(--color-outline-variant)',
+              color: 'var(--color-on-surface)'
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = 'var(--color-primary-container)';
+              e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.12)';
+              e.currentTarget.style.background = 'var(--color-surface-container-lowest)';
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = 'var(--color-outline-variant)';
+              e.currentTarget.style.boxShadow = 'none';
+              e.currentTarget.style.background = 'var(--color-surface-container-low)';
+            }}
           />
         </div>
       </div>
@@ -220,7 +278,12 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
               <div
                 key={agente.id}
                 onClick={() => setAgenteSeleccionadoId(agente.id)}
-                className="bg-surface-container-lowest border border-surface-container rounded-2xl p-5 shadow-xs hover:shadow-md hover:border-primary-container/50 transition-all flex flex-col justify-between cursor-pointer group hover:-translate-y-0.5"
+                className="rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between cursor-pointer group hover:-translate-y-0.5"
+                style={{
+                  background: 'var(--color-surface-container-lowest)',
+                  border: '1px solid var(--color-outline-variant)',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
+                }}
               >
                 <div>
                   {/* Cabecera Agente */}
@@ -229,46 +292,53 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
                       {agente.iniciales}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-display font-bold text-base text-on-surface group-hover:text-primary transition-colors truncate">
+                      <h3 className="font-display font-bold text-base transition-colors truncate"
+                        style={{ color: 'var(--color-on-surface)' }}>
                         {agente.nombre}
                       </h3>
-                      <p className="text-xs text-outline flex items-center gap-1 mt-0.5">
+                      <p className="text-xs flex items-center gap-1 mt-0.5" style={{ color: 'var(--color-outline)' }}>
                         <span className="material-symbols-outlined text-[14px]">real_estate_agent</span>
                         <span>Agente Inmobiliario</span>
                       </p>
                     </div>
-                    <span className="px-2.5 py-1 rounded-full bg-primary-fixed/50 text-on-primary-fixed-variant text-xs font-bold shrink-0">
+                    <span className="px-2.5 py-1 rounded-full text-xs font-bold shrink-0"
+                      style={{ background: 'var(--color-primary-fixed)', color: 'var(--color-on-primary-fixed-variant)' }}>
                       {agente.requerimientos.length} req.
                     </span>
                   </div>
 
                   {/* Estadísticas de Campaña */}
-                  <div className="grid grid-cols-3 gap-2 bg-surface-container-low/60 p-2.5 rounded-xl border border-surface-container-low text-center text-xs mb-3">
+                  <div className="grid grid-cols-3 gap-2 p-2.5 rounded-xl text-center text-xs mb-3"
+                    style={{
+                      background: 'var(--color-surface-container-low)',
+                      border: '1px solid var(--color-outline-variant)'
+                    }}>
                     <div>
-                      <span className="text-outline uppercase text-[10px] font-bold block">Activas</span>
+                      <span className="uppercase text-[10px] font-bold block" style={{ color: 'var(--color-outline)' }}>Activas</span>
                       <strong className="text-emerald-600 font-bold">{agente.campanasActivas}</strong>
                     </div>
                     <div>
-                      <span className="text-outline uppercase text-[10px] font-bold block">Por Hacer</span>
+                      <span className="uppercase text-[10px] font-bold block" style={{ color: 'var(--color-outline)' }}>Por Hacer</span>
                       <strong className="text-amber-600 font-bold">{agente.porHacer}</strong>
                     </div>
                     <div>
-                      <span className="text-outline uppercase text-[10px] font-bold block">Finalizado</span>
-                      <strong className="text-primary-container font-bold">{agente.finalizadas}</strong>
+                      <span className="uppercase text-[10px] font-bold block" style={{ color: 'var(--color-outline)' }}>Finalizado</span>
+                      <strong className="font-bold" style={{ color: 'var(--color-primary-container)' }}>{agente.finalizadas}</strong>
                     </div>
                   </div>
 
                   {/* Preview de requerimientos */}
                   <div className="space-y-1 mb-2">
-                    <span className="text-[10px] font-bold text-outline uppercase tracking-wider block">Propiedades asignadas:</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider block" style={{ color: 'var(--color-outline)' }}>Propiedades asignadas:</span>
                     {agente.requerimientos.slice(0, 3).map((r) => (
-                      <div key={r.id_requerimiento} className="text-xs text-on-surface-variant truncate flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-outline/50 shrink-0"></span>
+                      <div key={r.id_requerimiento} className="text-xs truncate flex items-center gap-1.5"
+                        style={{ color: 'var(--color-on-surface-variant)' }}>
+                        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: 'var(--color-outline)' }}></span>
                         <span className="truncate">{r.nombre_propiedad}</span>
                       </div>
                     ))}
                     {agente.requerimientos.length > 3 && (
-                      <span className="text-[11px] text-outline font-medium block italic">
+                      <span className="text-[11px] font-medium block italic" style={{ color: 'var(--color-outline)' }}>
                         +{agente.requerimientos.length - 3} propiedad(es) más...
                       </span>
                     )}
@@ -276,7 +346,8 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
                 </div>
 
                 {/* Footer Botón Ingresar */}
-                <div className="pt-3 border-t border-surface-container-low flex items-center justify-between text-xs font-semibold text-primary-container group-hover:underline">
+                <div className="pt-3 border-t flex items-center justify-between text-xs font-semibold group-hover:underline"
+                  style={{ borderColor: 'var(--color-outline-variant)', color: 'var(--color-primary-container)' }}>
                   <span>Ingresar a requerimientos</span>
                   <span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">
                     arrow_forward
@@ -286,7 +357,12 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
             ))}
 
             {agentesFiltrados.length === 0 && (
-              <div className="col-span-3 text-center py-12 text-outline">
+              <div className="col-span-3 text-center py-12 rounded-2xl"
+                style={{
+                  background: 'var(--color-surface-container-lowest)',
+                  border: '1px solid var(--color-outline-variant)',
+                  color: 'var(--color-outline)'
+                }}>
                 <span className="material-symbols-outlined text-4xl block mb-2">person_search</span>
                 <p>No se encontraron agentes con ese criterio de búsqueda.</p>
               </div>
@@ -299,18 +375,23 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
       {agenteActivo && (
         <div className="space-y-5">
           {/* Tarjeta de Perfil del Agente */}
-          <div className="bg-gradient-to-r from-primary-fixed/20 via-surface-container-lowest to-surface-container-lowest p-4 sm:p-5 rounded-2xl border border-surface-container flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+            style={{
+              background: 'linear-gradient(to right, rgba(219, 225, 255, 0.3), var(--color-surface-container-lowest), var(--color-surface-container-lowest))',
+              border: '1px solid var(--color-outline-variant)',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
+            }}>
             <div className="flex items-center gap-3.5 sm:gap-4">
               <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br ${agenteActivo.colorGradiente} text-white flex items-center justify-center font-display font-bold text-lg sm:text-xl shadow-md shrink-0`}>
                 {agenteActivo.iniciales}
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] sm:text-[11px] font-bold text-primary-container uppercase tracking-wider">Agente Inmobiliario</span>
-                  <span className="text-xs text-outline truncate">• ID: {agenteActivo.id}</span>
+                  <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-primary-container)' }}>Agente Inmobiliario</span>
+                  <span className="text-xs truncate" style={{ color: 'var(--color-outline)' }}>• ID: {agenteActivo.id}</span>
                 </div>
-                <h2 className="font-display font-bold text-lg sm:text-xl text-on-surface truncate">{agenteActivo.nombre}</h2>
-                <p className="text-xs text-on-surface-variant truncate">
+                <h2 className="font-display font-bold text-lg sm:text-xl truncate" style={{ color: 'var(--color-on-surface)' }}>{agenteActivo.nombre}</h2>
+                <p className="text-xs truncate" style={{ color: 'var(--color-on-surface-variant)' }}>
                   {agenteActivo.requerimientos.length} requerimientos registrados para pauta digital y Meta Ads
                 </p>
               </div>
@@ -331,8 +412,12 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
                 </span>
               )}
               {agenteActivo.finalizadas > 0 && (
-                <span className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-surface-container text-on-surface-variant text-xs font-semibold flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-primary-container"></span>
+                <span className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5"
+                  style={{
+                    background: 'var(--color-surface-container)',
+                    color: 'var(--color-on-surface-variant)'
+                  }}>
+                  <span className="w-2 h-2 rounded-full" style={{ background: 'var(--color-primary-container)' }}></span>
                   {agenteActivo.finalizadas} Finalizado
                 </span>
               )}
@@ -344,7 +429,12 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
             {requerimientosAMostrar.map((item) => renderTarjetaRequerimiento(item))}
 
             {requerimientosAMostrar.length === 0 && (
-              <div className="col-span-1 md:col-span-2 lg:col-span-3 text-center py-12 text-outline bg-surface-container-lowest rounded-2xl border border-surface-container">
+              <div className="col-span-1 md:col-span-2 lg:col-span-3 text-center py-12 rounded-2xl"
+                style={{
+                  background: 'var(--color-surface-container-lowest)',
+                  border: '1px solid var(--color-outline-variant)',
+                  color: 'var(--color-outline)'
+                }}>
                 <span className="material-symbols-outlined text-4xl block mb-2">inventory_2</span>
                 <p>Este agente no tiene requerimientos que coincidan con la búsqueda.</p>
               </div>
@@ -357,7 +447,8 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
       {!agenteActivo && vistaModo === 'todos' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xs font-bold text-outline uppercase tracking-wider flex items-center gap-1.5">
+            <h2 className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5"
+              style={{ color: 'var(--color-outline)' }}>
               <span className="material-symbols-outlined text-[16px]">domain</span>
               Todas las Propiedades ({requerimientosAMostrar.length})
             </h2>
@@ -367,7 +458,12 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
             {requerimientosAMostrar.map((item) => renderTarjetaRequerimiento(item))}
 
             {requerimientosAMostrar.length === 0 && (
-              <div className="col-span-3 text-center py-12 text-outline bg-surface-container-lowest rounded-2xl border border-surface-container">
+              <div className="col-span-3 text-center py-12 rounded-2xl"
+                style={{
+                  background: 'var(--color-surface-container-lowest)',
+                  border: '1px solid var(--color-outline-variant)',
+                  color: 'var(--color-outline)'
+                }}>
                 <p>No se encontraron propiedades.</p>
               </div>
             )}
@@ -386,24 +482,35 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
     return (
       <div
         key={cm.id_tarea || item.id_requerimiento}
-        className="bg-surface-container-lowest border border-surface-container rounded-2xl shadow-xs hover:shadow-md transition-all flex flex-col justify-between overflow-hidden group cursor-pointer hover:border-primary-container/50"
+        className="rounded-2xl transition-all duration-300 flex flex-col justify-between overflow-hidden group cursor-pointer hover:-translate-y-0.5"
+        style={{
+          background: 'var(--color-surface-container-lowest)',
+          border: '1px solid var(--color-outline-variant)',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
+        }}
         onClick={() => alSeleccionarPropiedad(item)}
       >
         <div>
-          <div className="p-5 border-b border-surface-container-low flex justify-between items-start gap-2 bg-gradient-to-r from-primary-fixed/20 to-transparent">
+          <div className="p-5 flex justify-between items-start gap-2"
+            style={{
+              background: 'linear-gradient(to right, rgba(219, 225, 255, 0.2), transparent)',
+              borderBottom: '1px solid var(--color-outline-variant)'
+            }}>
             <div>
-              <h3 className="font-display font-semibold text-base text-on-surface group-hover:text-primary transition-colors flex items-center gap-1">
+              <h3 className="font-display font-semibold text-base transition-colors flex items-center gap-1.5"
+                style={{ color: 'var(--color-on-surface)' }}>
                 <span>{item.nombre_propiedad}</span>
-                <span className="material-symbols-outlined text-[16px] opacity-0 group-hover:opacity-100 transition-opacity text-primary-container">
+                <span className="material-symbols-outlined text-[16px] opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{ color: 'var(--color-primary-container)' }}>
                   open_in_new
                 </span>
               </h3>
-              <p className="text-xs text-outline mt-0.5">
+              <p className="text-xs mt-0.5" style={{ color: 'var(--color-outline)' }}>
                 Agente: <strong>{agente}</strong> • {item.periodo_mensual}
               </p>
             </div>
             <span
-              className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold flex items-center gap-1 ${
+              className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold flex items-center gap-1 shrink-0 ${
                 cm.estado === 'Finalizado'
                   ? 'bg-secondary-container text-on-secondary-container'
                   : cm.estado === 'Campaña Activa'
@@ -416,29 +523,39 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
           </div>
 
           <div className="p-5 space-y-3">
-            <div className="grid grid-cols-2 gap-2 text-xs bg-surface-container-low/60 p-3 rounded-xl border border-surface-container-low">
+            <div className="grid grid-cols-2 gap-2 text-xs p-3 rounded-xl"
+              style={{
+                background: 'var(--color-surface-container-low)',
+                border: '1px solid var(--color-outline-variant)'
+              }}>
               <div>
-                <span className="text-outline uppercase text-[10px] font-bold block mb-0.5">Plataforma</span>
-                <strong className="text-on-surface">{cm.plataforma || 'Facebook / IG'}</strong>
+                <span className="uppercase text-[10px] font-bold block mb-0.5" style={{ color: 'var(--color-outline)' }}>Plataforma</span>
+                <strong style={{ color: 'var(--color-on-surface)' }}>{cm.plataforma || 'Facebook / IG'}</strong>
               </div>
               <div>
-                <span className="text-outline uppercase text-[10px] font-bold block mb-0.5">Presupuesto</span>
-                <strong className="text-primary-container">{cm.presupuesto || 'Sin definir'}</strong>
+                <span className="uppercase text-[10px] font-bold block mb-0.5" style={{ color: 'var(--color-outline)' }}>Presupuesto</span>
+                <strong style={{ color: 'var(--color-primary-container)' }}>{cm.presupuesto || 'Sin definir'}</strong>
               </div>
             </div>
 
-            <p className="text-xs text-on-surface-variant line-clamp-2">
+            <p className="text-xs line-clamp-2" style={{ color: 'var(--color-on-surface-variant)' }}>
               {item.descripcion_propiedad || 'Sin descripción detallada.'}
             </p>
           </div>
         </div>
 
-        <div className="p-4 bg-surface-container-low/40 border-t border-surface-container-low flex items-center justify-between">
-          <span className="text-[11px] font-semibold text-primary-container group-hover:underline flex items-center gap-1">
+        <div className="p-4 flex items-center justify-between"
+          style={{
+            background: 'var(--color-surface-container-low)',
+            borderTop: '1px solid var(--color-outline-variant)'
+          }}>
+          <span className="text-[11px] font-semibold group-hover:underline flex items-center gap-1"
+            style={{ color: 'var(--color-primary-container)' }}>
             <span className="material-symbols-outlined text-[15px]">upload_file</span>
             Ver detalle y cargar CSV
           </span>
-          <span className="material-symbols-outlined text-outline text-[18px] group-hover:translate-x-1 transition-transform">
+          <span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform"
+            style={{ color: 'var(--color-outline)' }}>
             chevron_right
           </span>
         </div>

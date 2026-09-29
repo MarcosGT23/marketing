@@ -9,21 +9,22 @@ function StyledInput({ icon, ...rest }) {
         <div className="relative w-full">
             {icon && (
                 <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none material-symbols-outlined"
-                    style={{ color: 'var(--color-outline)', fontSize: '18px' }}>{icon}</span>
+                    style={{ color: focused ? 'var(--color-primary-container)' : 'var(--color-outline)', fontSize: '18px', transition: 'color 0.15s ease' }}>{icon}</span>
             )}
             <input
                 style={{
-                    width: '100%', height: '44px',
+                    width: '100%',
+                    height: '42px',
                     background: focused ? 'var(--color-surface-container-lowest)' : 'var(--color-surface-container-low)',
-                    border: '1px solid transparent',
-                    borderRadius: '0.5rem',
+                    border: focused ? '1px solid var(--color-primary-container)' : '1px solid var(--color-outline-variant)',
+                    borderRadius: '0.625rem',
                     color: 'var(--color-on-surface)',
-                    fontSize: '14px',
-                    paddingLeft: icon ? '40px' : '12px',
+                    fontSize: '13px',
+                    paddingLeft: icon ? '38px' : '12px',
                     paddingRight: '12px',
                     outline: 'none',
-                    boxShadow: focused ? '0 0 0 2px rgba(37,99,235,0.25)' : 'none',
-                    transition: 'all 0.15s',
+                    boxShadow: focused ? '0 0 0 3px rgba(37,99,235,0.12)' : 'none',
+                    transition: 'all 0.15s ease',
                     fontFamily: 'Inter, system-ui, sans-serif',
                 }}
                 onFocus={() => setFocused(true)}
@@ -40,16 +41,20 @@ function StyledSelect({ children, ...rest }) {
         <div className="relative w-full">
             <select
                 style={{
-                    width: '100%', height: '44px',
-                    background: focused ? 'var(--color-surface-container)' : 'var(--color-surface-container-low)',
-                    border: '1px solid transparent',
-                    borderRadius: '0.5rem',
+                    width: '100%',
+                    height: '42px',
+                    background: focused ? 'var(--color-surface-container-lowest)' : 'var(--color-surface-container-low)',
+                    border: focused ? '1px solid var(--color-primary-container)' : '1px solid var(--color-outline-variant)',
+                    borderRadius: '0.625rem',
                     color: 'var(--color-on-surface)',
-                    fontSize: '14px',
-                    padding: '0 40px 0 12px',
+                    fontSize: '13px',
+                    fontWeight: 500,
+                    padding: '0 36px 0 12px',
                     outline: 'none',
                     appearance: 'none',
                     cursor: 'pointer',
+                    boxShadow: focused ? '0 0 0 3px rgba(37,99,235,0.12)' : 'none',
+                    transition: 'all 0.15s ease',
                     fontFamily: 'Inter, system-ui, sans-serif',
                 }}
                 onFocus={() => setFocused(true)}
@@ -58,8 +63,8 @@ function StyledSelect({ children, ...rest }) {
             >
                 {children}
             </select>
-            <span className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none material-symbols-outlined"
-                style={{ color: 'var(--color-outline)', fontSize: '20px' }}>unfold_more</span>
+            <span className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none material-symbols-outlined"
+                style={{ color: 'var(--color-outline)', fontSize: '18px' }}>expand_more</span>
         </div>
     );
 }
@@ -201,37 +206,58 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
         <div className="flex flex-col gap-6">
 
             {/* Header */}
-            <section className="rounded-2xl p-4 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 border"
-                style={{ background: 'var(--color-surface-container-lowest)', borderColor: 'var(--color-surface-container)' }}>
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center shadow-sm shrink-0"
+            <section className="rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden"
+                style={{
+                    background: 'var(--color-surface-container-lowest)',
+                    border: '1px solid var(--color-outline-variant)',
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
+                }}>
+                <div className="absolute top-0 right-0 w-80 h-80 rounded-full pointer-events-none opacity-20 blur-3xl -mr-20 -mt-20"
+                    style={{ background: 'radial-gradient(circle, var(--color-secondary) 0%, transparent 70%)' }} />
+
+                <div className="flex items-center gap-3.5 relative z-10">
+                    <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-2xl flex items-center justify-center shadow-xs shrink-0"
                         style={{ background: 'var(--color-secondary-container)' }}>
-                        <span className="material-symbols-outlined text-[22px] sm:text-[26px]" style={{ color: 'var(--color-on-secondary-container)' }}>palette</span>
+                        <span className="material-symbols-outlined text-[24px] sm:text-[28px]" style={{ color: 'var(--color-on-secondary-container)' }}>palette</span>
                     </div>
                     <div>
-                        <h1 className="font-headline-md font-bold text-lg sm:text-xl" style={{ color: 'var(--color-on-surface)' }}>Tablero de Diseño</h1>
+                        <div className="flex items-center gap-2">
+                            <h1 className="font-headline-md font-bold text-lg sm:text-xl" style={{ color: 'var(--color-on-surface)' }}>Tablero de Diseño</h1>
+                            <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                                style={{ background: 'var(--color-secondary-container)', color: 'var(--color-on-secondary-container)' }}>
+                                Creatividad
+                            </span>
+                        </div>
                         <p className="font-body-sm text-xs mt-0.5" style={{ color: 'var(--color-outline)' }}>
                             Supervisión y entrega de artes publicitarios separados por agente inmobiliario
                         </p>
                     </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                    <div className="px-3 py-1.5 sm:py-2 rounded-xl border text-xs flex items-center gap-2"
-                        style={{ background: 'var(--color-surface-container-low)', borderColor: 'var(--color-surface-container)' }}>
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 relative z-10">
+                    <div className="px-3 py-1.5 sm:py-2 rounded-xl text-xs flex items-center gap-2 font-medium"
+                        style={{
+                            background: 'var(--color-surface-container-low)',
+                            border: '1px solid var(--color-outline-variant)',
+                            color: 'var(--color-on-surface)'
+                        }}>
                         <span className="material-symbols-outlined text-[16px]" style={{ color: 'var(--color-secondary)' }}>person</span>
                         <span><strong>{agentes.length}</strong> Agentes</span>
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-1.5 sm:py-2 rounded-full font-label-sm text-[11px]"
+                    <div className="flex items-center gap-2 px-3 py-1.5 sm:py-2 rounded-full font-label-sm text-[11px] font-semibold shadow-xs"
                         style={{ background: 'var(--color-secondary-container)', color: 'var(--color-on-secondary-container)' }}>
-                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--color-secondary)' }} />
+                        <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--color-secondary)' }} />
                         Isac — Diseñador
                     </div>
                 </div>
             </section>
 
             {/* Barra de Navegación / Menú de Agentes */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2.5 sm:p-3 rounded-xl border"
-                style={{ background: 'var(--color-surface-container-lowest)', borderColor: 'var(--color-surface-container)' }}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2.5 sm:p-3 rounded-2xl"
+                style={{
+                    background: 'var(--color-surface-container-lowest)',
+                    border: '1px solid var(--color-outline-variant)',
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
+                }}>
                 
                 <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                     {agenteActivo ? (
@@ -239,20 +265,24 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
                             <button
                                 type="button"
                                 onClick={() => setAgenteSeleccionadoId(null)}
-                                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95 shrink-0"
-                                style={{ background: 'var(--color-surface-container)', color: 'var(--color-on-surface)' }}
+                                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95 shrink-0"
+                                style={{
+                                    background: 'var(--color-surface-container-low)',
+                                    border: '1px solid var(--color-outline-variant)',
+                                    color: 'var(--color-on-surface)'
+                                }}
                             >
                                 <span className="material-symbols-outlined text-[16px]">arrow_back</span>
                                 <span>Directorio</span>
                             </button>
-                            <div className="relative flex-1 sm:flex-initial min-w-[180px]">
+                            <div className="relative flex-1 sm:flex-initial min-w-[200px]">
                                 <select
                                     value={agenteSeleccionadoId || ''}
                                     onChange={(e) => setAgenteSeleccionadoId(e.target.value || null)}
-                                    className="w-full px-3 py-2 pr-8 rounded-lg text-xs font-semibold border cursor-pointer focus:outline-none"
+                                    className="w-full px-3 py-2 pr-8 rounded-xl text-xs font-semibold cursor-pointer focus:outline-none transition-all"
                                     style={{
                                         background: 'var(--color-surface-container-low)',
-                                        borderColor: 'var(--color-surface-container)',
+                                        border: '1px solid var(--color-outline-variant)',
                                         color: 'var(--color-on-surface)'
                                     }}
                                 >
@@ -265,16 +295,20 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
                             </div>
                         </div>
                     ) : (
-                        <div className="flex items-center gap-1 p-0.5 rounded-lg border w-full sm:w-auto"
-                            style={{ background: 'var(--color-surface-container-low)', borderColor: 'var(--color-surface-container)' }}>
+                        <div className="flex items-center gap-1 p-1 rounded-xl w-full sm:w-auto"
+                            style={{
+                                background: 'var(--color-surface-container-low)',
+                                border: '1px solid var(--color-outline-variant)'
+                            }}>
                             <button
                                 type="button"
                                 onClick={() => { setVistaModo('agentes'); setAgenteSeleccionadoId(null); }}
-                                className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                                    vistaModo === 'agentes'
-                                        ? 'bg-primary-container text-on-primary shadow-xs'
-                                        : 'text-on-surface-variant hover:text-on-surface'
-                                }`}
+                                className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95"
+                                style={{
+                                    background: vistaModo === 'agentes' ? 'var(--color-primary-container)' : 'transparent',
+                                    color: vistaModo === 'agentes' ? 'white' : 'var(--color-on-surface-variant)',
+                                    boxShadow: vistaModo === 'agentes' ? '0 2px 6px rgba(37,99,235,0.25)' : 'none'
+                                }}
                             >
                                 <span className="material-symbols-outlined text-[16px]">group</span>
                                 <span>Por Agentes ({agentes.length})</span>
@@ -282,43 +316,23 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
                             <button
                                 type="button"
                                 onClick={() => { setVistaModo('todos'); setAgenteSeleccionadoId(null); }}
-                                className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                                    vistaModo === 'todos'
-                                        ? 'bg-primary-container text-on-primary shadow-xs'
-                                        : 'text-on-surface-variant hover:text-on-surface'
-                                }`}
+                                className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95"
+                                style={{
+                                    background: vistaModo === 'todos' ? 'var(--color-primary-container)' : 'transparent',
+                                    color: vistaModo === 'todos' ? 'white' : 'var(--color-on-surface-variant)',
+                                    boxShadow: vistaModo === 'todos' ? '0 2px 6px rgba(37,99,235,0.25)' : 'none'
+                                }}
                             >
                                 <span className="material-symbols-outlined text-[16px]">view_agenda</span>
                                 <span>Tareas ({tareas.length})</span>
                             </button>
                         </div>
                     )}
-
-                    {agenteActivo && (
-                        <div className="relative">
-                            <select
-                                value={agenteSeleccionadoId || ''}
-                                onChange={(e) => setAgenteSeleccionadoId(e.target.value || null)}
-                                className="px-3 py-1.5 pr-8 rounded-lg text-xs font-semibold border cursor-pointer focus:outline-none"
-                                style={{
-                                    background: 'var(--color-surface-container-low)',
-                                    borderColor: 'var(--color-surface-container)',
-                                    color: 'var(--color-on-surface)'
-                                }}
-                            >
-                                {agentes.map((a) => (
-                                    <option key={a.id} value={a.id}>
-                                        {a.nombre} ({a.requerimientos.length})
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
                 </div>
 
                 {/* Buscador */}
-                <div className="relative w-full sm:w-64">
-                    <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none material-symbols-outlined text-[18px]"
+                <div className="relative w-full sm:w-72">
+                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none material-symbols-outlined text-[18px]"
                         style={{ color: 'var(--color-outline)' }}>
                         search
                     </span>
@@ -327,11 +341,21 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
                         value={busqueda}
                         onChange={(e) => setBusqueda(e.target.value)}
                         placeholder={agenteActivo ? `Buscar en ${agenteActivo.nombre}...` : "Buscar propiedad o agente..."}
-                        className="w-full pl-8 pr-3 py-1.5 rounded-lg text-xs border focus:outline-none"
+                        className="w-full pl-9 pr-3.5 py-2 rounded-xl text-xs focus:outline-none transition-all"
                         style={{
                             background: 'var(--color-surface-container-low)',
-                            borderColor: 'var(--color-surface-container)',
+                            border: '1px solid var(--color-outline-variant)',
                             color: 'var(--color-on-surface)'
+                        }}
+                        onFocus={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--color-primary-container)';
+                            e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.12)';
+                            e.currentTarget.style.background = 'var(--color-surface-container-lowest)';
+                        }}
+                        onBlur={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--color-outline-variant)';
+                            e.currentTarget.style.boxShadow = 'none';
+                            e.currentTarget.style.background = 'var(--color-surface-container-low)';
                         }}
                     />
                 </div>
@@ -356,10 +380,11 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
                             <div
                                 key={agente.id}
                                 onClick={() => setAgenteSeleccionadoId(agente.id)}
-                                className="rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between cursor-pointer group hover:-translate-y-0.5 border"
+                                className="rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between cursor-pointer group hover:-translate-y-0.5"
                                 style={{
                                     background: 'var(--color-surface-container-lowest)',
-                                    borderColor: 'var(--color-surface-container)'
+                                    border: '1px solid var(--color-outline-variant)',
+                                    boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
                                 }}
                             >
                                 <div>
@@ -368,7 +393,7 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
                                             {agente.iniciales}
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            <h3 className="font-display font-bold text-base group-hover:text-primary transition-colors truncate"
+                                            <h3 className="font-display font-bold text-base transition-colors truncate"
                                                 style={{ color: 'var(--color-on-surface)' }}>
                                                 {agente.nombre}
                                             </h3>
@@ -384,8 +409,11 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
                                     </div>
 
                                     {/* Estadísticas de Diseño */}
-                                    <div className="grid grid-cols-3 gap-2 p-2.5 rounded-xl border text-center text-xs mb-3"
-                                        style={{ background: 'var(--color-surface-container-low)', borderColor: 'var(--color-surface-container-low)' }}>
+                                    <div className="grid grid-cols-3 gap-2 p-2.5 rounded-xl text-center text-xs mb-3"
+                                        style={{
+                                            background: 'var(--color-surface-container-low)',
+                                            border: '1px solid var(--color-outline-variant)'
+                                        }}>
                                         <div>
                                             <span className="uppercase text-[10px] font-bold block" style={{ color: 'var(--color-outline)' }}>En Proceso</span>
                                             <strong className="text-blue-600 font-bold">{agente.enProceso}</strong>
@@ -421,7 +449,7 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
                                 </div>
 
                                 <div className="pt-3 border-t flex items-center justify-between text-xs font-semibold group-hover:underline"
-                                    style={{ borderColor: 'var(--color-surface-container-low)', color: 'var(--color-primary-container)' }}>
+                                    style={{ borderColor: 'var(--color-outline-variant)', color: 'var(--color-primary-container)' }}>
                                     <span>Ingresar a tareas de diseño</span>
                                     <span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">
                                         arrow_forward
@@ -431,7 +459,12 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
                         ))}
 
                         {agentesFiltrados.length === 0 && (
-                            <div className="col-span-3 text-center py-12" style={{ color: 'var(--color-outline)' }}>
+                            <div className="col-span-3 text-center py-12 rounded-2xl"
+                                style={{
+                                    background: 'var(--color-surface-container-lowest)',
+                                    border: '1px solid var(--color-outline-variant)',
+                                    color: 'var(--color-outline)'
+                                }}>
                                 <span className="material-symbols-outlined text-4xl block mb-2">person_search</span>
                                 <p>No se encontraron agentes con ese criterio de búsqueda.</p>
                             </div>
@@ -444,10 +477,11 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
             {agenteActivo && (
                 <div className="space-y-5">
                     {/* Perfil del Agente */}
-                    <div className="p-4 sm:p-5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    <div className="p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                         style={{
-                            background: 'linear-gradient(to right, rgba(209, 250, 229, 0.3), var(--color-surface-container-lowest), var(--color-surface-container-lowest))',
-                            borderColor: 'var(--color-surface-container)'
+                            background: 'linear-gradient(to right, rgba(209, 250, 229, 0.25), var(--color-surface-container-lowest), var(--color-surface-container-lowest))',
+                            border: '1px solid var(--color-outline-variant)',
+                            boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
                         }}>
                         <div className="flex items-center gap-3.5 sm:gap-4">
                             <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br ${agenteActivo.colorGradiente} text-white flex items-center justify-center font-display font-bold text-lg sm:text-xl shadow-md shrink-0`}>
@@ -507,8 +541,12 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
                         {requerimientosAMostrar.map((item) => renderTarjetaDiseno(item))}
 
                         {requerimientosAMostrar.length === 0 && (
-                            <div className="col-span-2 text-center py-12 rounded-2xl border"
-                                style={{ background: 'var(--color-surface-container-lowest)', borderColor: 'var(--color-surface-container)', color: 'var(--color-outline)' }}>
+                            <div className="col-span-2 text-center py-12 rounded-2xl"
+                                style={{
+                                    background: 'var(--color-surface-container-lowest)',
+                                    border: '1px solid var(--color-outline-variant)',
+                                    color: 'var(--color-outline)'
+                                }}>
                                 <span className="material-symbols-outlined text-4xl block mb-2">palette</span>
                                 <p>Este agente no tiene requerimientos de diseño que coincidan con la búsqueda.</p>
                             </div>
@@ -532,8 +570,12 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
                         {requerimientosAMostrar.map((item) => renderTarjetaDiseno(item))}
 
                         {requerimientosAMostrar.length === 0 && (
-                            <div className="col-span-2 text-center py-12 rounded-2xl border"
-                                style={{ background: 'var(--color-surface-container-lowest)', borderColor: 'var(--color-surface-container)', color: 'var(--color-outline)' }}>
+                            <div className="col-span-2 text-center py-12 rounded-2xl"
+                                style={{
+                                    background: 'var(--color-surface-container-lowest)',
+                                    border: '1px solid var(--color-outline-variant)',
+                                    color: 'var(--color-outline)'
+                                }}>
                                 <p>No se encontraron tareas de diseño.</p>
                             </div>
                         )}
@@ -553,21 +595,19 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
 
         return (
             <div key={tarea.id_tarea || item.id_requerimiento}
-                className={`rounded-2xl shadow-sm flex flex-col justify-between overflow-hidden transition-all duration-300 hover:shadow-md border ${
-                    estaBloqueada ? 'ring-1 ring-emerald-500/30' : ''
-                }`}
+                className="rounded-2xl flex flex-col justify-between overflow-hidden transition-all duration-300 hover:shadow-md"
                 style={{ 
-                    background: estaBloqueada ? 'rgba(16, 185, 129, 0.06)' : 'var(--color-surface-container-lowest)', 
-                    borderColor: estaBloqueada ? 'rgba(16, 185, 129, 0.4)' : 'var(--color-surface-container)',
-                    boxShadow: estaBloqueada ? '0 4px 20px -2px rgba(16, 185, 129, 0.12)' : 'none'
+                    background: estaBloqueada ? 'rgba(16, 185, 129, 0.04)' : 'var(--color-surface-container-lowest)', 
+                    border: estaBloqueada ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid var(--color-outline-variant)',
+                    boxShadow: estaBloqueada ? '0 4px 20px -2px rgba(16, 185, 129, 0.12)' : '0 1px 4px rgba(0,0,0,0.05)'
                 }}>
 
                 <div>
                     {/* Card header */}
                     <div className="px-4 sm:px-5 py-3.5 sm:py-4 flex items-start justify-between gap-3 border-b"
                         style={{ 
-                            background: estaBloqueada ? 'rgba(16, 185, 129, 0.12)' : 'var(--color-surface-container-low)', 
-                            borderColor: estaBloqueada ? 'rgba(16, 185, 129, 0.2)' : 'var(--color-surface-container)' 
+                            background: estaBloqueada ? 'rgba(16, 185, 129, 0.08)' : 'var(--color-surface-container-low)', 
+                            borderColor: estaBloqueada ? 'rgba(16, 185, 129, 0.2)' : 'var(--color-outline-variant)' 
                         }}>
                         <div className="min-w-0">
                             <h3 className="font-title-md truncate font-semibold" style={{ color: 'var(--color-on-surface)', fontSize: '15px' }}>
@@ -579,7 +619,7 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
                         </div>
                         <div className="flex items-center gap-1.5 flex-shrink-0">
                             {estaBloqueada && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 border border-emerald-500/30">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 border border-emerald-500/25">
                                     <span className="material-symbols-outlined text-[12px]">lock</span>
                                     Bloqueada
                                 </span>
@@ -594,7 +634,7 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
 
                     {/* Meta info */}
                     <div className="px-4 sm:px-5 py-3 space-y-1.5 font-body-sm border-b text-xs"
-                        style={{ borderColor: 'var(--color-surface-container-low)', background: 'var(--color-surface-container-low)' }}>
+                        style={{ borderColor: 'var(--color-outline-variant)', background: 'var(--color-surface-container-low)' }}>
                         <p style={{ color: 'var(--color-on-surface-variant)' }}>
                             <span style={{ color: 'var(--color-outline)' }}>Ubicación:</span> {item.ubicacion || 'No especificada'}
                         </p>
@@ -611,7 +651,7 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
                     </div>
 
                     {/* Progress Bar vinculada al Estado */}
-                    <div className="px-4 sm:px-5 py-3 sm:py-3.5 border-b" style={{ borderColor: 'var(--color-surface-container-low)' }}>
+                    <div className="px-4 sm:px-5 py-3 sm:py-3.5 border-b" style={{ borderColor: 'var(--color-outline-variant)' }}>
                         <div className="flex justify-between font-label-sm text-[11px] mb-2">
                             <span style={{ color: 'var(--color-outline)' }}>Avance ({tarea.estado || 'Por Hacer'})</span>
                             <span style={{ color: s.bar || 'var(--color-secondary)', fontWeight: 700 }}>{progreso}%</span>
@@ -625,7 +665,7 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
 
                 {/* Controls: Estado y SlideConfirm / Desbloquear */}
                 <div className="px-4 sm:px-5 py-3 sm:py-4 space-y-3"
-                    style={{ background: estaBloqueada ? 'rgba(16, 185, 129, 0.04)' : 'var(--color-surface-container-low/20)' }}>
+                    style={{ background: estaBloqueada ? 'rgba(16, 185, 129, 0.04)' : 'var(--color-surface-container-low)' }}>
                     <div className="flex flex-col gap-2">
                         <div className="flex items-center justify-between">
                             <label className="font-label-sm text-xs font-semibold" style={{ color: 'var(--color-on-surface-variant)' }}>

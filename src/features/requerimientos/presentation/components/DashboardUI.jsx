@@ -146,11 +146,14 @@ export default function DashboardUI({ metricas, campanas, cargando, periodoSelec
         <div className="flex flex-col gap-6">
 
             {/* Welcome / Command Strip */}
-            <section className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-5 rounded-2xl p-4 sm:p-6 shadow-sm border border-surface-container"
-                style={{ background: 'var(--color-surface-container-lowest)' }}>
-                <div className="space-y-1">
+            <section className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-5 rounded-2xl p-5 sm:p-6 relative overflow-hidden"
+                style={{ background: 'var(--color-surface-container-lowest)', border: '1px solid var(--color-outline-variant)', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                {/* Subtle gradient orb */}
+                <div className="absolute -right-16 -top-16 w-48 h-48 rounded-full blur-3xl opacity-25 pointer-events-none"
+                    style={{ background: 'linear-gradient(135deg, var(--color-primary-container), var(--color-tertiary-container))' }}></div>
+                <div className="space-y-1 relative z-10">
                     <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
-                        <h1 className="font-display font-bold text-xl sm:text-2xl" style={{ color: 'var(--color-on-surface)' }}>
+                        <h1 className="font-display font-bold text-xl sm:text-2xl" style={{ color: 'var(--color-on-surface)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                             Hola, Equipo <span className="inline-block animate-bounce">👋</span>
                         </h1>
                         <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-label-sm text-[11px]"
@@ -163,8 +166,8 @@ export default function DashboardUI({ metricas, campanas, cargando, periodoSelec
                         Resumen ejecutivo y flujo de avance entre agentes, diseño, video y pauta digital.
                     </p>
                 </div>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3 w-full lg:w-auto">
-                    <div className="flex items-center gap-2 px-3 py-1.5 sm:py-2 rounded-xl" style={{ background: 'var(--color-surface-container-low)' }}>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3 w-full lg:w-auto relative z-10">
+                    <div className="flex items-center gap-2 px-3 py-1.5 sm:py-2 rounded-xl" style={{ background: 'var(--color-surface-container-low)', border: '1px solid var(--color-outline-variant)' }}>
                         <span className="material-symbols-outlined text-[18px]" style={{ color: 'var(--color-primary-container)' }}>calendar_month</span>
                         <StyledSelect value={periodoSeleccionado} onChange={(e) => alCambiarPeriodo(e.target.value)}
                             style={{ height: '36px', fontSize: '13px', border: 'none', background: 'transparent', width: 'auto' }}>
@@ -176,14 +179,15 @@ export default function DashboardUI({ metricas, campanas, cargando, periodoSelec
                     <button
                         className="w-full sm:w-auto flex items-center justify-center gap-2 font-label-md transition-all active:scale-95"
                         style={{
-                            padding: '10px 24px', borderRadius: '0.75rem',
-                            background: 'var(--color-primary-container)', color: 'var(--color-on-primary)',
+                            padding: '10px 24px', borderRadius: '0.875rem',
+                            background: 'linear-gradient(135deg, var(--color-primary-container), var(--color-primary))',
+                            color: 'var(--color-on-primary)',
                             border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: 600,
-                            boxShadow: '0 2px 8px rgba(37,99,235,0.2)',
+                            boxShadow: '0 2px 10px rgba(37,99,235,0.3)',
                         }}
                         onClick={() => window.location.href = '/agente/nuevo'}
-                        onMouseEnter={e => e.currentTarget.style.background = 'var(--color-primary)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'var(--color-primary-container)'}>
+                        onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(37,99,235,0.4)'}
+                        onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 10px rgba(37,99,235,0.3)'}>
                         <span className="material-symbols-outlined text-[18px]">add</span>
                         Registrar Campaña
                     </button>
@@ -192,10 +196,12 @@ export default function DashboardUI({ metricas, campanas, cargando, periodoSelec
 
             {/* KPI Cards */}
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                {kpis.map((kpi) => (
+                {kpis.map((kpi, i) => (
                     <div key={kpi.label}
-                        className="rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden group border border-surface-container"
-                        style={{ background: 'var(--color-surface-container-lowest)' }}>
+                        className="rounded-2xl p-4 sm:p-5 transition-all flex flex-col justify-between relative overflow-hidden group"
+                        style={{ background: 'var(--color-surface-container-lowest)', border: '1px solid var(--color-outline-variant)', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}
+                        onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.10)'}
+                        onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.05)'}>
                         <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full blur-xl opacity-40 group-hover:scale-125 transition-transform"
                             style={{ background: kpi.bg }} />
                         <div>
@@ -232,7 +238,7 @@ export default function DashboardUI({ metricas, campanas, cargando, periodoSelec
             </section>
 
             {/* Properties Table */}
-            <section className="rounded-2xl shadow-sm overflow-hidden border border-surface-container" style={{ background: 'var(--color-surface-container-lowest)' }}>
+            <section className="rounded-2xl overflow-hidden" style={{ background: 'var(--color-surface-container-lowest)', border: '1px solid var(--color-outline-variant)', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
                 {/* Table header controls */}
                 <div className="p-4 sm:px-6 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4"
                     style={{ borderBottom: '1px solid var(--color-surface-container-low)' }}>
