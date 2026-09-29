@@ -80,8 +80,10 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
       const leads = Math.round(base.reduce((s, a) => s + (a.leads || 0), 0));
       const inversion = Math.round(base.reduce((s, a) => s + (a.inversion || 0), 0));
       const alcance = Math.round(base.reduce((s, a) => s + (a.alcance || 0), 0));
-      const costo_por_lead = Math.round(base.reduce((s, a) => s + (a.costo_por_lead || 0), 0) / base.length);
-      const ctr_clics = Math.round(base.reduce((s, a) => s + (a.ctr_clics || 0), 0) / base.length);
+      const costo_por_lead = leads > 0 
+        ? Math.round(inversion / leads) 
+        : Math.round(base.reduce((s, a) => s + (a.costo_por_lead || 0), 0) / (base.length || 1));
+      const ctr_clics = Math.round(base.reduce((s, a) => s + (a.ctr_clics || 0), 0) / (base.length || 1));
       setTotales({ leads, costo_por_lead, inversion, alcance, ctr_clics });
     } else {
       setTotales({ leads: 0, costo_por_lead: 0, inversion: 0, alcance: 0, ctr_clics: 0 });
@@ -132,9 +134,16 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
           const leads = Math.round(base.reduce((s, a) => s + (a.leads || 0), 0));
           const inversion = Math.round(base.reduce((s, a) => s + (a.inversion || 0), 0));
           const alcance = Math.round(base.reduce((s, a) => s + (a.alcance || 0), 0));
-          const costo_por_lead = Math.round(base.reduce((s, a) => s + (a.costo_por_lead || 0), 0) / base.length);
+          const costo_por_lead = leads > 0 
+            ? Math.round(inversion / leads) 
+            : Math.round(base.reduce((s, a) => s + (a.costo_por_lead || 0), 0) / base.length);
           const ctr_clics = Math.round(base.reduce((s, a) => s + (a.ctr_clics || 0), 0) / base.length);
           setTotales({ leads, costo_por_lead, inversion, alcance, ctr_clics });
+
+          // Si la campaña estaba 'Por Hacer' o 'Configurando', actualizar a 'Campaña Activa'
+          if (estadoCm === 'Por Hacer' || estadoCm === 'Configurando') {
+            setEstadoCm('Campaña Activa');
+          }
         }
 
         // Si hay anuncios activos mostrar la pestaña de activos; si no, mostrar todos
@@ -191,9 +200,14 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
   // Subtotales dinámicos de la vista actual
   const subtotalesVista = {
     leads: Math.round(anunciosAMostrar.reduce((s, a) => s + (a.leads || 0), 0)),
-    costo_por_lead: anunciosAMostrar.length > 0
-      ? Math.round(anunciosAMostrar.reduce((s, a) => s + (a.costo_por_lead || 0), 0) / anunciosAMostrar.length)
-      : 0,
+    costo_por_lead: (() => {
+      const totLeads = anunciosAMostrar.reduce((s, a) => s + (a.leads || 0), 0);
+      const totInv = anunciosAMostrar.reduce((s, a) => s + (a.inversion || 0), 0);
+      if (totLeads > 0) return Math.round(totInv / totLeads);
+      return anunciosAMostrar.length > 0
+        ? Math.round(anunciosAMostrar.reduce((s, a) => s + (a.costo_por_lead || 0), 0) / anunciosAMostrar.length)
+        : 0;
+    })(),
     inversion: Math.round(anunciosAMostrar.reduce((s, a) => s + (a.inversion || 0), 0)),
     alcance: Math.round(anunciosAMostrar.reduce((s, a) => s + (a.alcance || 0), 0)),
     ctr_clics: anunciosAMostrar.length > 0
@@ -493,7 +507,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                           <td className="px-3.5 py-2.5 whitespace-nowrap">
                             {a.activo ? (
                               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Activo
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> {a.estado_texto || 'Activo'}
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">

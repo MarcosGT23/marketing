@@ -44,6 +44,88 @@ export function detectarIdiomaCsv(encabezados = [], lineasMuestra = []) {
 }
 
 /**
+ * Traduce y normaliza el estado de entrega del anuncio a los términos estándar del sistema en español.
+ * Soporta entradas en Español, Inglés y Portugués.
+ */
+export function traducirEstadoTexto(rawEstado, activo) {
+  if (!rawEstado || typeof rawEstado !== 'string') {
+    return activo ? 'En circulación' : 'Desactivado';
+  }
+
+  const normalizado = rawEstado
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+
+  // Estados de Circulación / Activo
+  if (
+    normalizado === 'active' ||
+    normalizado === 'ativo' ||
+    normalizado === 'en circulacion' ||
+    normalizado === 'em veiculacao' ||
+    normalizado === 'running' ||
+    normalizado === 'on' ||
+    normalizado === 'activo'
+  ) {
+    return normalizado.includes('circulacion') || normalizado.includes('veiculacao')
+      ? 'En circulación'
+      : 'Activo';
+  }
+
+  // En Revisión / Aprendizaje / Programado
+  if (normalizado.includes('review') || normalizado.includes('analise') || normalizado.includes('revision')) {
+    return 'En revisión';
+  }
+  if (normalizado.includes('learning') || normalizado.includes('aprendizado') || normalizado.includes('aprendizaje')) {
+    return 'En aprendizaje';
+  }
+  if (normalizado.includes('scheduled') || normalizado.includes('programado')) {
+    return 'Programado';
+  }
+
+  // Pausado
+  if (normalizado.includes('pause') || normalizado.includes('pausad')) {
+    return 'Pausado';
+  }
+
+  // Desactivado / Apagado / Off
+  if (normalizado === 'off' || normalizado.includes('desactivad') || normalizado.includes('desativad')) {
+    return 'Desactivado';
+  }
+
+  // Completado / Finalizado
+  if (
+    normalizado.includes('complet') ||
+    normalizado.includes('conclui') ||
+    normalizado.includes('terminad') ||
+    normalizado.includes('finalizad')
+  ) {
+    return 'Completado';
+  }
+
+  // No se entrega / Rechazado / Error
+  if (
+    normalizado.includes('not delivering') ||
+    normalizado.includes('nao esta') ||
+    normalizado.includes('no se entrega')
+  ) {
+    return 'No se entrega';
+  }
+  if (normalizado.includes('reject') || normalizado.includes('rejeit') || normalizado.includes('rechazad')) {
+    return 'Rechazado';
+  }
+  if (normalizado.includes('delet') || normalizado.includes('exclui') || normalizado.includes('eliminad')) {
+    return 'Eliminado';
+  }
+  if (normalizado.includes('archiv')) {
+    return 'Archivado';
+  }
+
+  return activo ? 'Activo' : 'Desactivado';
+}
+
+/**
  * Parsea un archivo CSV exportado de Meta Ads (Reporte 28 días).
  * Detecta el idioma (Español, Inglés, Portugués), normaliza delimitadores y columnas,
  * y separa anuncios en Activos e Inactivos.
@@ -139,8 +221,15 @@ export function procesarCsvMeta(textoCsv) {
     h.includes('results') || 
     h.includes('clientes potenciales') || 
     h.includes('leads') || 
-    h.includes('cadastro') || 
-    h.includes('contatos')
+    h.includes('conversaciones con mensajes') ||
+    h.includes('messaging conversations') ||
+    h.includes('conversas por mensagem') ||
+    h.includes('contactos') ||
+    h.includes('contacts') ||
+    h.includes('contatos') ||
+    h.includes('cadastro') ||
+    h.includes('mensajes') ||
+    h.includes('messages')
   );
 
   const idxCostoLead = encabezados.findIndex(h =>
@@ -149,8 +238,15 @@ export function procesarCsvMeta(textoCsv) {
     h.includes('cost per result') || 
     h.includes('custo por resultado') || 
     h.includes('costo por cliente potencial') ||
+    h.includes('coste por cliente potencial') ||
     h.includes('cost per lead') ||
     h.includes('custo por lead') ||
+    h.includes('costo por conversacion') ||
+    h.includes('cost per messaging') ||
+    h.includes('costo por mensaje') ||
+    h.includes('cost per message') ||
+    h.includes('costo por contacto') ||
+    h.includes('cost per contact') ||
     h.includes('cost per') ||
     h.includes('costo por') ||
     h.includes('coste por') ||
@@ -163,7 +259,9 @@ export function procesarCsvMeta(textoCsv) {
     h.includes('valor gasto') || 
     h.includes('inversion') || 
     h.includes('spend') ||
-    h.includes('gastos')
+    h.includes('gastos') ||
+    h.includes('gasto total') ||
+    h.includes('total spent')
   );
 
   const idxAlcance = encabezados.findIndex(h =>
@@ -178,14 +276,19 @@ export function procesarCsvMeta(textoCsv) {
     h.includes('link click-through rate') || 
     h.includes('porcentaje de clics en el enlace') || 
     h.includes('taxa de cliques no link') || 
+    h.includes('ctr (todos)') ||
+    h.includes('ctr (all)') ||
     h.includes('ctr') || 
     h.includes('clics en el enlace') ||
     h.includes('link clicks')
   );
 
-  const limpiarNumero = (val) => {
+  const limpiarNumero = (val, esCtr = false) => {
     if (!val) return 0;
-    let limpio = String(val).replace(/["'\$%]/g, '').trim();
+    let limpio = String(val)
+      .replace(/["'\$%]/g, '')
+      .replace(/\b(USD|BOB|EUR|BRL|ARS|CLP|COP|MXN)\b/gi, '')
+      .trim();
     if (limpio.includes(',') && !limpio.includes('.')) {
       limpio = limpio.replace(',', '.');
     } else if (limpio.includes(',') && limpio.includes('.')) {
@@ -195,8 +298,14 @@ export function procesarCsvMeta(textoCsv) {
         limpio = limpio.replace(/,/g, '');
       }
     }
+    const teniaPorcentaje = String(val).includes('%');
     const num = parseFloat(limpio);
-    return isNaN(num) ? 0 : Math.round(num);
+    if (isNaN(num)) return 0;
+    // Si es CTR y vino como ratio decimal sin signo % (ej: 0.035 para 3.5%), multiplicamos por 100
+    if (esCtr && !teniaPorcentaje && num > 0 && num < 0.5) {
+      return Math.round(num * 100);
+    }
+    return Math.round(num);
   };
 
   // Procesar todas las filas de anuncios
@@ -291,15 +400,25 @@ export function procesarCsvMeta(textoCsv) {
 
     // Determinación final de activo (frontend)
     const activo = esActivo ? true : (esInactivo ? false : (rawEstado ? false : true));
-    const estado_texto = rawEstado || (activo ? 'En circulación' : 'Desactivado');
+    const estado_texto = traducirEstadoTexto(rawEstado, activo);
+
+    const leads = idxLeads !== -1 ? limpiarNumero(fila[idxLeads]) : 0;
+    const inversion = idxInversion !== -1 ? limpiarNumero(fila[idxInversion]) : 0;
+    const alcance = idxAlcance !== -1 ? limpiarNumero(fila[idxAlcance]) : 0;
+    const ctr_clics = idxCtr !== -1 ? limpiarNumero(fila[idxCtr], true) : 0;
+
+    let costo_por_lead = idxCostoLead !== -1 ? limpiarNumero(fila[idxCostoLead]) : 0;
+    if (costo_por_lead === 0 && leads > 0 && inversion > 0) {
+      costo_por_lead = Math.round(inversion / leads);
+    }
 
     anuncios.push({
       nombre_anuncio: nombre.trim(),
-      leads: idxLeads !== -1 ? limpiarNumero(fila[idxLeads]) : 0,
-      costo_por_lead: idxCostoLead !== -1 ? limpiarNumero(fila[idxCostoLead]) : 0,
-      inversion: idxInversion !== -1 ? limpiarNumero(fila[idxInversion]) : 0,
-      alcance: idxAlcance !== -1 ? limpiarNumero(fila[idxAlcance]) : 0,
-      ctr_clics: idxCtr !== -1 ? limpiarNumero(fila[idxCtr]) : 0,
+      leads,
+      costo_por_lead,
+      inversion,
+      alcance,
+      ctr_clics,
       activo,
       estado_texto,
       idioma: idiomaInfo.codigo
