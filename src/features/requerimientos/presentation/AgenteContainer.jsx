@@ -1,22 +1,31 @@
 import { useState, useEffect, useCallback } from 'react';
 import FormularioPropiedadUI from './components/FormularioPropiedadUI';
 import { crearRequerimiento } from '../infrastructure/requerimiento.api';
+import { useRealtimeSync } from '../../../core/hooks/useRealtimeSync';
+import { obtenerPeriodoActual } from '../../../core/utils/dateUtils';
 
-const CREAR_PROP_INICIAL = (idAgente = '', periodo = 'Septiembre 2026') => ({
+const CREAR_PROP_INICIAL = (idAgente = '', periodo = obtenerPeriodoActual()) => ({
     id_agente: idAgente,
     periodo_mensual: periodo,
     nombre_propiedad: '',
     categoria: 'Departamento',
-    tipo: 'Venta',
+    tipo: '',
     ubicacion: '',
     precio: '',
+    moneda_precio: '$us',
+    tipo_cambio: 6.96,
     superficie: '',
+    superficie_terreno: '',
+    superficie_construida: '',
+    tiene_terreno: false,
+    tiene_construida: false,
     habitaciones: '',
     descripcion_propiedad: '',
     elemento_destacar: '',
     publico_objetivo: '',
     // Enrutamiento de entregables
-    req_arte_estatico: true,
+    req_arte_estatico: false,
+    categoria_diseno: '',
     req_carrusel: false,
     req_reel: false,
     // Especificaciones técnicas
@@ -27,9 +36,13 @@ const CREAR_PROP_INICIAL = (idAgente = '', periodo = 'Septiembre 2026') => ({
     req_voz_off: false,
     fecha_rodaje: '',
     notas_produccion: '',
-    canales: ['Facebook / Instagram'],
-    plataforma: 'Facebook / Instagram',
-    presupuesto: ''
+    canales: [],
+    plataforma: '',
+    presupuesto: '',
+    moneda: '',
+    periodo_pauta: 'Mes',
+    descripcion_pauta: '',
+    prioridad: ''
 });
 
 export default function AgenteContainer() {
@@ -45,11 +58,11 @@ export default function AgenteContainer() {
     const [formData, setFormData] = useState(CREAR_PROP_INICIAL());
 
     // Cargar la lista real de agentes desde Supabase
-    useEffect(() => {
-        async function obtenerAgentes() {
-            try {
-                const res = await fetch('/api/usuarios?rol=Agente');
-                const data = await res.json();
+    const obtenerAgentes = useCallback(async () => {
+        try {
+            const res = await fetch('/api/usuarios?rol=Agente');
+            const data = await res.json();
+            if (Array.isArray(data)) {
                 setAgentes(data);
                 if (data.length > 0) {
                     setFormData((prev) => ({
@@ -57,12 +70,20 @@ export default function AgenteContainer() {
                         id_agente: prev.id_agente || data[0].id_usuario
                     }));
                 }
-            } catch (error) {
-                console.error('Error al cargar agentes:', error);
             }
+        } catch (error) {
+            console.error('Error al cargar agentes:', error);
         }
-        obtenerAgentes();
     }, []);
+
+    useEffect(() => {
+        obtenerAgentes();
+    }, [obtenerAgentes]);
+
+    // Sincronización en tiempo real si se agregan o editan usuarios en Supabase
+    useRealtimeSync(() => {
+        obtenerAgentes();
+    }, ['usuarios']);
 
     const manejarCambioDato = (campo, valor) => {
         setFormData((prev) => {
@@ -228,15 +249,47 @@ export default function AgenteContainer() {
 
             for (let i = 0; i < listaFinal.length; i++) {
                 const req = listaFinal[i];
-                setProgresoEnvio({
-                    total: listaFinal.length,
+                setProgresoEnvio(prev => ({
+                    ...prev,
                     actual: i + 1,
-                    actualNombre: req.nombre_propiedad,
-                    exitosos: [...exitosos],
-                    completado: false
-                });
+                    actualNombre: req.nombre_propiedad
+                }));
 
-                const respuesta = await crearRequerimiento(req);
+                // Formatear tipo de operación
+                let tipoFinal = req.tipo;
+                if (Array.isArray(tipoFinal)) {
+                    tipoFinal = tipoFinal.join(', ');
+                }
+
+                // Formatear precio con su moneda seleccionada
+                let precioFinal = req.precio;
+                if (precioFinal && req.moneda_precio && !precioFinal.includes('$') && !precioFinal.includes('Bs')) {
+                    precioFinal = `${req.moneda_precio} ${precioFinal}`;
+                }
+
+                // Formatear superficie con las opciones activas (Terreno / Construida)
+                let superficieFinal = req.superficie;
+                const partesSup = [];
+                if (req.tiene_terreno && req.superficie_terreno) {
+                    const val = req.superficie_terreno.includes('m') ? req.superficie_terreno : `${req.superficie_terreno} m²`;
+                    partesSup.push(`${val} (Terreno)`);
+                }
+                if (req.tiene_construida && req.superficie_construida) {
+                    const val = req.superficie_construida.includes('m') ? req.superficie_construida : `${req.superficie_construida} m²`;
+                    partesSup.push(`${val} (Construida)`);
+                }
+                if (partesSup.length > 0) {
+                    superficieFinal = partesSup.join(' | ');
+                }
+
+                const payloadReq = {
+                    ...req,
+                    tipo: tipoFinal,
+                    precio: precioFinal,
+                    superficie: superficieFinal
+                };
+
+                const respuesta = await crearRequerimiento(payloadReq);
                 exitosos.push({
                     nombre: req.nombre_propiedad,
                     id: respuesta.id_requerimiento

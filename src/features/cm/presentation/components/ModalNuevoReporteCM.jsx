@@ -1,5 +1,4 @@
-// src/features/cm/presentation/components/ModalDetallePropiedadCM.jsx
-import { useState, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { procesarCsvMeta } from '../../utils/parseMetaCsv';
 
 // Normaliza un anuncio para asegurar propiedades activo, nombre y entrega del anuncio
@@ -35,7 +34,25 @@ const normalizarAnuncio = (a) => {
   };
 };
 
-export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios = [], abierto, alCerrar, alGuardarTodo }) {
+export default function ModalNuevoReporteCM({ 
+  abierto, 
+  alCerrar, 
+  propiedades = [], 
+  alGuardarExitoso 
+}) {
+  const hoyStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+
+  // Campos principales del reporte
+  const [solicitante, setSolicitante] = useState('');
+  const [idAgente, setIdAgente] = useState('');
+  const [usuariosDb, setUsuariosDb] = useState([]);
+  const [cargandoUsuarios, setCargandoUsuarios] = useState(false);
+  const [titulo, setTitulo] = useState('');
+  const [descripcion, setDescripcion] = useState('');
+  const [fecha, setFecha] = useState(hoyStr);
+  const [idRequerimientoSeleccionado, setIdRequerimientoSeleccionado] = useState('');
+
+  // Métricas
   const [totales, setTotales] = useState({
     leads: 0,
     costo_por_lead: 0,
@@ -43,65 +60,87 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
     alcance: 0,
     ctr_clics: 0
   });
-  const [listaAnuncios, setListaAnuncios] = useState([]);
-  const [filtroEstado, setFiltroEstado] = useState('activos'); // 'activos' | 'inactivos' | 'todos'
+
+  // Datos operativos de campaña
   const [estadoCm, setEstadoCm] = useState('Por Hacer');
   const [plataforma, setPlataforma] = useState('Facebook / Instagram');
   const [presupuesto, setPresupuesto] = useState('');
+
+  // CSV y anuncios
+  const [listaAnuncios, setListaAnuncios] = useState([]);
+  const [filtroEstado, setFiltroEstado] = useState('activos'); // 'activos' | 'inactivos' | 'todos'
   const [cargandoArchivo, setCargandoArchivo] = useState(false);
-  const [guardando, setGuardando] = useState(false);
   const [nombreArchivo, setNombreArchivo] = useState('');
   const [idiomaCsv, setIdiomaCsv] = useState(null);
+  const [guardando, setGuardando] = useState(false);
 
-  // Sincronizar estado cuando cambia la propiedad o llega el reporte del servidor
+  // Cargar usuarios de la base de datos
   useEffect(() => {
-    if (!item) return;
+    if (!abierto) return;
+    let cancelado = false;
+    setCargandoUsuarios(true);
 
-    // Reporte padre (puede venir en prop 'reporte' o en 'item.reportes_meta_cm')
-    const rep = reporte || (Array.isArray(item.reportes_meta_cm) ? item.reportes_meta_cm[0] : item.reportes_meta_cm);
-
-    // Lista de anuncios asociados al reporte normalizados
-    const listaRaw = rep?.reportes_meta_anuncios || (Array.isArray(anuncios) && anuncios.length > 0 ? anuncios : []);
-    const lista = listaRaw.map(normalizarAnuncio);
-    setListaAnuncios(lista);
-
-    // Totales: si existen en el reporte de BD se muestran; si no, calculados de los activos
-    if (rep && (rep.leads != null || rep.inversion != null)) {
-      setTotales({
-        leads: Math.round(Number(rep.leads) || 0),
-        costo_por_lead: Math.round(Number(rep.costo_por_lead) || 0),
-        inversion: Math.round(Number(rep.inversion) || 0),
-        alcance: Math.round(Number(rep.alcance) || 0),
-        ctr_clics: Math.round(Number(rep.ctr_clics) || 0)
+    fetch('/api/usuarios?rol=todos')
+      .then(r => r.json())
+      .then(data => {
+        if (cancelado) return;
+        if (Array.isArray(data) && data.length > 0) {
+          setUsuariosDb(data);
+        } else {
+          return fetch('/api/usuarios?rol=Agente').then(r => r.json()).then(dAg => {
+            if (!cancelado && Array.isArray(dAg)) setUsuariosDb(dAg);
+          });
+        }
+      })
+      .catch(err => console.error('Error cargando usuarios desde BD:', err))
+      .finally(() => {
+        if (!cancelado) setCargandoUsuarios(false);
       });
-    } else if (lista.length > 0) {
-      const activos = lista.filter(a => a.activo);
-      const base = activos.length > 0 ? activos : lista;
-      const leads = Math.round(base.reduce((s, a) => s + (a.leads || 0), 0));
-      const inversion = Math.round(base.reduce((s, a) => s + (a.inversion || 0), 0));
-      const alcance = Math.round(base.reduce((s, a) => s + (a.alcance || 0), 0));
-      const costo_por_lead = leads > 0 
-        ? Math.round(inversion / leads) 
-        : Math.round(base.reduce((s, a) => s + (a.costo_por_lead || 0), 0) / (base.length || 1));
-      const ctr_clics = Math.round(base.reduce((s, a) => s + (a.ctr_clics || 0), 0) / (base.length || 1));
-      setTotales({ leads, costo_por_lead, inversion, alcance, ctr_clics });
-    } else {
-      setTotales({ leads: 0, costo_por_lead: 0, inversion: 0, alcance: 0, ctr_clics: 0 });
+
+    return () => { cancelado = true; };
+  }, [abierto]);
+
+  if (!abierto) return null;
+
+  // Filtrado de anuncios
+  const anunciosActivos = listaAnuncios.filter(a => a.activo);
+  const anunciosInactivos = listaAnuncios.filter(a => !a.activo);
+
+  const anunciosAMostrar = filtroEstado === 'activos'
+    ? anunciosActivos
+    : filtroEstado === 'inactivos'
+      ? anunciosInactivos
+      : listaAnuncios;
+
+  // Al vincular a una propiedad existente
+  const manejarCambioPropiedad = (e) => {
+    const idReq = e.target.value;
+    setIdRequerimientoSeleccionado(idReq);
+    if (idReq) {
+      const prop = propiedades.find(p => String(p.id_requerimiento) === String(idReq));
+      if (prop) {
+        if (!titulo) setTitulo(`Reporte: ${prop.nombre_propiedad}`);
+        const usuarioProp = prop.usuarios;
+        const propIdAgente = prop.id_agente || usuarioProp?.id_usuario;
+        if (propIdAgente) {
+          setIdAgente(String(propIdAgente));
+        }
+        if (usuarioProp?.nombre) {
+          setSolicitante(usuarioProp.nombre);
+        } else if (prop.id_agente && usuariosDb.length > 0) {
+          const u = usuariosDb.find(user => String(user.id_usuario) === String(prop.id_agente));
+          if (u) setSolicitante(u.nombre);
+        }
+        if (!descripcion && prop.descripcion_propiedad) setDescripcion(prop.descripcion_propiedad);
+        const tcm = (Array.isArray(prop.tareas_cm) ? prop.tareas_cm[0] : prop.tareas_cm) || {};
+        if (tcm.plataforma) setPlataforma(tcm.plataforma);
+        if (tcm.presupuesto) setPresupuesto(tcm.presupuesto);
+        if (tcm.estado) setEstadoCm(tcm.estado);
+      }
     }
+  };
 
-    // Cargar datos de la tarea operativa de Brenda
-    const tcm = (Array.isArray(item.tareas_cm) ? item.tareas_cm[0] : item.tareas_cm) || {};
-    setEstadoCm(tcm.estado || 'Por Hacer');
-    setPlataforma(tcm.plataforma || 'Facebook / Instagram');
-    setPresupuesto(tcm.presupuesto || '');
-    setNombreArchivo('');
-    setIdiomaCsv(null);
-    const hayActivos = lista.some(a => a.activo);
-    const hayInactivos = lista.some(a => !a.activo);
-    setFiltroEstado(hayActivos ? 'activos' : (hayInactivos ? 'inactivos' : 'todos'));
-  }, [item, reporte, anuncios]);
-
-  // Manejador del archivo CSV con filtrado de activos/inactivos
+  // Manejo de carga de archivo CSV
   const manejarSubidaCsv = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -125,9 +164,14 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
         const resultado = rawResultado.map(normalizarAnuncio);
         setListaAnuncios(resultado);
 
+        // Si no hay título puesto, sugerir basado en el archivo
+        if (!titulo) {
+          const nombreLimpio = file.name.replace(/\.csv$/i, '').replace(/[-_]/g, ' ');
+          setTitulo(`Reporte Meta: ${nombreLimpio}`);
+        }
+
         // Separar activos para el cálculo de totales principales
         const activos = resultado.filter(a => a.activo);
-        const inactivos = resultado.filter(a => !a.activo);
         const base = activos.length > 0 ? activos : resultado;
 
         if (base.length > 0) {
@@ -140,13 +184,11 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
           const ctr_clics = Math.round(base.reduce((s, a) => s + (a.ctr_clics || 0), 0) / base.length);
           setTotales({ leads, costo_por_lead, inversion, alcance, ctr_clics });
 
-          // Si la campaña estaba 'Por Hacer' o 'Configurando', actualizar a 'Campaña Activa'
           if (estadoCm === 'Por Hacer' || estadoCm === 'Configurando') {
             setEstadoCm('Campaña Activa');
           }
         }
 
-        // Si hay anuncios activos mostrar la pestaña de activos; si no, mostrar todos
         setFiltroEstado(activos.length > 0 ? 'activos' : 'todos');
       } catch (err) {
         alert('Error al leer el archivo CSV: ' + err.message);
@@ -157,62 +199,54 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
     reader.readAsText(file);
   };
 
+  // Guardar reporte
   const manejarGuardar = async () => {
+    if (!solicitante.trim()) {
+      alert('Por favor selecciona o introduce un solicitante.');
+      return;
+    }
+    if (!titulo.trim()) {
+      alert('Por favor introduce un título para el reporte.');
+      return;
+    }
+
     setGuardando(true);
     try {
-      await alGuardarTodo({
-        id_requerimiento: item.id_requerimiento,
-        id_tarea_cm: (Array.isArray(item.tareas_cm) ? item.tareas_cm[0]?.id_tarea : item.tareas_cm?.id_tarea),
-        id_agente: item.id_agente,
-        periodo_mensual: item.periodo_mensual,
+      const payload = {
+        id_requerimiento: idRequerimientoSeleccionado || null,
+        id_agente: idAgente && idAgente !== 'otro' ? idAgente : null,
+        solicitante: solicitante.trim(),
+        titulo: titulo.trim(),
+        descripcion: descripcion.trim(),
+        fecha,
         estado: estadoCm,
-        plataforma,
-        presupuesto,
-        metricas: {
-          leads: Math.round(Number(totales.leads) || 0),
-          costo_por_lead: Math.round(Number(totales.costo_por_lead) || 0),
-          inversion: Math.round(Number(totales.inversion) || 0),
-          alcance: Math.round(Number(totales.alcance) || 0),
-          ctr_clics: Math.round(Number(totales.ctr_clics) || 0)
-        },
-        anuncios: listaAnuncios  // array completo con propiedad 'activo'
+        plataforma: plataforma.trim(),
+        presupuesto: presupuesto.trim(),
+        metricas: totales,
+        anuncios: listaAnuncios
+      };
+
+      const res = await fetch('/api/cm/importar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       });
+
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'Error al guardar el reporte');
+      }
+
+      alert('¡Reporte guardado y sincronizado con éxito!');
+      if (alGuardarExitoso) {
+        alGuardarExitoso(data);
+      }
       alCerrar();
     } catch (err) {
-      alert('Error al sincronizar datos: ' + err.message);
+      alert('Error al guardar: ' + err.message);
     } finally {
       setGuardando(false);
     }
-  };
-
-  if (!abierto || !item) return null;
-
-  // Filtrado de anuncios para la vista
-  const anunciosActivos = listaAnuncios.filter(a => a.activo);
-  const anunciosInactivos = listaAnuncios.filter(a => !a.activo);
-
-  const anunciosAMostrar = filtroEstado === 'activos'
-    ? anunciosActivos
-    : filtroEstado === 'inactivos'
-    ? anunciosInactivos
-    : listaAnuncios;
-
-  // Subtotales dinámicos de la vista actual
-  const subtotalesVista = {
-    leads: Math.round(anunciosAMostrar.reduce((s, a) => s + (a.leads || 0), 0)),
-    costo_por_lead: (() => {
-      const totLeads = anunciosAMostrar.reduce((s, a) => s + (a.leads || 0), 0);
-      const totInv = anunciosAMostrar.reduce((s, a) => s + (a.inversion || 0), 0);
-      if (totLeads > 0) return Math.round(totInv / totLeads);
-      return anunciosAMostrar.length > 0
-        ? Math.round(anunciosAMostrar.reduce((s, a) => s + (a.costo_por_lead || 0), 0) / anunciosAMostrar.length)
-        : 0;
-    })(),
-    inversion: Math.round(anunciosAMostrar.reduce((s, a) => s + (a.inversion || 0), 0)),
-    alcance: Math.round(anunciosAMostrar.reduce((s, a) => s + (a.alcance || 0), 0)),
-    ctr_clics: anunciosAMostrar.length > 0
-      ? Math.round(anunciosAMostrar.reduce((s, a) => s + (a.ctr_clics || 0), 0) / anunciosAMostrar.length)
-      : 0
   };
 
   return (
@@ -227,59 +261,198 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
         {/* Cabecera */}
         <div className="p-4 sm:p-6 border-b flex items-start justify-between gap-2 sm:gap-3"
           style={{
-            background: 'linear-gradient(to right, rgba(219, 225, 255, 0.35), var(--color-surface-container-lowest))',
+            background: 'linear-gradient(to right, rgba(219, 225, 255, 0.4), var(--color-surface-container-lowest))',
             borderColor: 'var(--color-outline-variant)'
           }}>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0"
                 style={{ background: 'var(--color-primary-container)', color: 'white' }}>
-                Detalle Requerimiento
+                Nuevo Reporte Publicitario
               </span>
-              <span className="text-[11px] sm:text-xs font-semibold truncate" style={{ color: 'var(--color-outline)' }}>• {item.periodo_mensual}</span>
+              <span className="text-[11px] sm:text-xs font-semibold truncate" style={{ color: 'var(--color-outline)' }}>
+                • {fecha ? new Date(fecha + 'T00:00:00').toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }) : 'General'}
+              </span>
             </div>
-            <h2 className="font-display font-bold text-base sm:text-xl mt-1.5 truncate" style={{ color: 'var(--color-on-surface)' }}>{item.nombre_propiedad}</h2>
+            <h2 className="font-display font-bold text-base sm:text-xl mt-1.5 truncate" style={{ color: 'var(--color-on-surface)' }}>
+              {titulo || 'Crear Reporte de Pauta & CM'}
+            </h2>
             <p className="text-[11px] sm:text-xs truncate mt-0.5" style={{ color: 'var(--color-on-surface-variant)' }}>
-              Agente: <strong>{item.usuarios?.nombre || 'General'}</strong> | Tipo: <strong>{item.tipo} - {item.categoria}</strong>
+              Solicitante: <strong>{solicitante || 'Sin asignar'}</strong> | Plataforma: <strong>{plataforma}</strong>
             </p>
           </div>
           <button 
             onClick={alCerrar} 
-            className="p-1.5 rounded-xl transition-colors shrink-0 hover:bg-black/5"
+            className="p-1.5 rounded-xl transition-colors shrink-0 hover:bg-black/5 cursor-pointer"
             style={{ color: 'var(--color-outline)' }}
           >
             <span className="material-symbols-outlined text-[20px] sm:text-[22px]">close</span>
           </button>
         </div>
 
-        {/* Contenido */}
+        {/* Contenido scrolleable */}
         <div className="p-4 sm:p-6 overflow-y-auto space-y-5">
           
-          {/* Ficha técnica */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3.5 sm:p-4 rounded-xl text-xs"
+          {/* Tarjeta de Datos del Reporte (Solicitante, Título, Fecha, Descripción) */}
+          <div className="p-4 sm:p-5 rounded-2xl space-y-4"
             style={{
               background: 'var(--color-surface-container-low)',
               border: '1px solid var(--color-outline-variant)'
             }}>
-            <div>
-              <span className="uppercase text-[10px] font-bold block mb-0.5" style={{ color: 'var(--color-outline)' }}>Precio</span>
-              <strong className="truncate block" style={{ color: 'var(--color-on-surface)' }}>{item.precio || 'Sin precio'}</strong>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              
+              {/* Solicitante / Agente (Directamente desde la Base de Datos) */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[11px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-outline)' }}>
+                    Solicitante / Agente *
+                  </label>
+                  {cargandoUsuarios && (
+                    <span className="text-[10px] font-medium flex items-center gap-1 text-primary-container animate-pulse">
+                      <span className="material-symbols-outlined text-[13px] animate-spin">sync</span>
+                      Cargando...
+                    </span>
+                  )}
+                </div>
+                <div className="relative">
+                  <select
+                    value={idAgente}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setIdAgente(val);
+                      if (val === 'otro') {
+                        setSolicitante('');
+                      } else {
+                        const usuario = usuariosDb.find(u => String(u.id_usuario) === String(val));
+                        setSolicitante(usuario ? usuario.nombre : '');
+                      }
+                    }}
+                    className="w-full h-[42px] px-3.5 pr-8 bg-surface-container-lowest rounded-xl text-xs text-on-surface font-semibold cursor-pointer focus:outline-none transition-all appearance-none"
+                    style={{
+                      border: '1px solid var(--color-outline-variant)',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                    }}
+                  >
+                    <option value="">
+                      {cargandoUsuarios ? 'Cargando usuarios de BD...' : '— Seleccionar Agente de la BD —'}
+                    </option>
+                    {usuariosDb.map((u) => (
+                      <option key={u.id_usuario} value={u.id_usuario}>
+                        {u.nombre} {u.rol ? `(${u.rol})` : ''}
+                      </option>
+                    ))}
+                    <option value="otro">✏️ Escribir otro solicitante manual...</option>
+                  </select>
+                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">
+                    expand_more
+                  </span>
+                </div>
+
+                {idAgente === 'otro' && (
+                  <div className="mt-2 animate-in fade-in duration-150">
+                    <input
+                      type="text"
+                      value={solicitante}
+                      onChange={(e) => setSolicitante(e.target.value)}
+                      placeholder="Escribe el nombre del solicitante..."
+                      className="w-full h-[38px] px-3.5 bg-surface-container-lowest rounded-xl text-xs text-on-surface font-medium focus:outline-none transition-all"
+                      style={{
+                        border: '1px solid var(--color-outline-variant)',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                      }}
+                      autoFocus
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Título del Reporte */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--color-outline)' }}>
+                  Título del Reporte *
+                </label>
+                <input
+                  type="text"
+                  value={titulo}
+                  onChange={(e) => setTitulo(e.target.value)}
+                  placeholder="Ej: Campaña 4 Casas Zona Oeste"
+                  className="w-full h-[42px] px-3.5 bg-surface-container-lowest rounded-xl text-xs text-on-surface font-semibold focus:outline-none transition-all"
+                  style={{
+                    border: '1px solid var(--color-outline-variant)',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                  }}
+                />
+              </div>
+
+              {/* Fecha */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--color-outline)' }}>
+                  Fecha *
+                </label>
+                <input
+                  type="date"
+                  value={fecha}
+                  onChange={(e) => setFecha(e.target.value)}
+                  className="w-full h-[42px] px-3.5 bg-surface-container-lowest rounded-xl text-xs text-on-surface font-semibold focus:outline-none transition-all cursor-pointer"
+                  style={{
+                    border: '1px solid var(--color-outline-variant)',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                  }}
+                />
+              </div>
+
             </div>
+
+            {/* Vincular a Requerimiento / Propiedad (Opcional) */}
             <div>
-              <span className="uppercase text-[10px] font-bold block mb-0.5" style={{ color: 'var(--color-outline)' }}>Ubicación</span>
-              <strong className="truncate block" style={{ color: 'var(--color-on-surface)' }}>{item.ubicacion || 'Sin especificar'}</strong>
+              <label className="block text-[11px] font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--color-outline)' }}>
+                Vincular a Requerimiento / Propiedad Existente <span className="font-normal text-[10px]">(Opcional)</span>
+              </label>
+              <div className="relative">
+                <select
+                  value={idRequerimientoSeleccionado}
+                  onChange={manejarCambioPropiedad}
+                  className="w-full h-[42px] px-3.5 pr-8 bg-surface-container-lowest rounded-xl text-xs text-on-surface font-medium cursor-pointer focus:outline-none transition-all appearance-none"
+                  style={{
+                    border: '1px solid var(--color-outline-variant)',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                  }}
+                >
+                  <option value="">— Ninguno (Reporte de Pauta Independiente) —</option>
+                  {propiedades.map(p => (
+                    <option key={p.id_requerimiento} value={p.id_requerimiento}>
+                      {p.nombre_propiedad} ({p.usuarios?.nombre || 'General'})
+                    </option>
+                  ))}
+                </select>
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">
+                  expand_more
+                </span>
+              </div>
             </div>
+
+            {/* Descripción */}
             <div>
-              <span className="uppercase text-[10px] font-bold block mb-0.5" style={{ color: 'var(--color-outline)' }}>Superficie</span>
-              <strong className="truncate block" style={{ color: 'var(--color-on-surface)' }}>{item.superficie || 'N/A'}</strong>
+              <label className="block text-[11px] font-bold uppercase tracking-wide mb-1" style={{ color: 'var(--color-outline)' }}>
+                Descripción u Observaciones del Reporte
+              </label>
+              <textarea
+                rows={2}
+                value={descripcion}
+                onChange={(e) => setDescripcion(e.target.value)}
+                placeholder="Objetivo de la pauta, notas sobre la audiencia, resultados clave observados o recomendaciones..."
+                className="w-full p-3 bg-surface-container-lowest rounded-xl text-xs text-on-surface font-normal focus:outline-none transition-all resize-none"
+                style={{
+                  border: '1px solid var(--color-outline-variant)',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                }}
+              />
             </div>
-            <div>
-              <span className="uppercase text-[10px] font-bold block mb-0.5" style={{ color: 'var(--color-outline)' }}>Habitaciones</span>
-              <strong className="truncate block" style={{ color: 'var(--color-on-surface)' }}>{item.habitaciones ?? 'N/A'}</strong>
-            </div>
+
           </div>
 
-          {/* Subida CSV */}
+          {/* Subida CSV de Meta Ads */}
           <div className="p-4 sm:p-5 rounded-2xl flex flex-col items-center justify-center text-center relative transition-all cursor-pointer"
             style={{
               border: '2px dashed rgba(37, 99, 235, 0.35)',
@@ -318,7 +491,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
             )}
           </div>
 
-          {/* Métricas consolidadas (Campaña Activa) */}
+          {/* Métricas Consolidadas (Reporte 28) */}
           <div>
             <div className="flex flex-wrap items-center justify-between gap-1.5 mb-2.5">
               <h3 className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-outline)' }}>
@@ -339,7 +512,9 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                 { label: 'CTR - Clic', key: 'ctr_clics', type: 'number', step: '1', placeholder: '0' },
               ].map(field => (
                 <div key={field.key}>
-                  <label className="block text-[11px] font-semibold mb-1" style={{ color: 'var(--color-outline)' }}>{field.label}</label>
+                  <label className="block text-[11px] font-semibold mb-1" style={{ color: 'var(--color-outline)' }}>
+                    {field.label}
+                  </label>
                   <input 
                     type={field.type} 
                     step={field.step}
@@ -378,10 +553,9 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
             </div>
           </div>
 
-          {/* Tabla de Anuncios con Filtrado Activos / Inactivos */}
+          {/* Tabla de Anuncios si se ha cargado CSV */}
           {listaAnuncios.length > 0 && (
             <div className="space-y-3">
-              {/* Barra de pestañas y filtros */}
               <div className="flex flex-wrap items-center justify-between gap-2.5">
                 <h3 className="text-xs font-bold text-on-surface uppercase tracking-wider flex items-center gap-2">
                   <span className="material-symbols-outlined text-[17px] text-primary-container">table_chart</span>
@@ -434,126 +608,85 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                 </div>
               </div>
 
-              {/* Mensaje de aviso informativo */}
+              {/* Aviso si hay inactivos */}
               {filtroEstado === 'activos' && anunciosInactivos.length > 0 && (
                 <div 
                   className="px-3.5 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs text-amber-800 dark:text-amber-200"
                 >
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-[17px] text-amber-600 dark:text-amber-400 shrink-0">info</span>
-                    <span>Se filtraron <strong>{anunciosInactivos.length} anuncio(s) pausados/inactivos</strong> de las métricas de circulación.</span>
+                    <span>Se filtraron <strong>{anunciosInactivos.length} anuncio(s) pausados/inactivos</strong> de las métricas principales.</span>
                   </div>
                   <button 
                     type="button" 
                     onClick={() => setFiltroEstado('inactivos')}
-                    className="underline font-bold text-[11px] self-start sm:self-auto shrink-0 hover:opacity-80"
+                    className="underline font-bold text-[11px] self-start sm:self-auto shrink-0 hover:opacity-80 cursor-pointer"
                   >
                     Ver inactivos
                   </button>
                 </div>
               )}
 
-              {filtroEstado === 'inactivos' && (
-                <div 
-                  className="px-3.5 py-2.5 rounded-xl bg-surface-container-high flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs text-on-surface-variant"
-                  style={{ border: '1px solid var(--color-outline-variant)' }}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[17px] text-outline shrink-0">pause_circle</span>
-                    <span>Mostrando <strong>{anunciosInactivos.length} anuncio(s) pausados o desactivados</strong> en Meta Ads.</span>
-                  </div>
-                  <button 
-                    type="button" 
-                    onClick={() => setFiltroEstado('activos')}
-                    className="underline font-bold text-[11px] self-start sm:self-auto shrink-0 hover:text-on-surface"
-                  >
-                    Volver a activos
-                  </button>
-                </div>
-              )}
-
-              {/* Tabla */}
+              {/* Tabla de anuncios */}
               <div 
-                className="overflow-x-auto rounded-2xl bg-surface-container-lowest"
-                style={{ border: '1px solid var(--color-outline-variant)' }}
+                className="overflow-x-auto rounded-xl border"
+                style={{ borderColor: 'var(--color-outline-variant)' }}
               >
-                <table className="w-full text-xs min-w-[560px]">
-                  <thead className="bg-surface-container-low" style={{ borderBottom: '1px solid var(--color-outline-variant)' }}>
-                    <tr>
-                      <th className="text-left px-3.5 py-2.5 text-on-surface-variant font-semibold">Entrega del anuncio</th>
-                      <th className="text-left px-3.5 py-2.5 text-on-surface-variant font-semibold">Anuncio</th>
-                      <th className="text-right px-3.5 py-2.5 text-on-surface-variant font-semibold">Leads</th>
-                      <th className="text-right px-3.5 py-2.5 text-on-surface-variant font-semibold">Costo/Lead</th>
-                      <th className="text-right px-3.5 py-2.5 text-on-surface-variant font-semibold">Inversión</th>
-                      <th className="text-right px-3.5 py-2.5 text-on-surface-variant font-semibold">Alcance</th>
-                      <th className="text-right px-3.5 py-2.5 text-on-surface-variant font-semibold">CTR</th>
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr 
+                      className="border-b"
+                      style={{ 
+                        background: 'var(--color-surface-container-low)',
+                        borderColor: 'var(--color-outline-variant)'
+                      }}
+                    >
+                      <th className="p-3 font-bold uppercase text-[10px] text-outline">Estado</th>
+                      <th className="p-3 font-bold uppercase text-[10px] text-outline">Nombre del Anuncio</th>
+                      <th className="p-3 font-bold uppercase text-[10px] text-outline text-right">Leads</th>
+                      <th className="p-3 font-bold uppercase text-[10px] text-outline text-right">Costo / Lead</th>
+                      <th className="p-3 font-bold uppercase text-[10px] text-outline text-right">Inversión</th>
+                      <th className="p-3 font-bold uppercase text-[10px] text-outline text-right">Alcance</th>
+                      <th className="p-3 font-bold uppercase text-[10px] text-outline text-right">CTR</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y" style={{ borderColor: 'var(--color-outline-variant)' }}>
-                    {anunciosAMostrar.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="px-4 py-8 text-center text-outline italic">
-                          No hay anuncios en esta sección ({filtroEstado}).
+                    {anunciosAMostrar.map((anuncio, idx) => (
+                      <tr 
+                        key={idx} 
+                        className={`transition-colors ${anuncio.activo ? 'hover:bg-primary-50/20 dark:hover:bg-primary-950/20' : 'opacity-70 bg-amber-500/5 hover:opacity-100'}`}
+                      >
+                        <td className="p-3 whitespace-nowrap">
+                          {anuncio.activo ? (
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                              <span>{anuncio.estado_texto || 'En circulación'}</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30">
+                              <span className="material-symbols-outlined text-[11px]">pause</span>
+                              <span>{anuncio.estado_texto || 'Desactivado'}</span>
+                            </span>
+                          )}
                         </td>
+                        <td className="p-3 font-medium max-w-[220px] truncate" title={anuncio.nombre_anuncio}>
+                          {anuncio.nombre_anuncio}
+                        </td>
+                        <td className="p-3 text-right font-bold text-primary-container">{anuncio.leads}</td>
+                        <td className="p-3 text-right font-semibold">${anuncio.costo_por_lead}</td>
+                        <td className="p-3 text-right font-semibold">${anuncio.inversion}</td>
+                        <td className="p-3 text-right font-medium">{anuncio.alcance?.toLocaleString()}</td>
+                        <td className="p-3 text-right font-medium">{anuncio.ctr_clics}%</td>
                       </tr>
-                    ) : (
-                      anunciosAMostrar.map((a, i) => (
-                        <tr 
-                          key={i} 
-                          className={`hover:bg-surface-container-low/50 transition-colors ${
-                            !a.activo ? 'opacity-75 bg-surface-container-low/20' : ''
-                          }`}
-                        >
-                          <td className="px-3.5 py-2.5 whitespace-nowrap">
-                            {a.activo ? (
-                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> {a.estado_texto || 'Activo'}
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> {a.estado_texto || 'Pausado'}
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-3.5 py-2.5 text-on-surface font-medium max-w-[200px] truncate" title={a.nombre_anuncio}>
-                            {a.nombre_anuncio}
-                          </td>
-                          <td className="px-3.5 py-2.5 text-right text-primary-container font-bold">{a.leads}</td>
-                          <td className="px-3.5 py-2.5 text-right text-on-surface font-medium">${a.costo_por_lead}</td>
-                          <td className="px-3.5 py-2.5 text-right text-on-surface font-medium">${a.inversion}</td>
-                          <td className="px-3.5 py-2.5 text-right text-on-surface font-medium">{a.alcance?.toLocaleString()}</td>
-                          <td className="px-3.5 py-2.5 text-right text-on-surface font-medium">{a.ctr_clics}</td>
-                        </tr>
-                      ))
-                    )}
+                    ))}
                   </tbody>
-                  {anunciosAMostrar.length > 0 && (
-                    <tfoot 
-                      className="bg-surface-container-low/70 font-bold" 
-                      style={{ borderTop: '2px solid var(--color-outline-variant)' }}
-                    >
-                      <tr>
-                        <td colSpan={2} className="px-3.5 py-2.5 text-on-surface uppercase text-[10px] tracking-wider">
-                          Subtotales ({anunciosAMostrar.length} {filtroEstado})
-                        </td>
-                        <td className="px-3.5 py-2.5 text-right text-primary-container font-extrabold text-xs">{subtotalesVista.leads}</td>
-                        <td className="px-3.5 py-2.5 text-right text-on-surface font-bold text-xs">${subtotalesVista.costo_por_lead}</td>
-                        <td className="px-3.5 py-2.5 text-right text-on-surface font-bold text-xs">${subtotalesVista.inversion}</td>
-                        <td className="px-3.5 py-2.5 text-right text-on-surface font-bold text-xs">{subtotalesVista.alcance?.toLocaleString()}</td>
-                        <td className="px-3.5 py-2.5 text-right text-on-surface font-bold text-xs">{subtotalesVista.ctr_clics}</td>
-                      </tr>
-                    </tfoot>
-                  )}
                 </table>
               </div>
             </div>
           )}
 
-          {/* Estado de Campaña */}
-          <div 
-            className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4" 
-            style={{ borderTop: '1px solid var(--color-outline-variant)' }}
-          >
+          {/* Configuración operativa de Campaña */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-2">
             <div>
               <label className="block text-[11px] font-semibold text-outline mb-1.5 uppercase tracking-wide">
                 Estado de Campaña
@@ -562,18 +695,10 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                 <select
                   value={estadoCm}
                   onChange={(e) => setEstadoCm(e.target.value)}
-                  className="w-full h-[42px] px-3.5 pr-8 bg-surface-container-lowest rounded-xl text-xs text-on-surface font-semibold appearance-none cursor-pointer transition-all"
+                  className="w-full h-[42px] px-3.5 pr-8 bg-surface-container-lowest rounded-xl text-xs text-on-surface font-semibold cursor-pointer focus:outline-none transition-all appearance-none"
                   style={{ 
                     border: '1px solid var(--color-outline-variant)',
                     boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--color-primary-container)';
-                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.12)';
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--color-outline-variant)';
-                    e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.03)';
                   }}
                 >
                   <option value="Por Hacer">⏳ Por Hacer</option>
@@ -594,19 +719,11 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                 type="text" 
                 value={plataforma} 
                 onChange={(e) => setPlataforma(e.target.value)}
-                placeholder="Ej: Meta Ads / Instagram"
-                className="w-full h-[42px] px-3.5 bg-surface-container-lowest rounded-xl text-xs text-on-surface font-medium transition-all"
+                placeholder="Ej: Meta Ads / Facebook / Instagram"
+                className="w-full h-[42px] px-3.5 bg-surface-container-lowest rounded-xl text-xs text-on-surface font-medium focus:outline-none transition-all"
                 style={{ 
                   border: '1px solid var(--color-outline-variant)',
                   boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--color-primary-container)';
-                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.12)';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--color-outline-variant)';
-                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.03)';
                 }}
               />
             </div>
@@ -619,18 +736,10 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                 value={presupuesto} 
                 onChange={(e) => setPresupuesto(e.target.value)}
                 placeholder="Ej: $150 USD"
-                className="w-full h-[42px] px-3.5 bg-surface-container-lowest rounded-xl text-xs text-on-surface font-medium transition-all"
+                className="w-full h-[42px] px-3.5 bg-surface-container-lowest rounded-xl text-xs text-on-surface font-medium focus:outline-none transition-all"
                 style={{ 
                   border: '1px solid var(--color-outline-variant)',
                   boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--color-primary-container)';
-                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.12)';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--color-outline-variant)';
-                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.03)';
                 }}
               />
             </div>

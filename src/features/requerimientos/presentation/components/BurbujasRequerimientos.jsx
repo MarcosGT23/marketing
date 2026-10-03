@@ -105,25 +105,47 @@ export default function BurbujasRequerimientos({
                                             )}
                                         </div>
 
-                                        {/* Badges de entregables solicitados */}
+                                        {/* Badges de entregables y características solicitadas */}
                                         <div className="flex items-center gap-1 mt-1.5 flex-wrap">
-                                            {req.req_arte_estatico && (
-                                                <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-secondary-container/40 text-on-secondary-container">
-                                                    Arte
+                                            {req.prioridad === 'Alta' && (
+                                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-100 text-rose-800 border border-rose-200 flex items-center gap-1">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-pulse" />
+                                                    Alta
                                                 </span>
                                             )}
-                                            {req.req_carrusel && (
-                                                <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-secondary-container/40 text-on-secondary-container">
-                                                    Carrusel
+                                            {req.prioridad === 'Media' && (
+                                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-600" />
+                                                    Media
                                                 </span>
+                                            )}
+                                            {req.categoria_diseno && (req.req_arte_estatico || req.req_carrusel) ? (
+                                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 flex items-center gap-1 max-w-[130px] truncate" title={`Diseño: ${req.categoria_diseno}`}>
+                                                    <span className="material-symbols-outlined text-[11px] text-emerald-700">palette</span>
+                                                    <span className="truncate">{req.categoria_diseno}</span>
+                                                </span>
+                                            ) : (
+                                                <>
+                                                    {req.req_arte_estatico && (
+                                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-sky-100 text-sky-900 border border-sky-300">
+                                                            Arte
+                                                        </span>
+                                                    )}
+                                                    {req.req_carrusel && (
+                                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-900 border border-purple-300">
+                                                            Carrusel
+                                                        </span>
+                                                    )}
+                                                </>
                                             )}
                                             {req.req_reel && (
-                                                <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-tertiary-fixed text-on-tertiary-fixed-variant">
+                                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-100 text-indigo-900 border border-indigo-300 flex items-center gap-0.5">
+                                                    <span className="material-symbols-outlined text-[11px] text-indigo-700">videocam</span>
                                                     Reel
                                                 </span>
                                             )}
                                             {req.presupuesto && (
-                                                <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-primary-fixed text-on-primary-fixed">
+                                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-900 border border-blue-300">
                                                     Ads ${req.presupuesto}
                                                 </span>
                                             )}

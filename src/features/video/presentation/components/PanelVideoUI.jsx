@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { SlideConfirm } from '../../../diseno/presentation/components/SlideConfirm';
 import '../../../diseno/presentation/components/SlideConfirm.css';
 import { ChecklistRequerimientos } from './ChecklistRequerimientos';
+import ModalEditarRequerimiento from '../../../requerimientos/presentation/components/ModalEditarRequerimiento';
 
 function StyledSelect({ children, ...rest }) {
     const [focused, setFocused] = useState(false);
@@ -100,6 +101,13 @@ function getStatusStyle(estado) {
     return map[estado] || { bg: 'var(--color-surface-container)', color: 'var(--color-outline)', icon: 'hourglass_empty' };
 }
 
+// Generador de clase de borde y fondo tenue según prioridad
+const obtenerEstiloPrioridad = (prioridad) => {
+  if (prioridad === 'Alta') return 'border-l-[5px] border-l-error bg-error-container/5 shadow-md border-y border-r border-surface-container';
+  if (prioridad === 'Media') return 'border-l-[5px] border-l-orange-500 bg-orange-50/40 border-y border-r border-surface-container';
+  return 'border border-surface-container bg-surface-container-lowest'; // Baja (Default)
+};
+
 const AV_CHECKS = [
     { key: 'req_guion',    icon: 'description', color: 'var(--color-primary)', label: 'Guion' },
     { key: 'req_fotos',    icon: 'photo_camera', color: 'var(--color-secondary)', label: 'Fotos' },
@@ -128,6 +136,14 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
     const [agenteSeleccionadoId, setAgenteSeleccionadoId] = useState(null);
     const [vistaModo, setVistaModo] = useState('agentes'); // 'agentes' | 'todos'
     const [busqueda, setBusqueda] = useState('');
+    const [tarjetasExpandidas, setTarjetasExpandidas] = useState({});
+    const [menuOpcionesId, setMenuOpcionesId] = useState(null);
+    const [requerimientoAEditar, setRequerimientoAEditar] = useState(null);
+
+    const toggleExpandir = (id) => {
+        setTarjetasExpandidas(prev => ({ ...prev, [id]: !prev[id] }));
+    };
+
     const [tarjetasBloqueadas, setTarjetasBloqueadas] = useState(() => {
         if (typeof window !== 'undefined') {
             try {
@@ -268,7 +284,7 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                     <div className="flex items-center gap-2 px-3 py-1.5 sm:py-2 rounded-full font-label-sm text-[11px] font-semibold shadow-xs"
                         style={{ background: 'var(--color-tertiary-fixed)', color: 'var(--color-on-tertiary-fixed-variant)' }}>
                         <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--color-tertiary)' }} />
-                        Sebas & Marco — Video
+                        Producción Audiovisual
                     </div>
                 </div>
             </section>
@@ -600,6 +616,17 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                     </div>
                 </div>
             )}
+            
+            {/* Modal para Modificar Requerimiento Completo */}
+            <ModalEditarRequerimiento
+                abierto={Boolean(requerimientoAEditar)}
+                requerimiento={requerimientoAEditar}
+                alCerrar={() => setRequerimientoAEditar(null)}
+                alGuardarExitoso={() => {
+                    setRequerimientoAEditar(null);
+                    if (alGuardar) alGuardar();
+                }}
+            />
 
         </div>
     );
@@ -610,6 +637,9 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
         const s = getStatusStyle(video.estado);
         const progreso = video.progreso_porcentaje ?? 0;
         const estaBloqueada = Boolean(tarjetasBloqueadas[video.id_tarea] ?? (video.estado === 'Finalizado'));
+        const idTarjeta = item.id_requerimiento;
+        const estaExpandida = Boolean(tarjetasExpandidas[idTarjeta]);
+        const menuAbierto = menuOpcionesId === idTarjeta;
 
         // "cuando solo se presiones foto automaticamente aparesca el apartado de fase y un apartado de descripcion"
         const esSoloFotos = Boolean(video.req_fotos) &&
@@ -622,32 +652,39 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
 
         return (
             <div key={video.id_tarea || item.id_requerimiento}
-                className="rounded-2xl flex flex-col justify-between overflow-hidden transition-all duration-300 hover:shadow-md"
-                style={{
-                    background: estaBloqueada ? 'rgba(16, 185, 129, 0.04)' : 'var(--color-surface-container-lowest)',
-                    border: estaBloqueada ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid var(--color-outline-variant)',
-                    boxShadow: estaBloqueada ? '0 4px 16px rgba(16, 185, 129, 0.12)' : '0 1px 4px rgba(0,0,0,0.05)',
-                }}>
+                className={`rounded-xl transition-all flex flex-col justify-between overflow-hidden duration-300 hover:shadow-md ${estaBloqueada ? 'border border-emerald-500/35 bg-emerald-500/5' : obtenerEstiloPrioridad(item.prioridad)}`}
+                style={estaBloqueada ? { boxShadow: '0 4px 16px rgba(16, 185, 129, 0.12)' } : undefined}>
 
                 <div>
                     {/* Header */}
-                    <div className="px-5 py-4 flex items-start justify-between gap-3 border-b"
+                    <div className="px-5 py-4 flex items-start justify-between gap-3 border-b border-surface-container-low"
                         style={{
-                            background: estaBloqueada ? 'rgba(16, 185, 129, 0.08)' : 'var(--color-surface-container-low)',
-                            borderColor: estaBloqueada ? 'rgba(16, 185, 129, 0.2)' : 'var(--color-outline-variant)'
+                            background: estaBloqueada ? 'rgba(16, 185, 129, 0.08)' : undefined
                         }}>
-                        <div className="min-w-0">
-                            <h3 className="font-title-md truncate font-semibold" style={{ color: 'var(--color-on-surface)', fontSize: '15px' }}>
-                                {item.nombre_propiedad}
-                            </h3>
-                            <p className="font-body-sm mt-0.5 text-xs" style={{ color: 'var(--color-outline)' }}>
-                                Agente: <strong>{agente}</strong> · {item.ubicacion || 'Ubicación pendiente'}
+                        <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                                <h3 className="font-display font-semibold text-base text-on-surface truncate">
+                                    {item.nombre_propiedad}
+                                </h3>
+                                {item.prioridad === 'Alta' && (
+                                    <span className="px-1.5 py-0.5 bg-error text-on-error text-[9px] font-bold uppercase rounded shrink-0">
+                                        Urgente
+                                    </span>
+                                )}
+                                {item.prioridad === 'Media' && (
+                                    <span className="px-1.5 py-0.5 bg-orange-500 text-white text-[9px] font-bold uppercase rounded shrink-0">
+                                        Media
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-xs text-outline mt-0.5 truncate">
+                                Agente: <strong className="text-on-surface">{agente}</strong> • {item.categoria || 'Inmueble'}
                             </p>
                         </div>
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <div className="flex items-center gap-2 flex-shrink-0">
                             {estaBloqueada && (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 border border-emerald-500/25">
-                                    <span className="material-symbols-outlined text-[12px]">lock</span>
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
+                                    <span className="material-symbols-outlined text-[12px] text-emerald-700">lock</span>
                                     Bloqueada
                                 </span>
                             )}
@@ -656,25 +693,119 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                                 <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>{s.icon}</span>
                                 {video.estado || 'Por Hacer'}
                             </span>
+
+                            {/* Botón de 3 puntitos con modal/menú de edición */}
+                            <div className="relative">
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setMenuOpcionesId(menuAbierto ? null : idTarjeta);
+                                    }}
+                                    className="w-7 h-7 rounded-lg flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container transition-colors"
+                                    title="Modificar requerimiento"
+                                >
+                                    <span className="material-symbols-outlined text-[18px]">more_vert</span>
+                                </button>
+
+                                {menuAbierto && (
+                                    <div 
+                                        className="absolute right-0 top-8 z-30 w-48 py-1 rounded-xl shadow-xl border bg-surface-container-lowest animate-fadeIn"
+                                        style={{ borderColor: 'var(--color-outline-variant)' }}
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setMenuOpcionesId(null);
+                                                setRequerimientoAEditar(item);
+                                            }}
+                                            className="w-full px-3 py-2 text-left text-xs font-semibold flex items-center gap-2 hover:bg-surface-container text-on-surface cursor-pointer"
+                                        >
+                                            <span className="material-symbols-outlined text-[16px] text-tertiary">edit_note</span>
+                                            <span>Modificar requerimiento</span>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
 
-                    {/* Brief */}
-                    {(item.descripcion_propiedad || item.elemento_destacar) && (
-                        <div className="px-5 py-3 space-y-1 font-body-sm border-b text-xs"
-                            style={{ borderColor: 'var(--color-outline-variant)', background: 'var(--color-surface-container-low)' }}>
-                            {item.descripcion_propiedad && (
-                                <p style={{ color: 'var(--color-on-surface-variant)' }}>
-                                    <span style={{ color: 'var(--color-outline)' }}>Descripción:</span> {item.descripcion_propiedad}
-                                </p>
-                            )}
-                            {item.elemento_destacar && (
-                                <p style={{ color: 'var(--color-on-surface-variant)' }}>
-                                    <span style={{ color: 'var(--color-outline)' }}>Hook:</span> {item.elemento_destacar}
-                                </p>
-                            )}
+                    {/* Ficha técnica estructurada: Ubicación, Habitaciones, Superficie, Categoría, Público objetivo, Descripción */}
+                    <div className="px-5 py-3 space-y-2.5 font-body-sm border-b text-xs"
+                        style={{ borderColor: 'var(--color-outline-variant)', background: 'var(--color-surface-container-low)' }}>
+                        
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs p-2.5 rounded-xl bg-surface-container-lowest border border-surface-container">
+                            <div>
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-outline block mb-0.5">Categoría</span>
+                                <span className="font-semibold text-on-surface truncate block">{item.categoria || 'Propiedad'}</span>
+                            </div>
+                            <div>
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-outline block mb-0.5">Ubicación</span>
+                                <span className="font-semibold text-on-surface truncate block">{item.ubicacion || 'No especificada'}</span>
+                            </div>
+                            <div>
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-outline block mb-0.5">Habitaciones</span>
+                                <span className="font-semibold text-on-surface block">{item.habitaciones ? `${item.habitaciones} hab.` : '—'}</span>
+                            </div>
+                            <div>
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-outline block mb-0.5">Superficie</span>
+                                <span className="font-semibold text-on-surface block">{item.superficie || '—'}</span>
+                            </div>
                         </div>
-                    )}
+
+                        {/* Público Objetivo */}
+                        {item.publico_objetivo && (
+                            <div className="flex items-center gap-1.5 text-on-surface-variant">
+                                <span className="material-symbols-outlined text-[15px] text-tertiary shrink-0">groups</span>
+                                <span className="text-outline font-medium">Público Objetivo:</span>
+                                <span className="font-semibold text-on-surface truncate">{item.publico_objetivo}</span>
+                            </div>
+                        )}
+
+                        {/* Descripción (expandible cuando se selecciona o clic) */}
+                        {item.descripcion_propiedad && (
+                            <div className="pt-1 border-t border-surface-container/60 space-y-1">
+                                <p className={`text-on-surface-variant transition-all ${estaExpandida ? '' : 'line-clamp-2'}`}>
+                                    <span className="font-bold text-outline">Descripción: </span>
+                                    {item.descripcion_propiedad}
+                                </p>
+                                {item.descripcion_propiedad.length > 80 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => toggleExpandir(idTarjeta)}
+                                        className="text-[11px] font-semibold text-tertiary hover:underline flex items-center gap-1 cursor-pointer pt-0.5"
+                                    >
+                                        <span>{estaExpandida ? 'Ver menos' : 'Ver más detalles'}</span>
+                                        <span className="material-symbols-outlined text-[15px]">
+                                            {estaExpandida ? 'expand_less' : 'expand_more'}
+                                        </span>
+                                    </button>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Elementos adicionales al expandir */}
+                        {estaExpandida && (
+                            <div className="pt-2 border-t border-surface-container/60 space-y-1.5 text-[11px] animate-fadeIn">
+                                {item.elemento_destacar && (
+                                    <p className="text-on-surface-variant">
+                                        <strong className="text-tertiary">Hook audiovisual:</strong> {item.elemento_destacar}
+                                    </p>
+                                )}
+                                {item.fecha_rodaje && (
+                                    <p className="text-on-surface-variant">
+                                        <strong className="text-outline">Fecha tentativa de rodaje:</strong> {item.fecha_rodaje}
+                                    </p>
+                                )}
+                                {item.notas_produccion && (
+                                    <p className="text-on-surface-variant">
+                                        <strong className="text-outline">Notas de producción:</strong> {item.notas_produccion}
+                                    </p>
+                                )}
+                            </div>
+                        )}
+                    </div>
 
                     {/* Checklist & Progress */}
                     <div className={estaBloqueada ? 'pointer-events-none opacity-80' : ''}>
@@ -733,7 +864,7 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                                             <span className="material-symbols-outlined text-[16px]">photo_camera</span>
                                             Fase & Descripción de Fotografía
                                         </span>
-                                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
+                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300">
                                             {esSoloFotos ? 'Solo Fotos' : 'Requerimiento de Fotos'}
                                         </span>
                                     </div>

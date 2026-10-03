@@ -213,19 +213,19 @@ export default function LiquidStateSelector({ estadoActual = 'Por Hacer', alCamb
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        className="relative h-12 w-full rounded-2xl p-1 overflow-hidden cursor-pointer touch-none select-none transition-all shadow-inner border border-surface-container"
+        className="relative h-[44px] w-full rounded-xl p-1 overflow-hidden cursor-pointer touch-none select-none transition-all shadow-inner border border-surface-container"
         style={{
           background: 'var(--color-surface-container-low)',
         }}
       >
-        {/* Capa 1: Blob metaball líquido con filtro SVG goo perfectamente delimitado por inset-1 */}
+        {/* Capa 1: Blob metaball líquido perfectamente delimitado por inset-1 */}
         <div
           className="absolute inset-1 pointer-events-none"
           aria-hidden="true"
           style={{ filter: gooUrl }}
         >
           <motion.div
-            className="h-full rounded-xl shadow-sm"
+            className="h-full rounded-lg shadow-sm"
             style={{
               x,
               width: `${100 / ESTADOS.length}%`,
@@ -235,15 +235,15 @@ export default function LiquidStateSelector({ estadoActual = 'Por Hacer', alCamb
               skewX: tilt,
             }}
             animate={{
-              scale: held ? 1.04 : 1,
+              scale: held ? 1.03 : 1,
               filter: held ? 'brightness(1.08)' : 'brightness(1)',
             }}
             transition={LIQUID}
           />
         </div>
 
-        {/* Capa 2: 4 Ranuras proporcionales y simétricas en mobile y desktop */}
-        <div className="absolute inset-1 z-10 grid grid-cols-4 h-full w-full">
+        {/* Capa 2: 4 Ranuras proporcionales con la información 100% centrada dentro de cada burbuja */}
+        <div className="absolute inset-1 z-10 grid grid-cols-4">
           {ESTADOS.map((est, idx) => {
             const isSelected = activeIndex === idx;
             const isHovered = held && hoveredIdx === idx;
@@ -256,36 +256,31 @@ export default function LiquidStateSelector({ estadoActual = 'Por Hacer', alCamb
                   e.stopPropagation();
                   handleSelectSlot(idx);
                 }}
-                className={`relative flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-0.5 sm:px-1 rounded-xl cursor-pointer transition-colors duration-200 outline-none select-none active:scale-95 ${isSelected || isHovered
-                  ? 'text-white font-bold drop-shadow-xs'
-                  : 'text-on-surface-variant hover:text-on-surface'
-                  }`}
+                className={`relative flex items-center justify-center gap-1.5 px-1.5 h-full w-full rounded-lg cursor-pointer transition-colors duration-200 outline-none select-none ${
+                  isSelected || isHovered
+                    ? 'text-white font-bold drop-shadow-xs'
+                    : 'text-on-surface-variant hover:text-on-surface'
+                }`}
                 title={`${est.label} (${est.pct}%)`}
               >
-                <span
-                  className="material-symbols-outlined text-[16px] sm:text-[17px] transition-transform duration-200 pointer-events-none leading-none flex-shrink-0"
-                  style={{
-                    transform: isSelected ? 'scale(1.12)' : 'scale(1)',
-                  }}
-                >
+                <span className="material-symbols-outlined text-[17px] pointer-events-none shrink-0 flex items-center justify-center leading-none">
                   {est.icon}
                 </span>
 
-                <div className="flex items-center gap-1 pointer-events-none leading-none min-w-0">
-                  <span className="hidden sm:inline truncate text-[11px] font-semibold">
-                    {est.label}
-                  </span>
-                  <span className="inline sm:hidden truncate text-[10px] font-semibold">
-                    {est.short}
-                  </span>
+                <span className="hidden sm:inline truncate text-xs font-semibold tracking-tight pointer-events-none leading-none">
+                  {est.label}
+                </span>
+                <span className="inline sm:hidden truncate text-[11px] font-semibold tracking-tight pointer-events-none leading-none">
+                  {est.short}
+                </span>
 
-                  <span
-                    className={`text-[8.5px] sm:text-[9.5px] px-1 py-0.2 rounded-full font-mono transition-opacity ${isSelected ? 'bg-black/25 text-white' : 'opacity-65 text-outline'
-                      }`}
-                  >
-                    {est.pct}%
-                  </span>
-                </div>
+                <span
+                  className={`text-[9px] px-1.5 py-0.5 rounded-full font-mono font-bold leading-none pointer-events-none transition-all ${
+                    isSelected ? 'bg-black/25 text-white shadow-xs' : 'opacity-65 text-outline bg-surface-container'
+                  }`}
+                >
+                  {est.pct}%
+                </span>
               </button>
             );
           })}

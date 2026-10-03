@@ -9,7 +9,7 @@ import "../../styles/global.css";
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="description" content="Panel de control inmobiliario para gestión de campañas, diseño, video y pauta digital." />
-        <title>{title} | PanelInmobiliario PRO</title>
+        <title>{title} | REMAX BLACK Marketing</title>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
@@ -26,16 +26,16 @@ import "../../styles/global.css";
 
                 <!-- Logo + Desktop Nav -->
                 <div class="flex items-center gap-6 min-w-0">
-                    <a href="/agente/dashboard" class="flex items-center gap-2.5 group cursor-pointer shrink-0 select-none" aria-label="PanelInmobiliario Home">
-                        <div class="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm transition-transform group-hover:scale-105" style="background:linear-gradient(135deg,var(--color-primary-container),var(--color-tertiary-container))">
-                            <span class="material-symbols-outlined text-white" style="font-size:18px">domain</span>
-                        </div>
-                        <div class="flex items-center gap-1.5">
-                            <span class="font-bold tracking-tight text-sm" style="font-family:'Plus Jakarta Sans',sans-serif;color:var(--color-on-surface)">
-                                Panel<span style="color:var(--color-primary-container)">Inmobiliario</span>
-                            </span>
-                            <span class="hidden xs:inline-block px-1.5 py-0.5 rounded font-bold" style="font-size:9px;background:var(--color-primary-fixed);color:var(--color-on-primary-fixed-variant)">PRO</span>
-                        </div>
+                    <a href="/agente/dashboard" class="flex items-center gap-2 group cursor-pointer shrink-0 select-none" aria-label="REMAX BLACK Marketing Home">
+                        <img 
+                            src="/remax-black-logo.png" 
+                            alt="REMAX BLACK" 
+                            class="h-7 sm:h-8 w-auto object-contain transition-transform group-hover:scale-105"
+                        />
+                        <div class="h-4 w-px bg-outline-variant/60 mx-0.5"></div>
+                        <span class="font-bold tracking-tight text-sm sm:text-base font-display" style="color:var(--color-primary-container)">
+                            Marketing
+                        </span>
                     </a>
 
                     <nav class="hidden xl:flex items-center gap-1" role="navigation" aria-label="Navegación principal">
@@ -57,6 +57,15 @@ import "../../styles/global.css";
                             <span class="material-symbols-outlined" style="font-size:17px">add_circle</span>
                             Nuevo Requerimiento
                         </a>
+                        <a
+                            href="/agente/requerimientos"
+                            id="nav-requerimientos"
+                            class={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 ${pathname === '/agente/requerimientos' ? 'text-on-surface font-semibold' : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low'}`}
+                            style={pathname === '/agente/requerimientos' ? 'background:var(--color-primary-fixed);color:var(--color-on-primary-fixed-variant)' : ''}
+                        >
+                            <span class="material-symbols-outlined" style="font-size:17px">fact_check</span>
+                            Requerimientos
+                        </a>
 
                         <div class="w-px h-5 mx-1" style="background:var(--color-outline-variant)"></div>
 
@@ -68,7 +77,6 @@ import "../../styles/global.css";
                         >
                             <span class="material-symbols-outlined" style="font-size:17px">palette</span>
                             Diseño
-                            <span class="px-1.5 py-0.5 rounded-full font-bold" style="font-size:10px;background:var(--color-secondary-container);color:var(--color-on-secondary-container)">Isac</span>
                         </a>
                         <a
                             href="/equipo/video"
@@ -78,7 +86,6 @@ import "../../styles/global.css";
                         >
                             <span class="material-symbols-outlined" style="font-size:17px">videocam</span>
                             Video
-                            <span class="px-1.5 py-0.5 rounded-full font-bold" style="font-size:10px;background:var(--color-tertiary-fixed);color:var(--color-on-tertiary-fixed-variant)">Sebas</span>
                         </a>
                         <a
                             href="/equipo/cm"
@@ -87,8 +94,7 @@ import "../../styles/global.css";
                             style={pathname === '/equipo/cm' ? 'background:var(--color-surface-container-high);color:var(--color-on-surface)' : ''}
                         >
                             <span class="material-symbols-outlined" style="font-size:17px">campaign</span>
-                            CM
-                            <span class="px-1.5 py-0.5 rounded-full font-bold" style="font-size:10px;background:var(--color-surface-container-highest);color:var(--color-on-surface-variant)">Brenda</span>
+                            Pauta & CM
                         </a>
                     </nav>
                 </div>
@@ -121,12 +127,15 @@ import "../../styles/global.css";
             <!-- Drawer Header -->
             <div class="flex items-center justify-between p-5 flex-shrink-0" style="border-bottom:1px solid var(--color-surface-container)">
                 <div class="flex items-center gap-2.5">
-                    <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white" style="background:linear-gradient(135deg,var(--color-primary-container),var(--color-tertiary-container))">
-                        <span class="material-symbols-outlined" style="font-size:18px">domain</span>
-                    </div>
+                    <img 
+                        src="/remax-black-logo.png" 
+                        alt="REMAX BLACK" 
+                        class="h-7 w-auto object-contain"
+                    />
+                    <div class="h-4 w-px bg-outline-variant/60 mx-0.5"></div>
                     <div>
-                        <span class="font-bold text-sm" style="font-family:'Plus Jakarta Sans',sans-serif;color:var(--color-on-surface)">PanelInmobiliario</span>
-                        <span class="block text-[10px]" style="color:var(--color-outline)">Marketing &amp; Campañas</span>
+                        <span class="font-bold text-sm" style="font-family:'Plus Jakarta Sans',sans-serif;color:var(--color-primary-container)">Marketing</span>
+                        <span class="block text-[10px]" style="color:var(--color-outline)">Campañas &amp; Producción</span>
                     </div>
                 </div>
                 <button id="btn-close-drawer" aria-label="Cerrar menú"
@@ -150,6 +159,11 @@ import "../../styles/global.css";
                     <span class="material-symbols-outlined" style="font-size:20px">add_circle</span>
                     <span>Nuevo Requerimiento</span>
                 </a>
+                <a href="/agente/requerimientos" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                    style={pathname === '/agente/requerimientos' ? 'background:var(--color-primary-fixed);color:var(--color-on-primary-fixed-variant)' : 'color:var(--color-on-surface)'}>
+                    <span class="material-symbols-outlined" style="font-size:20px">fact_check</span>
+                    <span>Todos los Requerimientos</span>
+                </a>
 
                 <div class="my-2 flex items-center gap-2">
                     <div class="h-px flex-1" style="background:var(--color-surface-container)"></div>
@@ -161,7 +175,7 @@ import "../../styles/global.css";
                     style={pathname === '/equipo/cm' ? 'background:var(--color-surface-container-high);color:var(--color-on-surface)' : 'color:var(--color-on-surface)'}>
                     <div class="flex items-center gap-3">
                         <span class="material-symbols-outlined" style="font-size:20px">campaign</span>
-                        <span>CM — Brenda</span>
+                        <span>Pauta Digital & CM</span>
                     </div>
                     <span class="px-2 py-0.5 rounded-full text-[10px] font-bold" style="background:var(--color-surface-container-highest);color:var(--color-on-surface-variant)">CM</span>
                 </a>
@@ -169,7 +183,7 @@ import "../../styles/global.css";
                     style={pathname === '/equipo/video' ? 'background:var(--color-tertiary-fixed);color:var(--color-on-tertiary-fixed-variant)' : 'color:var(--color-on-surface)'}>
                     <div class="flex items-center gap-3">
                         <span class="material-symbols-outlined" style="font-size:20px">movie</span>
-                        <span>Video — Sebas / Marco</span>
+                        <span>Producción Audiovisual</span>
                     </div>
                     <span class="px-2 py-0.5 rounded-full text-[10px] font-bold" style="background:var(--color-tertiary-fixed);color:var(--color-on-tertiary-fixed-variant)">Video</span>
                 </a>
@@ -177,7 +191,7 @@ import "../../styles/global.css";
                     style={pathname === '/equipo/diseno' ? 'background:rgba(108,248,187,0.2);color:var(--color-on-secondary-container)' : 'color:var(--color-on-surface)'}>
                     <div class="flex items-center gap-3">
                         <span class="material-symbols-outlined" style="font-size:20px">palette</span>
-                        <span>Diseño — Isac</span>
+                        <span>Diseño Gráfico</span>
                     </div>
                     <span class="px-2 py-0.5 rounded-full text-[10px] font-bold" style="background:var(--color-secondary-container);color:var(--color-on-secondary-container)">Diseño</span>
                 </a>
@@ -248,10 +262,12 @@ import "../../styles/global.css";
         <footer class="w-full mt-auto" style="background:var(--color-surface-container-lowest);border-top:1px solid var(--color-surface-container)">
             <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-3 font-body-sm" style="color:var(--color-on-surface-variant)">
                 <div class="flex items-center gap-2.5">
-                    <div class="w-6 h-6 rounded-lg flex items-center justify-center" style="background:linear-gradient(135deg,var(--color-primary-container),var(--color-tertiary-container))">
-                        <span class="material-symbols-outlined text-white" style="font-size:14px">domain</span>
-                    </div>
-                    <span class="font-semibold text-xs" style="color:var(--color-on-surface)">PanelInmobiliario</span>
+                    <img 
+                        src="/remax-black-logo.png" 
+                        alt="REMAX BLACK" 
+                        class="h-5 w-auto object-contain opacity-90"
+                    />
+                    <span class="font-semibold text-xs" style="color:var(--color-primary-container)">Marketing</span>
                     <span class="text-xs">© 2026 Workspace de Marketing &amp; Campañas.</span>
                 </div>
                 <div class="flex items-center gap-4 text-xs">

@@ -15,3 +15,21 @@ export async function crearRequerimiento(datosFormulario) {
 
   return resultado;
 }
+
+export async function actualizarRequerimiento(idRequerimiento, datosFormulario) {
+  const respuesta = await fetch('/api/requerimientos', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ ...datosFormulario, id_requerimiento: idRequerimiento })
+  });
+
+  const resultado = await respuesta.json();
+
+  if (!respuesta.ok) {
+    throw new Error(resultado.error || 'Error al actualizar el requerimiento');
+  }
+
+  return resultado;
+}

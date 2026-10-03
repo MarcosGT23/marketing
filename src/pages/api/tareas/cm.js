@@ -5,10 +5,10 @@ export const prerender = false;
 export async function PATCH({ request }) {
   try {
     const body = await request.json();
-    const { id_tarea, estado, plataforma, presupuesto } = body;
+    const { id_tarea, id_requerimiento, estado, plataforma, presupuesto } = body;
 
-    if (!id_tarea) {
-      return new Response(JSON.stringify({ error: 'id_tarea es requerido' }), { status: 400 });
+    if (!id_tarea && !id_requerimiento) {
+      return new Response(JSON.stringify({ error: 'id_tarea o id_requerimiento es requerido' }), { status: 400 });
     }
 
     const updateFields = {};
@@ -16,12 +16,14 @@ export async function PATCH({ request }) {
     if (plataforma !== undefined) updateFields.plataforma = plataforma;
     if (presupuesto !== undefined) updateFields.presupuesto = presupuesto;
 
-    const { data, error } = await supabaseServer
-      .from('tareas_cm')
-      .update(updateFields)
-      .eq('id_tarea', id_tarea)
-      .select()
-      .single();
+    let query = supabaseServer.from('tareas_cm').update(updateFields);
+    if (id_tarea) {
+      query = query.eq('id_tarea', id_tarea);
+    } else {
+      query = query.eq('id_requerimiento', id_requerimiento);
+    }
+
+    const { data, error } = await query.select().single();
 
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), { status: 500 });
@@ -33,7 +35,7 @@ export async function PATCH({ request }) {
         await supabaseServer.from('historial_seguimiento').insert({
           id_requerimiento: data.id_requerimiento,
           departamento: 'CM',
-          usuario: body.usuario || 'Sebas (CM)',
+          usuario: body.usuario || 'Área de Pauta & CM',
           accion: `Campaña CM actualizada a "${data.estado || estado}"`,
           comentario: body.comentario || `Plataforma: ${data.plataforma || 'N/A'} | Presupuesto: ${data.presupuesto || 'Sin definir'}`,
           fecha_registro: new Date().toISOString()

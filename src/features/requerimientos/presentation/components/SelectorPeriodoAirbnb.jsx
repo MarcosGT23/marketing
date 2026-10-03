@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { obtenerPeriodoActual, generarProximosPeriodos } from '../../../../core/utils/dateUtils';
 
 const MESES = [
     { num: 1, nombre: 'Enero', corto: 'Ene' },
@@ -17,15 +18,24 @@ const MESES = [
 ];
 
 export default function SelectorPeriodoAirbnb({ valor, alCambiar }) {
+    const periodoActualPorDefecto = useMemo(() => obtenerPeriodoActual(), []);
     const [abierto, setAbierto] = useState(false);
-    const [tabActivo, setTabActivo] = useState('proximos'); // 'proximos' | '2026' | '2027' | 'flexible'
-    const [anoActual, setAnoActual] = useState(2026);
+    const [tabActivo, setTabActivo] = useState('proximos');
+    const [anoActual, setAnoActual] = useState(new Date().getFullYear());
     const contenedorRef = useRef(null);
 
-    // Parsear el valor seleccionado actual (ej: "Septiembre 2026")
-    const partes = (valor || 'Septiembre 2026').split(' ');
-    const mesSeleccionadoNombre = partes[0] || 'Septiembre';
-    const anoSeleccionado = parseInt(partes[1] || '2026', 10);
+    // Si no tiene valor, inicializar con el mes en curso automáticamente
+    useEffect(() => {
+        if (!valor && alCambiar) {
+            alCambiar('periodo_mensual', periodoActualPorDefecto);
+        }
+    }, [valor, alCambiar, periodoActualPorDefecto]);
+
+    // Parsear el valor seleccionado actual (ej: "Octubre 2026")
+    const periodoTexto = valor || periodoActualPorDefecto;
+    const partes = periodoTexto.split(' ');
+    const mesSeleccionadoNombre = partes[0] || 'Enero';
+    const anoSeleccionado = parseInt(partes[1] || String(new Date().getFullYear()), 10);
 
     // Cerrar al hacer clic fuera
     useEffect(() => {
@@ -46,17 +56,8 @@ export default function SelectorPeriodoAirbnb({ valor, alCambiar }) {
         setAbierto(false);
     };
 
-    // Lista de próximos meses dinámicos desde Septiembre 2026
-    const proximosMeses = [
-        { mes: 'Septiembre', ano: 2026, destacado: 'Mes en curso', q: 'Q3' },
-        { mes: 'Octubre', ano: 2026, destacado: 'Próximo', q: 'Q4' },
-        { mes: 'Noviembre', ano: 2026, destacado: 'Planificación', q: 'Q4' },
-        { mes: 'Diciembre', ano: 2026, destacado: 'Cierre de año', q: 'Q4' },
-        { mes: 'Enero', ano: 2027, destacado: 'Nuevo ciclo', q: 'Q1' },
-        { mes: 'Febrero', ano: 2027, destacado: 'Verano', q: 'Q1' },
-        { mes: 'Marzo', ano: 2027, destacado: 'Otoño', q: 'Q1' },
-        { mes: 'Abril', ano: 2027, destacado: 'Q2', q: 'Q2' },
-    ];
+    // Lista de próximos meses dinámicos generada a partir del mes actual
+    const proximosMeses = useMemo(() => generarProximosPeriodos(8), []);
 
     return (
         <div className="relative w-full" ref={contenedorRef}>
@@ -71,17 +72,24 @@ export default function SelectorPeriodoAirbnb({ valor, alCambiar }) {
                 }`}
                 style={{ height: '44px' }}
             >
-                <div className="flex items-center gap-2.5 min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
                     <span className="material-symbols-outlined text-primary text-[20px] flex-shrink-0">
                         calendar_month
                     </span>
-                    <div className="flex items-center gap-2 truncate">
+                    <div className="flex items-center gap-1.5 truncate">
                         <span className="text-xs sm:text-sm font-bold text-on-surface">
-                            {valor || 'Septiembre 2026'}
+                            {periodoTexto}
                         </span>
-                        <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-secondary-container/40 text-on-secondary-container">
-                            Ciclo Activo
-                        </span>
+                        {periodoTexto === periodoActualPorDefecto ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-700 border border-emerald-500/20">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                <span className="hidden sm:inline">Mes actual</span>
+                            </span>
+                        ) : (
+                            <span className="hidden md:inline-block px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-secondary-container/40 text-on-secondary-container">
+                                Ciclo
+                            </span>
+                        )}
                     </div>
                 </div>
 
@@ -272,10 +280,20 @@ export default function SelectorPeriodoAirbnb({ valor, alCambiar }) {
                         )}
 
                         {/* Pie del desplegable con periodo actual y botón de cierre */}
-                        <div className="flex items-center justify-between mt-4 pt-3 border-t border-surface-container-low text-xs">
-                            <span className="text-outline">
-                                Seleccionado: <strong className="text-on-surface">{valor || 'Septiembre 2026'}</strong>
-                            </span>
+                        <div className="flex items-center justify-between mt-4 pt-3 border-t border-surface-container-low text-xs gap-2">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    alCambiar('periodo_mensual', periodoActualPorDefecto);
+                                    setAbierto(false);
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 font-semibold transition-all cursor-pointer border border-emerald-500/25"
+                                title="Fijar automáticamente al mes en curso"
+                            >
+                                <span className="material-symbols-outlined text-[14px]">my_location</span>
+                                <span>Mes actual ({periodoActualPorDefecto})</span>
+                            </button>
+
                             <button
                                 type="button"
                                 onClick={() => setAbierto(false)}

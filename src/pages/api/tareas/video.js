@@ -5,10 +5,10 @@ export const prerender = false;
 export async function PATCH({ request }) {
   try {
     const body = await request.json();
-    const { id_tarea, req_guion, req_fotos, req_grabacion, req_edicion, req_voz_off, estado, progreso_porcentaje, Descripcion, descripcion } = body;
+    const { id_tarea, id_requerimiento, req_guion, req_fotos, req_grabacion, req_edicion, req_voz_off, estado, progreso_porcentaje, Descripcion, descripcion } = body;
 
-    if (!id_tarea) {
-      return new Response(JSON.stringify({ error: 'id_tarea es requerido' }), { status: 400 });
+    if (!id_tarea && !id_requerimiento) {
+      return new Response(JSON.stringify({ error: 'id_tarea o id_requerimiento es requerido' }), { status: 400 });
     }
 
     const updateFields = {};
@@ -22,12 +22,14 @@ export async function PATCH({ request }) {
     if (Descripcion !== undefined) updateFields.Descripcion = Descripcion;
     else if (descripcion !== undefined) updateFields.Descripcion = descripcion;
 
-    const { data, error } = await supabaseServer
-      .from('tareas_video')
-      .update(updateFields)
-      .eq('id_tarea', id_tarea)
-      .select()
-      .single();
+    let query = supabaseServer.from('tareas_video').update(updateFields);
+    if (id_tarea) {
+      query = query.eq('id_tarea', id_tarea);
+    } else {
+      query = query.eq('id_requerimiento', id_requerimiento);
+    }
+
+    const { data, error } = await query.select().single();
 
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), { status: 500 });
@@ -47,7 +49,7 @@ export async function PATCH({ request }) {
         await supabaseServer.from('historial_seguimiento').insert({
           id_requerimiento: data.id_requerimiento,
           departamento: 'Video',
-          usuario: body.usuario || 'Marcos (Video)',
+          usuario: body.usuario || 'Área Audiovisual',
           accion: `Video actualizado a "${data.estado || estado}" (${data.progreso_porcentaje ?? progreso_porcentaje}%)`,
           comentario: body.comentario || resumenChecks,
           fecha_registro: new Date().toISOString()

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Button } from '../../../../core/ui';
+import ModalEditarRequerimiento from './ModalEditarRequerimiento';
 
 /* ─── Shared styled input (same as form page) ─── */
 function StyledInput({ icon, ...rest }) {
@@ -88,6 +89,8 @@ function StatusBadge({ status }) {
 }
 
 export default function DashboardUI({ metricas, campanas, cargando, periodoSeleccionado, alCambiarPeriodo }) {
+    const [requerimientoAEditar, setRequerimientoAEditar] = useState(null);
+
     if (cargando) {
         return (
             <div className="flex flex-col items-center justify-center py-24 gap-3">
@@ -110,7 +113,7 @@ export default function DashboardUI({ metricas, campanas, cargando, periodoSelec
             subRight: '74% efectivas',
         },
         {
-            label: 'Diseños (Isac)',
+            label: 'Diseños Gráficos',
             value: metricas.disenosTerminados ?? 0,
             icon: 'palette',
             bg: 'var(--color-secondary-container)',
@@ -121,7 +124,7 @@ export default function DashboardUI({ metricas, campanas, cargando, periodoSelec
             tagColor: 'var(--color-on-secondary-container)',
         },
         {
-            label: 'Videos (Sebas / Marco)',
+            label: 'Videos & Reels',
             value: metricas.videosTerminados ?? 0,
             icon: 'movie',
             bg: 'var(--color-tertiary-fixed)',
@@ -130,7 +133,7 @@ export default function DashboardUI({ metricas, campanas, cargando, periodoSelec
             sub: 'Reels / tours producidos',
         },
         {
-            label: 'Pautas Ads (Brenda)',
+            label: 'Pautas Publicitarias',
             value: metricas.pautasActivas ?? 0,
             icon: 'ads_click',
             bg: 'var(--color-surface-container-high)',
@@ -251,12 +254,17 @@ export default function DashboardUI({ metricas, campanas, cargando, periodoSelec
                         </p>
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto">
-                        <div className="flex-1 sm:w-60">
-                            <StyledInput icon="search" placeholder="Buscar propiedad..." style={{ width: '100%', height: '38px' }} />
-                        </div>
+                        <a 
+                            href="/agente/requerimientos"
+                            className="h-[38px] px-3.5 rounded-lg flex items-center gap-1.5 text-xs font-semibold bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors shrink-0"
+                            title="Ver listado completo y editar requerimientos"
+                        >
+                            <span className="material-symbols-outlined text-[17px] text-primary-container">fact_check</span>
+                            <span>Ver todos los requerimientos</span>
+                        </a>
                         <button style={{
                             height: '38px', padding: '0 16px', borderRadius: '0.5rem',
-                            background: 'var(--color-surface-container-low)', color: 'var(--color-on-surface-variant)',
+                            background: 'var(--color-primary-container)', color: 'var(--color-on-primary)',
                             border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
                         }} onClick={() => window.location.href = '/agente/nuevo'} className="shrink-0 active:scale-95 transition-transform">
                             + Nuevo
@@ -269,7 +277,7 @@ export default function DashboardUI({ metricas, campanas, cargando, periodoSelec
                     <table className="w-full text-left min-w-[620px]">
                         <thead>
                             <tr style={{ background: 'var(--color-surface-container)', borderBottom: '1px solid var(--color-surface-container-low)' }}>
-                                {['Propiedad', 'Agente', 'Diseño (Isac)', 'Video (Sebas)', 'Pauta CM'].map(h => (
+                                {['Propiedad', 'Agente', 'Diseño', 'Video', 'Pauta CM', 'Acción'].map(h => (
                                     <th key={h} className="px-5 py-3 font-label-sm text-[11px] uppercase tracking-wider whitespace-nowrap"
                                         style={{ color: 'var(--color-outline)' }}>{h}</th>
                                 ))}
@@ -277,20 +285,20 @@ export default function DashboardUI({ metricas, campanas, cargando, periodoSelec
                         </thead>
                         <tbody>
                             {campanas.map((c) => {
-                                const diseno = c.tareas_diseno?.[0]?.estado || 'Por Hacer';
-                                const video = c.tareas_video?.[0]?.estado || 'Por Hacer';
-                                const cm = c.tareas_cm?.[0]?.estado || 'Por Hacer';
+                                const diseno = (Array.isArray(c.tareas_diseno) ? c.tareas_diseno[0]?.estado : c.tareas_diseno?.estado) || 'Por Hacer';
+                                const video = (Array.isArray(c.tareas_video) ? c.tareas_video[0]?.estado : c.tareas_video?.estado) || 'Por Hacer';
+                                const cm = (Array.isArray(c.tareas_cm) ? c.tareas_cm[0]?.estado : c.tareas_cm?.estado) || 'Por Hacer';
                                 const agente = c.usuarios?.nombre || 'General';
                                 const initials = agente.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
                                 return (
                                     <tr key={c.id_requerimiento}
-                                        className="transition-colors cursor-pointer"
+                                        className="transition-colors cursor-pointer group"
                                         style={{ borderBottom: '1px solid var(--color-surface-container-low)' }}
                                         onMouseEnter={e => e.currentTarget.style.background = 'var(--color-surface-container-low)'}
                                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                                         <td className="px-5 py-4">
-                                            <p className="font-title-md" style={{ color: 'var(--color-on-surface)', fontSize: '14px' }}>
+                                            <p className="font-title-md font-semibold" style={{ color: 'var(--color-on-surface)', fontSize: '14px' }}>
                                                 {c.nombre_propiedad}
                                             </p>
                                             <p className="font-body-sm mt-0.5" style={{ color: 'var(--color-outline)', fontSize: '12px' }}>
@@ -311,12 +319,26 @@ export default function DashboardUI({ metricas, campanas, cargando, periodoSelec
                                         <td className="px-5 py-4"><StatusBadge status={diseno} /></td>
                                         <td className="px-5 py-4"><StatusBadge status={video} /></td>
                                         <td className="px-5 py-4"><StatusBadge status={cm} /></td>
+                                        <td className="px-5 py-4 text-right">
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setRequerimientoAEditar(c);
+                                                }}
+                                                className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-surface-container hover:bg-primary-container hover:text-white transition-all flex items-center gap-1 shadow-2xs"
+                                                title="Editar requerimiento completo"
+                                            >
+                                                <span className="material-symbols-outlined text-[15px]">edit</span>
+                                                <span>Editar</span>
+                                            </button>
+                                        </td>
                                     </tr>
                                 );
                             })}
                             {campanas.length === 0 && (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-20 text-center">
+                                    <td colSpan={6} className="px-6 py-20 text-center">
                                         <span className="material-symbols-outlined block mx-auto mb-3" style={{ fontSize: '48px', color: 'var(--color-outline)' }}>inbox</span>
                                         <p className="font-body-md" style={{ color: 'var(--color-outline)' }}>No hay campañas para este periodo.</p>
                                         <button className="mt-4 px-6 py-2 rounded-lg font-label-md font-medium transition-all"
@@ -331,6 +353,17 @@ export default function DashboardUI({ metricas, campanas, cargando, periodoSelec
                     </table>
                 </div>
             </section>
+
+            {/* Modal para Modificar Requerimiento Completo */}
+            <ModalEditarRequerimiento
+                abierto={Boolean(requerimientoAEditar)}
+                requerimiento={requerimientoAEditar}
+                alCerrar={() => setRequerimientoAEditar(null)}
+                alGuardarExitoso={() => {
+                    setRequerimientoAEditar(null);
+                    window.location.reload();
+                }}
+            />
         </div>
     );
 }

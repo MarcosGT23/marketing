@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import LiquidStateSelector from './LiquidStateSelector';
 import { SlideConfirm } from "./SlideConfirm";
 import "./SlideConfirm.css";
+import ModalEditarRequerimiento from '../../../requerimientos/presentation/components/ModalEditarRequerimiento';
 
 function StyledInput({ icon, ...rest }) {
     const [focused, setFocused] = useState(false);
@@ -102,10 +103,29 @@ function obtenerIniciales(nombre) {
     return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
 }
 
-export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo, alGuardar }) {
+export default function TableroDisenoUI({ 
+    tareas = [], 
+    agentes: listaAgentes = [],
+    cargando, 
+    alCambiarCampo, 
+    alGuardar,
+    modalAbierto = false,
+    setModalAbierto = () => {},
+    tareaInterna = { titulo: '', descripcion: '', prioridad: 'Media', fecha_limite: '', id_agente: '', categoria_diseno: 'Artes estáticos' },
+    setTareaInterna = () => {},
+    manejarCrearInterna
+}) {
     const [agenteSeleccionadoId, setAgenteSeleccionadoId] = useState(null);
     const [vistaModo, setVistaModo] = useState('agentes'); // 'agentes' | 'todos'
     const [busqueda, setBusqueda] = useState('');
+    const [tarjetasExpandidas, setTarjetasExpandidas] = useState({});
+    const [menuOpcionesId, setMenuOpcionesId] = useState(null);
+    const [requerimientoAEditar, setRequerimientoAEditar] = useState(null);
+
+    const toggleExpandir = (id) => {
+        setTarjetasExpandidas(prev => ({ ...prev, [id]: !prev[id] }));
+    };
+
     const [tarjetasBloqueadas, setTarjetasBloqueadas] = useState(() => {
         if (typeof window !== 'undefined') {
             try {
@@ -154,7 +174,7 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
 
             mapa[id].requerimientos.push(item);
 
-            const estado = item.tareas_diseno?.[0]?.estado || 'Por Hacer';
+            const estado = (Array.isArray(item.tareas_diseno) ? item.tareas_diseno[0]?.estado : item.tareas_diseno?.estado) || 'Por Hacer';
             if (estado === 'En Proceso') mapa[id].enProceso++;
             else if (estado === 'Revisión') mapa[id].revision++;
             else if (estado === 'Finalizado') mapa[id].finalizadas++;
@@ -234,6 +254,18 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
                     </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3 relative z-10">
+                    <button 
+                        type="button"
+                        onClick={() => setModalAbierto(true)}
+                        className="flex items-center gap-1.5 px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-semibold shadow-xs transition-all hover:scale-95 active:scale-90 cursor-pointer"
+                        style={{
+                            background: 'var(--color-secondary)',
+                            color: 'var(--color-on-secondary)'
+                        }}
+                    >
+                        <span className="material-symbols-outlined text-[16px]">add_photo_alternate</span>
+                        <span>Añadir Tarea</span>
+                    </button>
                     <div className="px-3 py-1.5 sm:py-2 rounded-xl text-xs flex items-center gap-2 font-medium"
                         style={{
                             background: 'var(--color-surface-container-low)',
@@ -246,7 +278,7 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
                     <div className="flex items-center gap-2 px-3 py-1.5 sm:py-2 rounded-full font-label-sm text-[11px] font-semibold shadow-xs"
                         style={{ background: 'var(--color-secondary-container)', color: 'var(--color-on-secondary-container)' }}>
                         <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--color-secondary)' }} />
-                        Isac — Diseñador
+                        Panel de Diseño
                     </div>
                 </div>
             </section>
@@ -583,19 +615,269 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
                 </div>
             )}
 
+            {/* MODAL PARA TAREAS INTERNAS */}
+            {modalAbierto && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+                    style={{ background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
+                    <div className="w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden flex flex-col border animate-in fade-in zoom-in-95 duration-200"
+                        style={{
+                            background: 'var(--color-surface-container-lowest)',
+                            borderColor: 'var(--color-outline-variant)',
+                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+                        }}>
+                        
+                        {/* Franja de gradiente superior */}
+                        <div className="h-1.5 w-full" style={{ background: 'linear-gradient(90deg, var(--color-secondary), var(--color-primary-container), var(--color-tertiary-container))' }} />
+
+                        {/* Cabecera del modal */}
+                        <div className="p-5 sm:p-6 border-b flex items-start justify-between gap-3"
+                            style={{
+                                background: 'linear-gradient(to right, rgba(238, 230, 255, 0.45), var(--color-surface-container-lowest))',
+                                borderColor: 'var(--color-outline-variant)'
+                            }}>
+                            <div className="flex items-center gap-3">
+                                <div className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-xs"
+                                    style={{ background: 'var(--color-secondary-container)', color: 'var(--color-on-secondary-container)' }}>
+                                    <span className="material-symbols-outlined text-[24px]">palette</span>
+                                </div>
+                                <div>
+                                    <h3 className="font-headline-sm font-bold text-base sm:text-lg" style={{ color: 'var(--color-on-surface)' }}>
+                                        Nuevo Requerimiento de Diseño
+                                    </h3>
+                                    <p className="font-body-sm text-xs mt-0.5" style={{ color: 'var(--color-outline)' }}>
+                                        Crea una nueva pieza publicitaria o requerimiento interno
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setModalAbierto(false)}
+                                className="w-8 h-8 rounded-full flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container-low transition-all cursor-pointer"
+                                aria-label="Cerrar modal"
+                            >
+                                <span className="material-symbols-outlined text-[20px]">close</span>
+                            </button>
+                        </div>
+                        
+                        {/* Formulario */}
+                        <form onSubmit={manejarCrearInterna} className="p-5 sm:p-6 space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                                <div>
+                                    <label className="block text-xs font-semibold mb-1.5 flex items-center gap-1.5" style={{ color: 'var(--color-on-surface-variant)' }}>
+                                        <span className="material-symbols-outlined text-[15px]" style={{ color: 'var(--color-secondary)' }}>person</span>
+                                        <span>Solicitante (Agente)</span>
+                                    </label>
+                                    <div className="relative">
+                                        <select 
+                                            value={tareaInterna.id_agente || ''} 
+                                            onChange={(e) => setTareaInterna({...tareaInterna, id_agente: e.target.value})} 
+                                            className="w-full h-11 px-3.5 pr-9 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer outline-none appearance-none"
+                                            style={{ 
+                                                background: 'var(--color-surface-container-low)', 
+                                                color: 'var(--color-on-surface)', 
+                                                border: '1px solid var(--color-outline-variant)' 
+                                            }}
+                                        >
+                                            <option value="">🏢 Trabajo Interno</option>
+                                            {listaAgentes.map(ag => (
+                                                <option key={ag.id_usuario} value={ag.id_usuario}>{ag.nombre}</option>
+                                            ))}
+                                        </select>
+                                        <span className="material-symbols-outlined absolute right-3 top-3 pointer-events-none text-[18px]" style={{ color: 'var(--color-outline)' }}>
+                                            expand_more
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-semibold mb-1.5 flex items-center gap-1.5" style={{ color: 'var(--color-on-surface-variant)' }}>
+                                        <span className="material-symbols-outlined text-[15px]" style={{ color: 'var(--color-secondary)' }}>brush</span>
+                                        <span>Tipo de Arte</span>
+                                    </label>
+                                    <div className="relative">
+                                        <select 
+                                            value={tareaInterna.categoria_diseno || 'Artes estáticos'} 
+                                            onChange={(e) => setTareaInterna({...tareaInterna, categoria_diseno: e.target.value})} 
+                                            className="w-full h-11 px-3.5 pr-9 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer outline-none appearance-none"
+                                            style={{ 
+                                                background: 'var(--color-surface-container-low)', 
+                                                color: 'var(--color-on-surface)', 
+                                                border: '1px solid var(--color-outline-variant)' 
+                                            }}
+                                        >
+                                            <option value="Comunicados">📢 Comunicados</option>
+                                            <option value="Artes salutaciones">🎉 Artes salutaciones</option>
+                                            <option value="Tops internos">🏆 Tops internos</option>
+                                            <option value="Diplomas y/o certificados">📜 Diplomas y/o certificados</option>
+                                            <option value="Tops nacionales">🥇 Tops nacionales</option>
+                                            <option value="Edición de fotos">🖼️ Edición de fotos</option>
+                                            <option value="Historias">📱 Historias</option>
+                                            <option value="Artes estáticos">🎨 Artes estáticos</option>
+                                            <option value="Invitaciones">💌 Invitaciones</option>
+                                            <option value="Otros">✨ Otros</option>
+                                        </select>
+                                        <span className="material-symbols-outlined absolute right-3 top-3 pointer-events-none text-[18px]" style={{ color: 'var(--color-outline)' }}>
+                                            expand_more
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-semibold mb-1.5 flex items-center gap-1.5" style={{ color: 'var(--color-on-surface-variant)' }}>
+                                    <span className="material-symbols-outlined text-[15px]" style={{ color: 'var(--color-secondary)' }}>title</span>
+                                    <span>Título de la Pieza / Tarea</span>
+                                </label>
+                                <input 
+                                    required 
+                                    type="text" 
+                                    value={tareaInterna.titulo || ''} 
+                                    onChange={(e) => setTareaInterna({...tareaInterna, titulo: e.target.value})} 
+                                    className="w-full h-11 px-3.5 rounded-xl text-xs sm:text-sm transition-all outline-none" 
+                                    style={{ 
+                                        background: 'var(--color-surface-container-low)', 
+                                        color: 'var(--color-on-surface)', 
+                                        border: '1px solid var(--color-outline-variant)' 
+                                    }}
+                                    placeholder="Ej: Flyer Capacitación Zoom"
+                                />
+                            </div>
+                            
+                            <div>
+                                <label className="block text-xs font-semibold mb-1.5 flex items-center gap-1.5" style={{ color: 'var(--color-on-surface-variant)' }}>
+                                    <span className="material-symbols-outlined text-[15px]" style={{ color: 'var(--color-secondary)' }}>notes</span>
+                                    <span>Instrucciones / Texto a incluir</span>
+                                </label>
+                                <textarea 
+                                    rows="3" 
+                                    value={tareaInterna.descripcion || ''} 
+                                    onChange={(e) => setTareaInterna({...tareaInterna, descripcion: e.target.value})} 
+                                    className="w-full p-3 rounded-xl text-xs sm:text-sm transition-all outline-none resize-none" 
+                                    style={{ 
+                                        background: 'var(--color-surface-container-low)', 
+                                        color: 'var(--color-on-surface)', 
+                                        border: '1px solid var(--color-outline-variant)' 
+                                    }}
+                                    placeholder="Detalles sobre colores, textos obligatorios, especificaciones..."
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                                <div>
+                                    <label className="block text-xs font-semibold mb-1.5 flex items-center gap-1.5" style={{ color: 'var(--color-on-surface-variant)' }}>
+                                        <span className="material-symbols-outlined text-[15px]" style={{ color: 'var(--color-secondary)' }}>flag</span>
+                                        <span>Prioridad</span>
+                                    </label>
+                                    <div className="grid grid-cols-3 gap-1 p-1 rounded-xl" style={{ background: 'var(--color-surface-container-low)', border: '1px solid var(--color-outline-variant)' }}>
+                                        {['Baja', 'Media', 'Alta'].map((p) => {
+                                            const activa = (tareaInterna.prioridad || 'Media') === p;
+                                            const colors = {
+                                                Baja: { dot: '#10b981', color: '#059669' },
+                                                Media: { dot: '#f59e0b', color: '#d97706' },
+                                                Alta: { dot: '#ef4444', color: '#dc2626' }
+                                            }[p];
+                                            return (
+                                                <button
+                                                    key={p}
+                                                    type="button"
+                                                    onClick={() => setTareaInterna({...tareaInterna, priority: p, prioridad: p})}
+                                                    className={`py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                                                        activa ? 'shadow-xs scale-[1.02]' : 'text-outline hover:text-on-surface'
+                                                    }`}
+                                                    style={{
+                                                        background: activa ? 'var(--color-surface-container-lowest)' : 'transparent',
+                                                        color: activa ? colors.color : 'inherit'
+                                                    }}
+                                                >
+                                                    <span className="w-2 h-2 rounded-full" style={{ background: colors.dot }} />
+                                                    <span>{p}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold mb-1.5 flex items-center gap-1.5" style={{ color: 'var(--color-on-surface-variant)' }}>
+                                        <span className="material-symbols-outlined text-[15px]" style={{ color: 'var(--color-secondary)' }}>calendar_today</span>
+                                        <span>Fecha Entrega</span>
+                                    </label>
+                                    <input 
+                                        type="date" 
+                                        value={tareaInterna.fecha_limite || ''} 
+                                        onChange={(e) => setTareaInterna({...tareaInterna, fecha_limite: e.target.value})} 
+                                        className="w-full h-11 px-3.5 rounded-xl text-xs sm:text-sm transition-all outline-none" 
+                                        style={{ 
+                                            background: 'var(--color-surface-container-low)', 
+                                            color: 'var(--color-on-surface)', 
+                                            border: '1px solid var(--color-outline-variant)' 
+                                        }}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-end gap-3 pt-4 border-t" style={{ borderColor: 'var(--color-outline-variant)' }}>
+                                <button 
+                                    type="button" 
+                                    onClick={() => setModalAbierto(false)} 
+                                    className="px-4 py-2.5 rounded-xl text-xs font-semibold transition-all hover:bg-surface-container-low cursor-pointer"
+                                    style={{ color: 'var(--color-on-surface-variant)' }}
+                                >
+                                    Cancelar
+                                </button>
+                                <button 
+                                    type="submit" 
+                                    className="px-5 py-2.5 rounded-xl text-xs font-semibold shadow-xs hover:shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
+                                    style={{ 
+                                        background: 'linear-gradient(135deg, var(--color-secondary), #7c3aed)', 
+                                        color: 'white' 
+                                    }}
+                                >
+                                    <span className="material-symbols-outlined text-[17px]">add_task</span>
+                                    <span>Crear Tarea</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+            
+            {/* Modal para Modificar Requerimiento Completo */}
+            <ModalEditarRequerimiento
+                abierto={Boolean(requerimientoAEditar)}
+                requerimiento={requerimientoAEditar}
+                alCerrar={() => setRequerimientoAEditar(null)}
+                alGuardarExitoso={() => {
+                    setRequerimientoAEditar(null);
+                    if (alGuardar) alGuardar();
+                }}
+                agentes={listaAgentes}
+            />
+
         </div>
     );
 
     function renderTarjetaDiseno(item) {
-        const tarea = item.tareas_diseno?.[0] || {};
+        const tarea = (Array.isArray(item.tareas_diseno) ? item.tareas_diseno[0] : item.tareas_diseno) || {};
         const agente = item.usuarios?.nombre || 'Sin agente';
         const s = getStatusStyle(tarea.estado);
         const progreso = ESTADO_PROGRESO[tarea.estado] ?? (tarea.progreso_porcentaje ?? 0);
         const estaBloqueada = Boolean(tarjetasBloqueadas[tarea.id_tarea] ?? (tarea.estado === 'Finalizado'));
+        const idTarjeta = item.id_requerimiento;
+        const estaExpandida = Boolean(tarjetasExpandidas[idTarjeta]);
+        const menuAbierto = menuOpcionesId === idTarjeta;
+
+        // Entregables para diseño
+        const tieneArte = Boolean(item.req_arte_estatico);
+        const tieneCarrusel = Boolean(item.req_carrusel);
+        const esDisenoInterno = item.categoria === 'Diseño Interno';
 
         return (
             <div key={tarea.id_tarea || item.id_requerimiento}
-                className="rounded-2xl flex flex-col justify-between overflow-hidden transition-all duration-300 hover:shadow-md"
+                className={`rounded-2xl flex flex-col justify-between overflow-hidden transition-all duration-300 hover:shadow-md ${
+                    item.prioridad === 'Alta' 
+                        ? 'border-l-[4px] border-l-error' 
+                        : (item.prioridad === 'Media' ? 'border-l-[4px] border-l-amber-500' : '')
+                }`}
                 style={{ 
                     background: estaBloqueada ? 'rgba(16, 185, 129, 0.04)' : 'var(--color-surface-container-lowest)', 
                     border: estaBloqueada ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid var(--color-outline-variant)',
@@ -609,18 +891,61 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
                             background: estaBloqueada ? 'rgba(16, 185, 129, 0.08)' : 'var(--color-surface-container-low)', 
                             borderColor: estaBloqueada ? 'rgba(16, 185, 129, 0.2)' : 'var(--color-outline-variant)' 
                         }}>
-                        <div className="min-w-0">
-                            <h3 className="font-title-md truncate font-semibold" style={{ color: 'var(--color-on-surface)', fontSize: '15px' }}>
-                                {item.nombre_propiedad}
-                            </h3>
-                            <p className="font-body-sm mt-0.5 text-xs" style={{ color: 'var(--color-outline)' }}>
-                                Agente: <strong>{agente}</strong> · {item.tipo} · {item.categoria}
-                            </p>
+                        <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <h3 className="font-title-md truncate font-semibold" style={{ color: 'var(--color-on-surface)', fontSize: '15px' }}>
+                                    {item.nombre_propiedad}
+                                </h3>
+                                {item.prioridad === 'Alta' && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">
+                                        <span className="material-symbols-outlined text-[11px] text-rose-700">priority_high</span>
+                                        Urgente
+                                    </span>
+                                )}
+                                {item.prioridad === 'Media' && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                        <span className="material-symbols-outlined text-[11px] text-amber-700">schedule</span>
+                                        Media
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Tags de tipo de entregable con color distintivo y alto contraste */}
+                            <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                                {tieneArte && (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-900 border border-sky-300 shadow-2xs">
+                                        <span className="material-symbols-outlined text-[12px] text-sky-700">image</span>
+                                        Arte Estático
+                                    </span>
+                                )}
+                                {tieneCarrusel && (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-900 border border-purple-300 shadow-2xs">
+                                        <span className="material-symbols-outlined text-[12px] text-purple-700">view_carousel</span>
+                                        Carrusel
+                                    </span>
+                                )}
+                                {esDisenoInterno && item.categoria_diseno && (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs">
+                                        <span className="material-symbols-outlined text-[12px] text-amber-700">brush</span>
+                                        {item.categoria_diseno}
+                                    </span>
+                                )}
+                                {!tieneArte && !tieneCarrusel && (!esDisenoInterno || !item.categoria_diseno) && (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-2xs">
+                                        <span className="material-symbols-outlined text-[12px] text-emerald-700">palette</span>
+                                        Diseño Gráfico
+                                    </span>
+                                )}
+                                <span className="text-[11px] text-outline ml-1">
+                                    • Agente: <strong className="text-on-surface">{agente}</strong>
+                                </span>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
+
+                        <div className="flex items-center gap-2 flex-shrink-0">
                             {estaBloqueada && (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 border border-emerald-500/25">
-                                    <span className="material-symbols-outlined text-[12px]">lock</span>
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
+                                    <span className="material-symbols-outlined text-[12px] text-emerald-700">lock</span>
                                     Bloqueada
                                 </span>
                             )}
@@ -629,24 +954,115 @@ export default function TableroDisenoUI({ tareas = [], cargando, alCambiarCampo,
                                 <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>{s.icon}</span>
                                 {tarea.estado || 'Por Hacer'}
                             </span>
+
+                            {/* Botón de 3 puntitos con menú contextual */}
+                            <div className="relative">
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setMenuOpcionesId(menuAbierto ? null : idTarjeta);
+                                    }}
+                                    className="w-7 h-7 rounded-lg flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container transition-colors"
+                                    title="Modificar requerimiento"
+                                >
+                                    <span className="material-symbols-outlined text-[18px]">more_vert</span>
+                                </button>
+
+                                {menuAbierto && (
+                                    <div 
+                                        className="absolute right-0 top-8 z-30 w-48 py-1 rounded-xl shadow-xl border bg-surface-container-lowest animate-fadeIn"
+                                        style={{ borderColor: 'var(--color-outline-variant)' }}
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setMenuOpcionesId(null);
+                                                setRequerimientoAEditar(item);
+                                            }}
+                                            className="w-full px-3 py-2 text-left text-xs font-semibold flex items-center gap-2 hover:bg-surface-container text-on-surface cursor-pointer"
+                                        >
+                                            <span className="material-symbols-outlined text-[16px] text-primary-container">edit_note</span>
+                                            <span>Modificar requerimiento</span>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
 
-                    {/* Meta info */}
-                    <div className="px-4 sm:px-5 py-3 space-y-1.5 font-body-sm border-b text-xs"
+                    {/* Ficha técnica estructurada de la propiedad */}
+                    <div className="px-4 sm:px-5 py-3 space-y-2.5 font-body-sm border-b text-xs"
                         style={{ borderColor: 'var(--color-outline-variant)', background: 'var(--color-surface-container-low)' }}>
-                        <p style={{ color: 'var(--color-on-surface-variant)' }}>
-                            <span style={{ color: 'var(--color-outline)' }}>Ubicación:</span> {item.ubicacion || 'No especificada'}
-                        </p>
-                        {item.elemento_destacar && (
-                            <p style={{ color: 'var(--color-on-surface-variant)' }}>
-                                <span style={{ color: 'var(--color-outline)' }}>Hook:</span> {item.elemento_destacar}
-                            </p>
-                        )}
+                        
+                        {/* Grid de especificaciones: Ubicación, Habitaciones, Superficie, Categoría, Tipo de operación */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs p-2.5 rounded-xl bg-surface-container-lowest border border-surface-container">
+                            <div>
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-outline block mb-0.5">Categoría</span>
+                                <span className="font-semibold text-on-surface truncate block">{item.categoria || 'Propiedad'}</span>
+                            </div>
+                            <div>
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-outline block mb-0.5">Operación</span>
+                                <span className="font-semibold text-primary-container truncate block">{item.tipo || 'Venta'}</span>
+                            </div>
+                            <div>
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-outline block mb-0.5">Habitaciones</span>
+                                <span className="font-semibold text-on-surface block">{item.habitaciones ? `${item.habitaciones} hab.` : '—'}</span>
+                            </div>
+                            <div>
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-outline block mb-0.5">Superficie</span>
+                                <span className="font-semibold text-on-surface block">{item.superficie || '—'}</span>
+                            </div>
+                        </div>
+
+                        {/* Ubicación */}
+                        <div className="flex items-center gap-1.5 text-on-surface-variant">
+                            <span className="material-symbols-outlined text-[15px] text-outline shrink-0">location_on</span>
+                            <span className="truncate">{item.ubicacion || 'Ubicación no especificada'}</span>
+                        </div>
+
+                        {/* Descripción con soporte para expandir si es larga */}
                         {item.descripcion_propiedad && (
-                            <p className="line-clamp-2" style={{ color: 'var(--color-on-surface-variant)' }}>
-                                <span style={{ color: 'var(--color-outline)' }}>Descripción:</span> {item.descripcion_propiedad}
-                            </p>
+                            <div className="pt-1 border-t border-surface-container/60 space-y-1">
+                                <p className={`text-on-surface-variant transition-all ${estaExpandida ? '' : 'line-clamp-2'}`}>
+                                    <span className="font-bold text-outline">Descripción: </span>
+                                    {item.descripcion_propiedad}
+                                </p>
+                                {item.descripcion_propiedad.length > 90 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => toggleExpandir(idTarjeta)}
+                                        className="text-[11px] font-semibold text-primary-container hover:underline flex items-center gap-1 cursor-pointer pt-0.5"
+                                    >
+                                        <span>{estaExpandida ? 'Ver menos' : 'Ver más detalles'}</span>
+                                        <span className="material-symbols-outlined text-[15px]">
+                                            {estaExpandida ? 'expand_less' : 'expand_more'}
+                                        </span>
+                                    </button>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Datos adicionales al expandir */}
+                        {estaExpandida && (
+                            <div className="pt-2 border-t border-surface-container/60 space-y-1.5 text-[11px] animate-fadeIn">
+                                {item.elemento_destacar && (
+                                    <p className="text-on-surface-variant">
+                                        <strong className="text-primary-container">Hook / Elemento a destacar:</strong> {item.elemento_destacar}
+                                    </p>
+                                )}
+                                {item.precio && (
+                                    <p className="text-on-surface-variant">
+                                        <strong className="text-outline">Precio:</strong> {item.precio}
+                                    </p>
+                                )}
+                                {item.publico_objetivo && (
+                                    <p className="text-on-surface-variant">
+                                        <strong className="text-outline">Público objetivo:</strong> {item.publico_objetivo}
+                                    </p>
+                                )}
+                            </div>
                         )}
                     </div>
 

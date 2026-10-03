@@ -1,19 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import PanelVideoUI from './components/PanelVideoUI';
 import { actualizarTareaVideo } from '../infrastructure/video.api';
+import { useRealtimeSync } from '../../../core/hooks/useRealtimeSync';
 
 export default function PanelVideoContainer() {
     const [datos, setDatos] = useState([]);
     const [cargando, setCargando] = useState(true);
 
-    const cargarRequerimientos = async () => {
+    const cargarRequerimientos = useCallback(async (silent = false) => {
+        if (!silent) setCargando(true);
         try {
             const res = await fetch('/api/requerimientos');
             const json = await res.json();
             if (!res.ok || json?.error) {
                 console.error("Error API Video:", json);
-                alert(json?.error || 'Error cargando producciones de video');
-                setDatos([]);
+                if (!silent) alert(json?.error || 'Error cargando producciones de video');
                 return;
             }
             // Solo mostrar si tiene tarea de video creada por el trigger
@@ -25,32 +26,39 @@ export default function PanelVideoContainer() {
             };
 
             const tareasFiltradas = (Array.isArray(json) ? json : [])
-                .filter(item => item.tareas_video && item.tareas_video.length > 0)
+                .filter(item => {
+                    const tv = Array.isArray(item.tareas_video) ? item.tareas_video[0] : item.tareas_video;
+                    return Boolean(tv && (tv.id_tarea || tv.estado));
+                })
                 .map(item => {
-                    const tv = item.tareas_video[0];
+                    const tv = Array.isArray(item.tareas_video) ? item.tareas_video[0] : item.tareas_video;
                     const pctEsperado = porcentajesFase[tv.estado];
-                    if (pctEsperado !== undefined && (tv.progreso_porcentaje === undefined || tv.progreso_porcentaje === null || (tv.estado === 'Finalizado' && tv.progreso_porcentaje !== 100))) {
-                        return {
-                            ...item,
-                            tareas_video: [{ ...tv, progreso_porcentaje: pctEsperado }]
-                        };
-                    }
-                    return item;
+                    const tareaActualizada = (pctEsperado !== undefined && (tv.progreso_porcentaje === undefined || tv.progreso_porcentaje === null || (tv.estado === 'Finalizado' && tv.progreso_porcentaje !== 100)))
+                        ? { ...tv, progreso_porcentaje: pctEsperado }
+                        : tv;
+                    return {
+                        ...item,
+                        tareas_video: [tareaActualizada]
+                    };
                 });
 
             setDatos(tareasFiltradas);
         } catch (err) {
-            console.error(err);
-            alert('Error cargando producciones de video: ' + err.message);
-            setDatos([]);
+            console.error('[PanelVideoContainer] Error:', err);
+            if (!silent) alert('Error cargando producciones de video: ' + err.message);
         } finally {
-            setCargando(false);
+            if (!silent) setCargando(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
-        cargarRequerimientos();
-    }, []);
+        cargarRequerimientos(false);
+    }, [cargarRequerimientos]);
+
+    // Sincronización en tiempo real desde Supabase para tareas de video y requerimientos
+    useRealtimeSync(() => {
+        cargarRequerimientos(true);
+    }, ['requerimientos_propiedad', 'tareas_video']);
 
     const timerGuardadoRef = { current: {} };
 
@@ -66,7 +74,7 @@ export default function PanelVideoContainer() {
                 progreso_porcentaje: tareaActualizada.progreso_porcentaje,
                 Descripcion: tareaActualizada.Descripcion ?? tareaActualizada.descripcion ?? null,
                 id_requerimiento: item.id_requerimiento,
-                usuario: 'Marcos (Video)'
+                usuario: 'Área Audiovisual'
             });
         } catch (err) {
             console.error("Error auto-guardando video:", err);

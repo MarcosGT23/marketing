@@ -5,10 +5,10 @@ export const prerender = false;
 export async function PATCH({ request }) {
   try {
     const body = await request.json();
-    const { id_tarea, estado, progreso_porcentaje, fecha_limite } = body;
+    const { id_tarea, id_requerimiento, estado, progreso_porcentaje, fecha_limite } = body;
 
-    if (!id_tarea) {
-      return new Response(JSON.stringify({ error: 'id_tarea es requerido' }), { status: 400 });
+    if (!id_tarea && !id_requerimiento) {
+      return new Response(JSON.stringify({ error: 'id_tarea o id_requerimiento es requerido' }), { status: 400 });
     }
 
     const updateFields = {};
@@ -16,12 +16,14 @@ export async function PATCH({ request }) {
     if (progreso_porcentaje !== undefined) updateFields.progreso_porcentaje = progreso_porcentaje;
     if (fecha_limite !== undefined) updateFields.fecha_limite = fecha_limite || null;
 
-    const { data, error } = await supabaseServer
-      .from('tareas_diseno')
-      .update(updateFields)
-      .eq('id_tarea', id_tarea)
-      .select()
-      .single();
+    let query = supabaseServer.from('tareas_diseno').update(updateFields);
+    if (id_tarea) {
+      query = query.eq('id_tarea', id_tarea);
+    } else {
+      query = query.eq('id_requerimiento', id_requerimiento);
+    }
+
+    const { data, error } = await query.select().single();
 
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), { status: 500 });
@@ -33,7 +35,7 @@ export async function PATCH({ request }) {
         await supabaseServer.from('historial_seguimiento').insert({
           id_requerimiento: data.id_requerimiento,
           departamento: 'Diseño',
-          usuario: body.usuario || 'Isaac (Diseño)',
+          usuario: body.usuario || 'Área de Diseño',
           accion: `Diseño actualizado a "${data.estado || estado}" (${data.progreso_porcentaje ?? progreso_porcentaje}%)`,
           comentario: body.comentario || `Progreso de diseño confirmado al ${data.progreso_porcentaje ?? progreso_porcentaje}%`,
           fecha_registro: new Date().toISOString()

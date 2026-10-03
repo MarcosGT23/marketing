@@ -1,5 +1,6 @@
 // src/features/cm/presentation/components/PanelCmUI.jsx
 import { useState, useMemo } from 'react';
+import ModalEditarRequerimiento from '../../../requerimientos/presentation/components/ModalEditarRequerimiento';
 
 // Paleta de gradientes para avatares de agentes
 const COLORES_AVATAR = [
@@ -18,10 +19,17 @@ function obtenerIniciales(nombre) {
   return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
 }
 
-export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropiedad }) {
+export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropiedad, alAbrirNuevoReporte }) {
   const [agenteSeleccionadoId, setAgenteSeleccionadoId] = useState(null);
   const [vistaModo, setVistaModo] = useState('agentes'); // 'agentes' | 'todos'
   const [busqueda, setBusqueda] = useState('');
+  const [tarjetasExpandidas, setTarjetasExpandidas] = useState({});
+  const [menuOpcionesId, setMenuOpcionesId] = useState(null);
+  const [requerimientoAEditar, setRequerimientoAEditar] = useState(null);
+
+  const toggleExpandir = (id) => {
+    setTarjetasExpandidas(prev => ({ ...prev, [id]: !prev[id] }));
+  };
 
   // Agrupar requerimientos por agente
   const agentes = useMemo(() => {
@@ -50,7 +58,7 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
 
       mapa[id].requerimientos.push(item);
 
-      const estado = item.tareas_cm?.[0]?.estado || 'Por Hacer';
+      const estado = (Array.isArray(item.tareas_cm) ? item.tareas_cm[0]?.estado : item.tareas_cm?.estado) || 'Por Hacer';
       if (estado === 'Campaña Activa') mapa[id].campanasActivas++;
       else if (estado === 'Finalizado') mapa[id].finalizadas++;
       else mapa[id].porHacer++;
@@ -131,7 +139,7 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
           </div>
         </div>
 
-        {/* Resumen Global */}
+        {/* Resumen Global y Acciones */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 relative z-10">
           <div className="px-3 py-1.5 sm:py-2 rounded-xl text-xs flex items-center gap-2 font-medium"
             style={{
@@ -145,8 +153,22 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
           <div className="flex items-center gap-2 px-3 py-1.5 sm:py-2 rounded-full font-label-sm text-[11px] font-semibold shadow-xs"
             style={{ background: 'var(--color-primary-fixed)', color: 'var(--color-on-primary-fixed-variant)' }}>
             <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--color-primary-container)' }} />
-            Brenda — Pauta Digital
+            Pauta Digital & Tráfico
           </div>
+          {alAbrirNuevoReporte && (
+            <button
+              type="button"
+              onClick={alAbrirNuevoReporte}
+              className="flex items-center gap-2 px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold text-white transition-all active:scale-95 cursor-pointer shadow-sm hover:shadow-md"
+              style={{
+                background: 'linear-gradient(135deg, var(--color-primary-container) 0%, #1d4ed8 100%)',
+                boxShadow: '0 2px 8px rgba(37,99,235,0.3)'
+              }}
+            >
+              <span className="material-symbols-outlined text-[17px]">add_chart</span>
+              <span>Nuevo Reporte / CSV</span>
+            </button>
+          )}
         </div>
       </section>
 
@@ -471,13 +493,26 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
         </div>
       )}
 
+      {/* Modal para Modificar Requerimiento Completo */}
+      <ModalEditarRequerimiento
+        abierto={Boolean(requerimientoAEditar)}
+        requerimiento={requerimientoAEditar}
+        alCerrar={() => setRequerimientoAEditar(null)}
+        alGuardarExitoso={() => {
+          setRequerimientoAEditar(null);
+        }}
+      />
+
     </div>
   );
 
   // Renderiza una tarjeta de requerimiento/propiedad
   function renderTarjetaRequerimiento(item) {
-    const cm = item.tareas_cm?.[0] || {};
+    const cm = (Array.isArray(item.tareas_cm) ? item.tareas_cm[0] : item.tareas_cm) || {};
     const agente = item.usuarios?.nombre || 'General';
+    const idTarjeta = item.id_requerimiento;
+    const estaExpandida = Boolean(tarjetasExpandidas[idTarjeta]);
+    const menuAbierto = menuOpcionesId === idTarjeta;
 
     return (
       <div
@@ -496,7 +531,7 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
               background: 'linear-gradient(to right, rgba(219, 225, 255, 0.2), transparent)',
               borderBottom: '1px solid var(--color-outline-variant)'
             }}>
-            <div>
+            <div className="min-w-0 flex-1">
               <h3 className="font-display font-semibold text-base transition-colors flex items-center gap-1.5"
                 style={{ color: 'var(--color-on-surface)' }}>
                 <span>{item.nombre_propiedad}</span>
@@ -506,24 +541,64 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
                 </span>
               </h3>
               <p className="text-xs mt-0.5" style={{ color: 'var(--color-outline)' }}>
-                Agente: <strong>{agente}</strong> • {item.periodo_mensual}
+                Agente: <strong className="text-on-surface">{agente}</strong> • {item.periodo_mensual}
               </p>
             </div>
-            <span
-              className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold flex items-center gap-1 shrink-0 ${
-                cm.estado === 'Finalizado'
-                  ? 'bg-secondary-container text-on-secondary-container'
-                  : cm.estado === 'Campaña Activa'
-                  ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20'
-                  : 'bg-surface-container text-outline'
-              }`}
-            >
-              {cm.estado || 'Por Hacer'}
-            </span>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold flex items-center gap-1 shrink-0 ${
+                  cm.estado === 'Finalizado'
+                    ? 'bg-secondary-container text-on-secondary-container'
+                    : cm.estado === 'Campaña Activa'
+                    ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20'
+                    : 'bg-surface-container text-outline'
+                }`}
+              >
+                {cm.estado || 'Por Hacer'}
+              </span>
+
+              {/* Botón de 3 puntitos con modal de edición */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpcionesId(menuAbierto ? null : idTarjeta);
+                  }}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container transition-colors"
+                  title="Modificar requerimiento"
+                >
+                  <span className="material-symbols-outlined text-[18px]">more_vert</span>
+                </button>
+
+                {menuAbierto && (
+                  <div 
+                    className="absolute right-0 top-8 z-30 w-48 py-1 rounded-xl shadow-xl border bg-surface-container-lowest animate-fadeIn"
+                    style={{ borderColor: 'var(--color-outline-variant)' }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMenuOpcionesId(null);
+                        setRequerimientoAEditar(item);
+                      }}
+                      className="w-full px-3 py-2 text-left text-xs font-semibold flex items-center gap-2 hover:bg-surface-container text-on-surface cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-[16px] text-secondary">edit_note</span>
+                      <span>Modificar requerimiento</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="p-5 space-y-3">
-            <div className="grid grid-cols-2 gap-2 text-xs p-3 rounded-xl"
+            {/* Grid con Plataforma, Presupuesto y Duración */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs p-3 rounded-xl"
               style={{
                 background: 'var(--color-surface-container-low)',
                 border: '1px solid var(--color-outline-variant)'
@@ -534,13 +609,61 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
               </div>
               <div>
                 <span className="uppercase text-[10px] font-bold block mb-0.5" style={{ color: 'var(--color-outline)' }}>Presupuesto</span>
-                <strong style={{ color: 'var(--color-primary-container)' }}>{cm.presupuesto || 'Sin definir'}</strong>
+                <strong style={{ color: 'var(--color-primary-container)' }}>
+                  {cm.presupuesto ? `${cm.presupuesto} ${cm.moneda || 'USD'}` : 'Sin definir'}
+                </strong>
+              </div>
+              <div className="col-span-2 sm:col-span-1">
+                <span className="uppercase text-[10px] font-bold block mb-0.5" style={{ color: 'var(--color-outline)' }}>Duración</span>
+                <strong className="text-secondary flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[14px]">schedule</span>
+                  <span className="truncate">{cm.periodo_pauta || 'Sin definir'}</span>
+                </strong>
               </div>
             </div>
 
-            <p className="text-xs line-clamp-2" style={{ color: 'var(--color-on-surface-variant)' }}>
-              {item.descripcion_propiedad || 'Sin descripción detallada.'}
-            </p>
+            {/* Descripción y Objetivos de la Pauta */}
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-outline block">
+                Descripción y Objetivos de la Pauta
+              </span>
+              <p className={`text-xs text-on-surface-variant ${estaExpandida ? '' : 'line-clamp-2'}`}>
+                {cm.descripcion_pauta || item.descripcion_propiedad || 'Sin descripción u objetivos especificados para esta pauta.'}
+              </p>
+              
+              {((cm.descripcion_pauta && cm.descripcion_pauta.length > 80) || (item.descripcion_propiedad && item.descripcion_propiedad.length > 80)) && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleExpandir(idTarjeta);
+                  }}
+                  className="text-[11px] font-semibold text-secondary hover:underline flex items-center gap-1 cursor-pointer pt-0.5"
+                >
+                  <span>{estaExpandida ? 'Ver menos' : 'Ver más objetivos'}</span>
+                  <span className="material-symbols-outlined text-[15px]">
+                    {estaExpandida ? 'expand_less' : 'expand_more'}
+                  </span>
+                </button>
+              )}
+            </div>
+
+            {/* Información adicional expandida */}
+            {estaExpandida && (
+              <div className="pt-2 border-t border-surface-container/60 space-y-1.5 text-xs animate-fadeIn"
+                onClick={(e) => e.stopPropagation()}>
+                {item.descripcion_propiedad && item.descripcion_propiedad !== cm.descripcion_pauta && (
+                  <p className="text-on-surface-variant">
+                    <strong className="text-outline">Ficha propiedad:</strong> {item.descripcion_propiedad}
+                  </p>
+                )}
+                {item.ubicacion && (
+                  <p className="text-on-surface-variant">
+                    <strong className="text-outline">Ubicación:</strong> {item.ubicacion}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

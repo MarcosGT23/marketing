@@ -1,15 +1,16 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BurbujasRequerimientos from './BurbujasRequerimientos';
 import SelectorPeriodoAirbnb from './SelectorPeriodoAirbnb';
 import SelectorAgenteAirbnb from './SelectorAgenteAirbnb';
+import SelectorDuracionPauta from './SelectorDuracionPauta';
 
 /* ─── Stepper ─── */
 const STEPS = [
     { id: 'sec-campana',    num: 1, label: 'Campaña',      sub: 'Datos de control',    color: 'primary' },
     { id: 'sec-propiedad',  num: 2, label: 'Propiedad',    sub: 'Ficha comercial',     color: 'secondary' },
-    { id: 'sec-audiovisual',num: 3, label: 'Video & Foto', sub: 'Sebas y Marco',       color: 'tertiary' },
-    { id: 'sec-pauta',      num: 4, label: 'Pauta Digital',sub: 'Brenda / Meta Ads',   color: 'green' },
+    { id: 'sec-audiovisual',num: 3, label: 'Video & Foto', sub: 'Video y Fotografía',   color: 'tertiary' },
+    { id: 'sec-pauta',      num: 4, label: 'Pauta Digital',sub: 'Campañas Meta Ads',   color: 'green' },
 ];
 
 const stepBg = {
@@ -18,6 +19,59 @@ const stepBg = {
     tertiary:  { bg: 'var(--color-tertiary-fixed)', text: 'var(--color-on-tertiary-fixed-variant)', ring: 'var(--color-tertiary-fixed-dim)' },
     green:     { bg: 'var(--color-secondary-container)', text: 'var(--color-on-secondary-container)', ring: 'rgba(108,248,187,0.3)' },
 };
+
+/* ─── Requerimientos Técnicos Audiovisuales ─── */
+const REQS_AUDIOVISUAL = [
+    { key: 'req_guion', label: 'Guion / Storyboard', icono: 'description', desc: 'Estructura y narrativa' },
+    { key: 'req_fotos', label: 'Sesión Fotográfica', icono: 'camera_alt', desc: 'Tomas de detalle' },
+    { key: 'req_grabacion', label: 'Grabación en Locación', icono: 'videocam', desc: 'Rodaje con equipo' },
+    { key: 'req_edicion', label: 'Edición y Efectos', icono: 'movie_edit', desc: 'Montaje dinámico' },
+    { key: 'req_voz_off', label: 'Voz en Off / Locución', icono: 'mic', desc: 'Audio profesional' }
+];
+
+/* ─── Categorías de Inmuebles (Slide interactivo) ─── */
+const CATEGORIAS_INMUEBLE = [
+    { 
+        id: 'Departamento', 
+        label: 'Departamento', 
+        sub: 'Suite / Flat', 
+        icon: 'apartment',
+        color: 'text-blue-600',
+        activeStyle: 'border-blue-500 bg-blue-50/70 dark:bg-blue-950/40 text-blue-900 dark:text-blue-200 ring-2 ring-blue-500/25 shadow-md'
+    },
+    { 
+        id: 'Casa', 
+        label: 'Casa / Villa', 
+        sub: 'Condominio', 
+        icon: 'cottage',
+        color: 'text-emerald-600',
+        activeStyle: 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 ring-2 ring-emerald-500/25 shadow-md'
+    },
+    { 
+        id: 'Penthouse', 
+        label: 'Penthouse', 
+        sub: 'Lujo & Vista', 
+        icon: 'domain_add',
+        color: 'text-amber-600',
+        activeStyle: 'border-amber-500 bg-amber-50/70 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 ring-2 ring-amber-500/25 shadow-md'
+    },
+    { 
+        id: 'Terreno', 
+        label: 'Terreno', 
+        sub: 'Lote / Solar', 
+        icon: 'landscape',
+        color: 'text-teal-600',
+        activeStyle: 'border-teal-500 bg-teal-50/70 dark:bg-teal-950/40 text-teal-900 dark:text-teal-200 ring-2 ring-teal-500/25 shadow-md'
+    },
+    { 
+        id: 'Comercial', 
+        label: 'Comercial', 
+        sub: 'Oficina / Local', 
+        icon: 'storefront',
+        color: 'text-purple-600',
+        activeStyle: 'border-purple-500 bg-purple-50/70 dark:bg-purple-950/40 text-purple-900 dark:text-purple-200 ring-2 ring-purple-500/25 shadow-md'
+    }
+];
 
 /* ─── Shared input style ─── */
 const inputBase = {
@@ -167,6 +221,50 @@ export default function FormularioPropiedadUI({
     totalRequerimientos = 1
 }) {
     const [descLen, setDescLen] = useState(datos.descripcion_propiedad?.length || 0);
+
+    // 1. Manejo de Tipo de Operación como Opción Múltiple
+    const tiposSeleccionados = useMemo(() => {
+        if (!datos.tipo) return [];
+        if (Array.isArray(datos.tipo)) return datos.tipo;
+        return String(datos.tipo).split(',').map((s) => s.trim()).filter(Boolean);
+    }, [datos.tipo]);
+
+    const toggleTipoOperacion = (opId) => {
+        let nuevos;
+        if (tiposSeleccionados.includes(opId)) {
+            nuevos = tiposSeleccionados.filter((t) => t !== opId);
+        } else {
+            nuevos = [...tiposSeleccionados, opId];
+        }
+        alCambiarDato('tipo', nuevos.join(', '));
+    };
+
+    // 2. Moneda de precio y sincronización con moneda de pauteo
+    const monedaPrecioActual = datos.moneda_precio || '$us';
+
+    const cambiarMonedaPrecio = (nuevaMoneda) => {
+        alCambiarDato('moneda_precio', nuevaMoneda);
+        // Sincronizar automáticamente la moneda del pauteo digital si aplica
+        if (nuevaMoneda === '$us') {
+            alCambiarDato('moneda', 'USD');
+        } else if (nuevaMoneda === 'Bs') {
+            alCambiarDato('moneda', 'Bs');
+        }
+    };
+
+    // 3. Superficie activable: Superficie Terreno y Superficie Construida
+    const actualizarSuperficieCombinada = (activaTerreno, valTerreno, activaConstruida, valConstruida) => {
+        const partes = [];
+        if (activaTerreno && valTerreno && String(valTerreno).trim()) {
+            const strT = String(valTerreno).trim().includes('m') ? String(valTerreno).trim() : `${String(valTerreno).trim()} m²`;
+            partes.push(`${strT} (Terreno)`);
+        }
+        if (activaConstruida && valConstruida && String(valConstruida).trim()) {
+            const strC = String(valConstruida).trim().includes('m') ? String(valConstruida).trim() : `${String(valConstruida).trim()} m²`;
+            partes.push(`${strC} (Construida)`);
+        }
+        alCambiarDato('superficie', partes.join(' | '));
+    };
 
     const cantidadTotal =
         editandoIndex !== null
@@ -357,7 +455,7 @@ export default function FormularioPropiedadUI({
                                     subtitle="Datos de control interno y asignación del requerimiento mensual."
                                     tag="Requerido" tagIcon="flag" />
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     {/* Agente Solicitante con Selector estilo Airbnb */}
                                     <div className="flex flex-col gap-1.5">
                                         <div className="flex items-center justify-between">
@@ -386,6 +484,42 @@ export default function FormularioPropiedadUI({
                                             alCambiar={alCambiarDato}
                                         />
                                     </div>
+
+                                    {/* Prioridad con Segmented Chips */}
+                                    <div className="flex flex-col gap-1.5">
+                                        <div className="flex items-center justify-between">
+                                            <label className="font-label-sm" style={{ color: 'var(--color-on-surface)' }}>
+                                                Nivel de Prioridad <span style={{ color: 'var(--color-error)' }}>*</span>
+                                            </label>
+                                            <span className="font-body-sm text-[11px]" style={{ color: 'var(--color-outline)' }}>SLA / Urgencia</span>
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-1.5 h-[44px] p-1 rounded-xl bg-surface-container-low border border-surface-container items-center">
+                                            {[
+                                                { id: 'Baja', label: 'Baja', icon: 'check_circle', color: 'text-emerald-600', active: 'bg-surface-container-lowest text-emerald-700 shadow-xs border-emerald-300 ring-1 ring-emerald-400/30 font-bold' },
+                                                { id: 'Media', label: 'Media', icon: 'schedule', color: 'text-amber-600', active: 'bg-surface-container-lowest text-amber-700 shadow-xs border-amber-300 ring-1 ring-amber-400/30 font-bold' },
+                                                { id: 'Alta', label: 'Alta', icon: 'error', color: 'text-rose-600', active: 'bg-surface-container-lowest text-rose-700 shadow-xs border-rose-300 ring-1 ring-rose-400/30 font-bold' }
+                                            ].map((p) => {
+                                                const isSelected = datos.prioridad === p.id;
+                                                return (
+                                                    <button
+                                                        key={p.id}
+                                                        type="button"
+                                                        onClick={() => alCambiarDato('prioridad', p.id)}
+                                                        className={`h-full flex items-center justify-center gap-1.5 px-2 rounded-lg text-xs transition-all border ${
+                                                            isSelected 
+                                                                ? `${p.active}` 
+                                                                : 'border-transparent text-outline hover:text-on-surface hover:bg-surface-container'
+                                                        }`}
+                                                    >
+                                                        <span className={`material-symbols-outlined text-[15px] ${isSelected ? p.color : 'text-outline'}`}>
+                                                            {p.icon}
+                                                        </span>
+                                                        <span>{p.label}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
                                 </div>
                             </section>
 
@@ -394,7 +528,7 @@ export default function FormularioPropiedadUI({
                                 style={{ background: 'var(--color-surface-container-lowest)', border: '1px solid var(--color-outline-variant)', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
                                 <SectionHeader num="2" title="Datos de la Propiedad" color="secondary"
                                     subtitle="Información base para piezas gráficas, copys de venta y ficha técnica."
-                                    tag="Insumo para Isac" tagIcon="draw" />
+                                    tag="Insumo para Diseño" tagIcon="draw" />
 
                                 <div className="space-y-5">
                                     {/* Nombre Comercial */}
@@ -411,69 +545,274 @@ export default function FormularioPropiedadUI({
                                             maxLength={60} required />
                                     </div>
 
-                                    {/* Categoría + Tipo de operación */}
+                                    {/* Slide de Categorías de Inmueble */}
+                                    <div className="flex flex-col gap-2">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-1.5">
+                                                <label className="font-label-sm font-semibold text-on-surface">
+                                                    Categoría de Inmueble <span style={{ color: 'var(--color-error)' }}>*</span>
+                                                </label>
+                                                <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-primary-container/30 text-primary">
+                                                    Tipología
+                                                </span>
+                                            </div>
+                                            <span className="font-body-sm text-[11px]" style={{ color: 'var(--color-outline)' }}>
+                                                Selecciona la categoría
+                                            </span>
+                                        </div>
+
+                                        {/* Slider interactivo de categorías con iconos destacados */}
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+                                            {CATEGORIAS_INMUEBLE.map((cat) => {
+                                                const isSelected = datos.categoria === cat.id;
+                                                return (
+                                                    <button
+                                                        key={cat.id}
+                                                        type="button"
+                                                        onClick={() => alCambiarDato('categoria', cat.id)}
+                                                        className={`group relative flex flex-col items-center justify-center p-3 sm:p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer select-none text-center ${
+                                                            isSelected 
+                                                                ? `${cat.activeStyle} scale-[1.02]` 
+                                                                : 'bg-surface-container-low/60 hover:bg-surface-container-lowest border-surface-container hover:border-surface-container-high hover:shadow-xs text-on-surface'
+                                                        }`}
+                                                    >
+                                                        {/* Indicador de activo superior derecho */}
+                                                        {isSelected && (
+                                                            <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary ring-2 ring-primary/30 animate-pulse" />
+                                                        )}
+
+                                                        {/* Avatar del icono con color distintivo */}
+                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-1.5 transition-all duration-200 ${
+                                                            isSelected 
+                                                                ? 'bg-surface-container-lowest shadow-xs scale-110' 
+                                                                : 'bg-surface-container/70 group-hover:bg-surface-container group-hover:scale-105'
+                                                        }`}>
+                                                            <span className={`material-symbols-outlined text-[24px] ${cat.color}`}>
+                                                                {cat.icon}
+                                                            </span>
+                                                        </div>
+
+                                                        {/* Título de Categoría */}
+                                                        <span className="text-xs font-bold leading-tight block">
+                                                            {cat.label}
+                                                        </span>
+
+                                                        {/* Subtítulo / Detalle */}
+                                                        <span className={`text-[10px] mt-0.5 block ${
+                                                            isSelected ? 'font-semibold opacity-90' : 'text-outline'
+                                                        }`}>
+                                                            {cat.sub}
+                                                        </span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Fila: Tipo de Operación + Precio de Oferta Comercial */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="flex flex-col gap-1.5">
-                                            <label className="font-label-sm" style={{ color: 'var(--color-on-surface)' }}>
-                                                Categoría de Inmueble <span style={{ color: 'var(--color-error)' }}>*</span>
-                                            </label>
-                                            <StyledSelect value={datos.categoria} onChange={(e) => alCambiarDato('categoria', e.target.value)}>
-                                                <option value="Casa">Casa Independiente / Condominio</option>
-                                                <option value="Departamento">Departamento / Suite</option>
-                                                <option value="Penthouse">Penthouse de Lujo</option>
-                                                <option value="Terreno">Terreno Urbanizado</option>
-                                                <option value="Comercial">Oficina Comercial / Local</option>
-                                            </StyledSelect>
-                                        </div>
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="font-label-sm" style={{ color: 'var(--color-on-surface)' }}>
-                                                Tipo de Operación <span style={{ color: 'var(--color-error)' }}>*</span>
-                                            </label>
-                                            <div className="flex items-center gap-1 p-1 rounded-lg" style={{ background: 'var(--color-surface-container-low)', height: '44px' }}>
-                                                {['Venta', 'Alquiler', 'Anticrético'].map(op => (
-                                                    <label key={op} className="flex-1 flex items-center justify-center h-full rounded cursor-pointer font-label-sm transition-all"
-                                                        style={{
-                                                            background: datos.tipo === op ? 'var(--color-primary)' : 'transparent',
-                                                            color: datos.tipo === op ? 'var(--color-on-primary)' : 'var(--color-on-surface-variant)',
-                                                            fontSize: '12px', fontWeight: 500,
-                                                        }}>
-                                                        <input type="radio" name="tipo_operacion" value={op} checked={datos.tipo === op}
-                                                            onChange={() => alCambiarDato('tipo', op)} className="sr-only" />
-                                                        {op}
-                                                    </label>
-                                                ))}
+                                            <div className="flex items-center justify-between">
+                                                <label className="font-label-sm" style={{ color: 'var(--color-on-surface)' }}>
+                                                    Tipo de Operación <span style={{ color: 'var(--color-error)' }}>*</span>
+                                                </label>
+                                                <span className="font-body-sm text-[11px] font-semibold text-primary">Opción múltiple</span>
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-1.5 h-[44px] p-1 rounded-xl bg-surface-container-low border border-surface-container items-center">
+                                                {[
+                                                    { id: 'Venta', label: 'Venta', icon: 'sell', color: 'text-blue-600', active: 'bg-surface-container-lowest text-blue-700 shadow-xs border-blue-300 ring-1 ring-blue-400/30 font-bold' },
+                                                    { id: 'Alquiler', label: 'Alquiler', icon: 'key', color: 'text-indigo-600', active: 'bg-surface-container-lowest text-indigo-700 shadow-xs border-indigo-300 ring-1 ring-indigo-400/30 font-bold' },
+                                                    { id: 'Anticrético', label: 'Anticrético', icon: 'handshake', color: 'text-emerald-600', active: 'bg-surface-container-lowest text-emerald-700 shadow-xs border-emerald-300 ring-1 ring-emerald-400/30 font-bold' }
+                                                ].map((op) => {
+                                                    const isSelected = tiposSeleccionados.includes(op.id);
+                                                    return (
+                                                        <button
+                                                            key={op.id}
+                                                            type="button"
+                                                            onClick={() => toggleTipoOperacion(op.id)}
+                                                            className={`h-full flex items-center justify-center gap-1.5 px-2 rounded-lg text-xs transition-all border cursor-pointer select-none ${
+                                                                isSelected 
+                                                                    ? `${op.active}` 
+                                                                    : 'border-transparent text-outline hover:text-on-surface hover:bg-surface-container'
+                                                            }`}
+                                                        >
+                                                            <span className={`material-symbols-outlined text-[15px] ${isSelected ? op.color : 'text-outline'}`}>
+                                                                {isSelected ? 'check_circle' : op.icon}
+                                                            </span>
+                                                            <span>{op.label}</span>
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
+
+                                        <div className="flex flex-col gap-1.5">
+                                            <div className="flex items-center justify-between">
+                                                <label className="font-label-sm" style={{ color: 'var(--color-on-surface)' }}>
+                                                    Precio de Oferta Comercial <span style={{ color: 'var(--color-error)' }}>*</span>
+                                                </label>
+                                                {/* Selector de moneda vinculado al pauteo */}
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-[10px] text-outline uppercase font-semibold">Moneda:</span>
+                                                    <div className="inline-flex p-0.5 rounded-lg bg-surface-container-low border border-surface-container text-xs font-semibold">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => cambiarMonedaPrecio('$us')}
+                                                            className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                                                                monedaPrecioActual === '$us'
+                                                                    ? 'bg-surface-container-lowest text-blue-700 font-bold shadow-xs border border-blue-200'
+                                                                    : 'text-outline hover:text-on-surface'
+                                                            }`}
+                                                        >
+                                                            $us
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => cambiarMonedaPrecio('Bs')}
+                                                            className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+                                                                monedaPrecioActual === 'Bs'
+                                                                    ? 'bg-surface-container-lowest text-indigo-700 font-bold shadow-xs border border-indigo-200'
+                                                                    : 'text-outline hover:text-on-surface'
+                                                            }`}
+                                                        >
+                                                            Bs
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <StyledInput 
+                                                prefix={monedaPrecioActual} 
+                                                placeholder={monedaPrecioActual === '$us' ? "185,000" : "1,287,600"}
+                                                value={datos.precio} 
+                                                onChange={(e) => alCambiarDato('precio', e.target.value)} 
+                                            />
+                                        </div>
                                     </div>
 
-                                    {/* Ubicación + Precio */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="font-label-sm" style={{ color: 'var(--color-on-surface)' }}>
-                                                Ubicación Precisa <span style={{ color: 'var(--color-error)' }}>*</span>
-                                            </label>
-                                            <StyledInput icon="location_on" placeholder="Ej: Equipetrol Norte, Calle 7 esq. Cordillera"
-                                                value={datos.ubicacion} onChange={(e) => alCambiarDato('ubicacion', e.target.value)} />
-                                        </div>
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="font-label-sm" style={{ color: 'var(--color-on-surface)' }}>
-                                                Precio de Oferta Comercial <span style={{ color: 'var(--color-error)' }}>*</span>
-                                            </label>
-                                            <StyledInput prefix="$us" placeholder="185,000"
-                                                value={datos.precio} onChange={(e) => alCambiarDato('precio', e.target.value)} />
-                                        </div>
+                                    {/* Fila: Ubicación Precisa (ancho completo) */}
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="font-label-sm" style={{ color: 'var(--color-on-surface)' }}>
+                                            Ubicación Precisa <span style={{ color: 'var(--color-error)' }}>*</span>
+                                        </label>
+                                        <StyledInput icon="location_on" placeholder="Ej: Equipetrol Norte, Calle 7 esq. Cordillera"
+                                            value={datos.ubicacion} onChange={(e) => alCambiarDato('ubicacion', e.target.value)} />
                                     </div>
 
-                                    {/* Superficie + Habitaciones */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="font-label-sm" style={{ color: 'var(--color-on-surface)' }}>Superficie Total</label>
-                                            <StyledInput icon="straighten" placeholder="Ej: 210 m²"
-                                                value={datos.superficie} onChange={(e) => alCambiarDato('superficie', e.target.value)} />
+                                    {/* Superficie (Terreno y Construida con diseño directo e intuitivo) + Habitaciones */}
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+                                        {/* Campo 1: Superficie Terreno */}
+                                        <div className={`p-3 rounded-2xl border transition-all ${
+                                            datos.tiene_terreno 
+                                                ? 'bg-surface-container-lowest border-emerald-500/40 ring-1 ring-emerald-500/20 shadow-xs' 
+                                                : 'bg-surface-container-low/40 border-surface-container hover:border-surface-container-high'
+                                        }`}>
+                                            <div className="flex items-center justify-between mb-1.5">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className={`material-symbols-outlined text-[18px] ${datos.tiene_terreno ? 'text-emerald-600' : 'text-outline'}`}>
+                                                        landscape
+                                                    </span>
+                                                    <span className="font-label-sm font-semibold" style={{ color: 'var(--color-on-surface)' }}>
+                                                        Sup. Terreno
+                                                    </span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const nuevo = !datos.tiene_terreno;
+                                                        alCambiarDato('tiene_terreno', nuevo);
+                                                        actualizarSuperficieCombinada(nuevo, datos.superficie_terreno, datos.tiene_construida, datos.superficie_construida);
+                                                    }}
+                                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold transition-all cursor-pointer ${
+                                                        datos.tiene_terreno 
+                                                            ? 'bg-emerald-500/15 text-emerald-700 border border-emerald-500/30' 
+                                                            : 'bg-surface-container text-outline hover:text-on-surface'
+                                                    }`}
+                                                >
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${datos.tiene_terreno ? 'bg-emerald-500 animate-pulse' : 'bg-outline/50'}`}></span>
+                                                    <span>{datos.tiene_terreno ? 'Activo' : 'Activar'}</span>
+                                                </button>
+                                            </div>
+
+                                            <StyledInput
+                                                icon="straighten"
+                                                placeholder={datos.tiene_terreno ? "Ej: 350 m²" : "Ej: 350 m² (Inactivo)"}
+                                                value={datos.superficie_terreno || ''}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    if (!datos.tiene_terreno) alCambiarDato('tiene_terreno', true);
+                                                    alCambiarDato('superficie_terreno', val);
+                                                    actualizarSuperficieCombinada(true, val, datos.tiene_construida, datos.superficie_construida);
+                                                }}
+                                                onFocus={() => {
+                                                    if (!datos.tiene_terreno) {
+                                                        alCambiarDato('tiene_terreno', true);
+                                                        actualizarSuperficieCombinada(true, datos.superficie_terreno, datos.tiene_construida, datos.superficie_construida);
+                                                    }
+                                                }}
+                                            />
                                         </div>
-                                        <div className="flex flex-col gap-1.5">
-                                            <label className="font-label-sm" style={{ color: 'var(--color-on-surface)' }}>Habitaciones / Ambientes</label>
-                                            <StyledInput icon="bed" placeholder="Ej: 3 dormitorios + dependencia"
+
+                                        {/* Campo 2: Superficie Construida */}
+                                        <div className={`p-3 rounded-2xl border transition-all ${
+                                            datos.tiene_construida 
+                                                ? 'bg-surface-container-lowest border-blue-500/40 ring-1 ring-blue-500/20 shadow-xs' 
+                                                : 'bg-surface-container-low/40 border-surface-container hover:border-surface-container-high'
+                                        }`}>
+                                            <div className="flex items-center justify-between mb-1.5">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className={`material-symbols-outlined text-[18px] ${datos.tiene_construida ? 'text-blue-600' : 'text-outline'}`}>
+                                                        domain
+                                                    </span>
+                                                    <span className="font-label-sm font-semibold" style={{ color: 'var(--color-on-surface)' }}>
+                                                        Sup. Construida
+                                                    </span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const nuevo = !datos.tiene_construida;
+                                                        alCambiarDato('tiene_construida', nuevo);
+                                                        actualizarSuperficieCombinada(datos.tiene_terreno, datos.superficie_terreno, nuevo, datos.superficie_construida);
+                                                    }}
+                                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold transition-all cursor-pointer ${
+                                                        datos.tiene_construida 
+                                                            ? 'bg-blue-500/15 text-blue-700 border border-blue-500/30' 
+                                                            : 'bg-surface-container text-outline hover:text-on-surface'
+                                                    }`}
+                                                >
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${datos.tiene_construida ? 'bg-blue-500 animate-pulse' : 'bg-outline/50'}`}></span>
+                                                    <span>{datos.tiene_construida ? 'Activo' : 'Activar'}</span>
+                                                </button>
+                                            </div>
+
+                                            <StyledInput
+                                                icon="home_work"
+                                                placeholder={datos.tiene_construida ? "Ej: 180 m²" : "Ej: 180 m² (Inactivo)"}
+                                                value={datos.superficie_construida || ''}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    if (!datos.tiene_construida) alCambiarDato('tiene_construida', true);
+                                                    alCambiarDato('superficie_construida', val);
+                                                    actualizarSuperficieCombinada(datos.tiene_terreno, datos.superficie_terreno, true, val);
+                                                }}
+                                                onFocus={() => {
+                                                    if (!datos.tiene_construida) {
+                                                        alCambiarDato('tiene_construida', true);
+                                                        actualizarSuperficieCombinada(datos.tiene_terreno, datos.superficie_terreno, true, datos.superficie_construida);
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+
+                                        {/* Campo 3: Habitaciones / Ambientes */}
+                                        <div className="flex flex-col gap-1.5 pt-1 sm:pt-0">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <label className="font-label-sm font-semibold" style={{ color: 'var(--color-on-surface)' }}>
+                                                    Habitaciones
+                                                </label>
+                                                <span className="font-body-sm text-[11px]" style={{ color: 'var(--color-outline)' }}>Ambientes</span>
+                                            </div>
+                                            <StyledInput icon="bed" placeholder="Ej: 3 dorms + dep."
                                                 type="number" min="0"
                                                 value={datos.habitaciones} onChange={(e) => alCambiarDato('habitaciones', e.target.value)} />
                                         </div>
@@ -507,7 +846,7 @@ export default function FormularioPropiedadUI({
                                         <div className="flex flex-col gap-1.5">
                                             <label className="font-label-sm flex items-center gap-1" style={{ color: 'var(--color-on-surface)' }}>
                                                 Público Objetivo (Buyer Persona)
-                                                <span className="material-symbols-outlined" style={{ fontSize: '15px', color: 'var(--color-secondary)' }} title="Segmentación para Brenda">person_search</span>
+                                                <span className="material-symbols-outlined" style={{ fontSize: '15px', color: 'var(--color-secondary)' }} title="Segmentación de público objetivo">person_search</span>
                                             </label>
                                             <StyledTextarea rows={2}
                                                 placeholder="Ej: Familias jóvenes consolidadas (30-48 años), ejecutivos corporativos, inversionistas airbnb."
@@ -520,122 +859,162 @@ export default function FormularioPropiedadUI({
                             </section>
 
                             {/* ── Card 3: Formatos y Requerimientos de Producción ── */}
-                            <section id="sec-audiovisual" className="p-5 sm:p-6 md:p-8 rounded-2xl transition-all space-y-6"
+                            <section id="sec-audiovisual" className="rounded-2xl p-5 sm:p-6 md:p-8 transition-all space-y-6"
                                 style={{ background: 'var(--color-surface-container-lowest)', border: '1px solid var(--color-outline-variant)', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
                               
-                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2">
-                                <div className="flex items-center gap-3">
-                                  <span className="w-8 h-8 rounded-lg bg-tertiary-fixed text-on-tertiary-fixed-variant flex items-center justify-center font-bold text-sm">
-                                    3
-                                  </span>
-                                  <div>
-                                    <h2 className="font-display font-bold text-lg text-on-surface">Formatos y Requerimientos de Producción</h2>
-                                    <p className="text-xs text-outline">
-                                      Define el tipo de entregable para asignar automáticamente a Diseño (Isac) y/o Video (Sebas y Marco).
-                                    </p>
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                  {(datos.req_arte_estatico || datos.req_carrusel) && (
-                                    <span className="px-2.5 py-1 rounded-full bg-secondary-container text-on-secondary-container text-xs font-semibold flex items-center gap-1">
-                                      <span className="material-symbols-outlined text-[14px]">palette</span> Isac
-                                    </span>
-                                  )}
-                                  {datos.req_reel && (
-                                    <span className="px-2.5 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant text-xs font-semibold flex items-center gap-1">
-                                      <span className="material-symbols-outlined text-[14px]">videocam</span> Sebas / Marco
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
+                              <SectionHeader num="3" title="Formatos y Producción" color="tertiary"
+                                  subtitle="Define entregables gráficos y producción audiovisual."
+                                  tag="Entregables" tagIcon="movie" />
 
                               {/* Selector de Entregables Principales */}
-                              <div className="p-4 bg-surface-container-low/60 rounded-xl border border-surface-container space-y-2">
-                                <span className="text-[11px] font-bold uppercase tracking-wider text-outline block">
-                                  Tipo de Entregables a Producir *
-                                </span>
+                              <div className="p-4 bg-surface-container-low/60 rounded-2xl border border-surface-container space-y-2.5">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[11px] font-bold uppercase tracking-wider text-outline block">
+                                    Tipo de Entregables a Producir <span style={{ color: 'var(--color-error)' }}>*</span>
+                                  </span>
+                                  <span className="text-[11px] text-outline">Puedes marcar múltiples</span>
+                                </div>
+
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                  <label className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
-                                    datos.req_arte_estatico ? 'bg-secondary-container/20 border-secondary text-on-surface shadow-xs' : 'bg-surface-container-lowest border-surface-container text-outline hover:bg-surface-container-low'
+                                  <label className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${
+                                    datos.req_arte_estatico ? 'bg-secondary-container/25 border-secondary text-on-surface shadow-xs ring-1 ring-secondary/30' : 'bg-surface-container-lowest border-surface-container text-outline hover:bg-surface-container-low'
                                   }`}>
                                     <div className="flex items-center gap-2.5">
-                                      <span className="material-symbols-outlined text-secondary text-[20px]">image</span>
+                                      <span className="material-symbols-outlined text-secondary text-[22px]">image</span>
                                       <div>
                                         <p className="text-xs font-bold text-on-surface">Arte Estático</p>
-                                        <p className="text-[10px] text-outline">Asignado a Isac</p>
+                                        <p className="text-[10px] text-outline">Área de Diseño</p>
                                       </div>
                                     </div>
                                     <input 
                                       type="checkbox" 
                                       checked={Boolean(datos.req_arte_estatico)} 
                                       onChange={(e) => alCambiarCheckbox('req_arte_estatico', e.target.checked)} 
-                                      className="w-4 h-4 rounded text-secondary focus:ring-0" 
+                                      className="w-4 h-4 rounded text-secondary focus:ring-0 cursor-pointer" 
                                     />
                                   </label>
 
-                                  <label className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
-                                    datos.req_carrusel ? 'bg-secondary-container/20 border-secondary text-on-surface shadow-xs' : 'bg-surface-container-lowest border-surface-container text-outline hover:bg-surface-container-low'
+                                  <label className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${
+                                    datos.req_carrusel ? 'bg-secondary-container/25 border-secondary text-on-surface shadow-xs ring-1 ring-secondary/30' : 'bg-surface-container-lowest border-surface-container text-outline hover:bg-surface-container-low'
                                   }`}>
                                     <div className="flex items-center gap-2.5">
-                                      <span className="material-symbols-outlined text-secondary text-[20px]">view_carousel</span>
+                                      <span className="material-symbols-outlined text-secondary text-[22px]">view_carousel</span>
                                       <div>
                                         <p className="text-xs font-bold text-on-surface">Carrusel</p>
-                                        <p className="text-[10px] text-outline">Asignado a Isac</p>
+                                        <p className="text-[10px] text-outline">Área de Diseño</p>
                                       </div>
                                     </div>
                                     <input 
                                       type="checkbox" 
                                       checked={Boolean(datos.req_carrusel)} 
                                       onChange={(e) => alCambiarCheckbox('req_carrusel', e.target.checked)} 
-                                      className="w-4 h-4 rounded text-secondary focus:ring-0" 
+                                      className="w-4 h-4 rounded text-secondary focus:ring-0 cursor-pointer" 
                                     />
                                   </label>
 
-                                  <label className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
-                                    datos.req_reel ? 'bg-tertiary-fixed/30 border-tertiary text-on-surface shadow-xs' : 'bg-surface-container-lowest border-surface-container text-outline hover:bg-surface-container-low'
+                                  <label className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${
+                                    datos.req_reel ? 'bg-tertiary-fixed/30 border-tertiary text-on-surface shadow-xs ring-1 ring-tertiary/30' : 'bg-surface-container-lowest border-surface-container text-outline hover:bg-surface-container-low'
                                   }`}>
                                     <div className="flex items-center gap-2.5">
-                                      <span className="material-symbols-outlined text-tertiary text-[20px]">movie</span>
+                                      <span className="material-symbols-outlined text-tertiary text-[22px]">movie</span>
                                       <div>
                                         <p className="text-xs font-bold text-on-surface">Grabación Reel</p>
-                                        <p className="text-[10px] text-outline">Asignado a Sebas / Marco</p>
+                                        <p className="text-[10px] text-outline">Equipo Audiovisual</p>
                                       </div>
                                     </div>
                                     <input 
                                       type="checkbox" 
                                       checked={Boolean(datos.req_reel)} 
                                       onChange={(e) => alCambiarCheckbox('req_reel', e.target.checked)} 
-                                      className="w-4 h-4 rounded text-tertiary focus:ring-0" 
+                                      className="w-4 h-4 rounded text-tertiary focus:ring-0 cursor-pointer" 
                                     />
                                   </label>
                                 </div>
                               </div>
 
+                              {/* 🎬 Especificaciones Técnicas Audiovisuales */}
+                              {datos.req_reel && (
+                                <motion.div 
+                                  initial={{ opacity: 0, y: -6 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  className="p-4 sm:p-5 rounded-2xl border border-tertiary/30 bg-tertiary-fixed/10 space-y-3.5 transition-all"
+                                >
+                                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2.5">
+                                      <div className="w-8 h-8 rounded-xl bg-tertiary-fixed text-on-tertiary-fixed-variant flex items-center justify-center">
+                                        <span className="material-symbols-outlined text-[18px]">videocam</span>
+                                      </div>
+                                      <div>
+                                        <h3 className="text-xs sm:text-sm font-bold text-on-surface flex items-center gap-2">
+                                          Requerimientos Audiovisuales
+                                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant">
+                                            Producción Audiovisual
+                                          </span>
+                                        </h3>
+                                        <p className="text-[11px] text-outline">Marca los componentes de producción audiovisual requeridos</p>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-5 gap-2 pt-1">
+                                    {REQS_AUDIOVISUAL.map((r) => {
+                                      const isChecked = Boolean(datos[r.key]);
+                                      return (
+                                        <button
+                                          key={r.key}
+                                          type="button"
+                                          onClick={() => alCambiarCheckbox(r.key, !isChecked)}
+                                          className={`flex flex-col p-2.5 rounded-xl border text-left transition-all ${
+                                            isChecked
+                                              ? 'bg-tertiary-fixed/40 border-tertiary text-on-surface shadow-xs ring-1 ring-tertiary/30 font-semibold'
+                                              : 'bg-surface-container-lowest border-surface-container text-on-surface-variant hover:bg-surface-container-low'
+                                          }`}
+                                        >
+                                          <div className="flex items-center justify-between w-full mb-1">
+                                            <span className={`material-symbols-outlined text-[20px] ${
+                                              isChecked ? 'text-tertiary' : 'text-outline'
+                                            }`}>
+                                              {r.icono}
+                                            </span>
+                                            <span className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${
+                                              isChecked ? 'bg-tertiary border-tertiary text-white' : 'border-outline-variant bg-surface-container-low'
+                                            }`}>
+                                              {isChecked && <span className="material-symbols-outlined text-[13px]">check</span>}
+                                            </span>
+                                          </div>
+                                          <span className="text-xs font-bold truncate block w-full">{r.label}</span>
+                                          <span className="text-[10px] text-outline truncate block w-full mt-0.5">{r.desc}</span>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </motion.div>
+                              )}
+
                               {/* Inputs Inferiores: Fecha de Rodaje y Notas Técnicas */}
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                                <div>
-                                  <label className="block text-xs font-semibold text-outline mb-1.5">Fecha Tentativa de Rodaje</label>
-                                  <div className="relative">
-                                    <span className="material-symbols-outlined absolute left-3 top-2.5 text-outline text-[18px]">calendar_today</span>
-                                    <input 
-                                      type="text" 
-                                      value={datos.fecha_rodaje || ''} 
-                                      onChange={(e) => alCambiarDato('fecha_rodaje', e.target.value)}
-                                      placeholder="Ej: Jueves 17 Sept, 16:30 hrs" 
-                                      className="w-full pl-10 pr-3 py-2 bg-surface-container-low rounded-xl text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container border-none"
-                                    />
-                                  </div>
+                                <div className="flex flex-col gap-1.5">
+                                  <label className="font-label-sm" style={{ color: 'var(--color-on-surface)' }}>
+                                    Fecha Tentativa de Rodaje
+                                  </label>
+                                  <StyledInput 
+                                    type="date" 
+                                    icon="calendar_today"
+                                    value={datos.fecha_rodaje || ''} 
+                                    onChange={(e) => alCambiarDato('fecha_rodaje', e.target.value)}
+                                  />
                                 </div>
 
-                                <div>
-                                  <label className="block text-xs font-semibold text-outline mb-1.5">Notas Técnicas para la Producción</label>
-                                  <input 
+                                <div className="flex flex-col gap-1.5">
+                                  <label className="font-label-sm" style={{ color: 'var(--color-on-surface)' }}>
+                                    Notas Técnicas para la Producción
+                                  </label>
+                                  <StyledInput 
                                     type="text" 
+                                    icon="notes"
                                     value={datos.notas_produccion || ''} 
                                     onChange={(e) => alCambiarDato('notas_produccion', e.target.value)}
                                     placeholder="Ej: Pedir llaves en portería con el código 402, mejor luz al atardecer." 
-                                    className="w-full px-3 py-2 bg-surface-container-low rounded-xl text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container border-none"
                                   />
                                 </div>
                               </div>
@@ -643,73 +1022,115 @@ export default function FormularioPropiedadUI({
                             </section>
 
                             {/* ── Card 4: Pauta Digital ── */}
-                            <section id="sec-pauta" className="rounded-2xl p-5 sm:p-6 md:p-8 transition-all"
+                            <section id="sec-pauta" className="rounded-2xl p-5 sm:p-6 md:p-8 transition-all space-y-6"
                                 style={{ background: 'var(--color-surface-container-lowest)', border: '1px solid var(--color-outline-variant)', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
-                                <SectionHeader num="4" title="Pauta Digital y Distribución" color="green"
-                                    subtitle="Parámetros de distribución publicitaria, alcance proyectado y canales con Brenda."
-                                    tag="Community Manager" tagIcon="campaign" />
-
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    {/* Canales - multi-selección */}
-                                    <div className="md:col-span-2 flex flex-col gap-1.5">
-                                        <label className="font-label-sm" style={{ color: 'var(--color-on-surface)' }}>
-                                            Canales de Tráfico & Ads <span style={{ color: 'var(--color-error)' }}>*</span>
-                                        </label>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {[
-                                                { value: 'Facebook / Instagram', label: 'Meta (IG / FB)', icon: 'thumb_up' },
-                                                { value: 'TikTok', label: 'TikTok Ads', icon: 'music_note' },
-                                            ].map(({ value, label, icon }) => {
-                                                const canales = Array.isArray(datos.canales) ? datos.canales : [];
-                                                const active = canales.includes(value);
-                                                const toggleCanal = () => {
-                                                    const next = active
-                                                        ? canales.filter(c => c !== value)
-                                                        : [...canales, value];
-                                                    alCambiarDato('canales', next);
-                                                };
-                                                return (
-                                                    <label key={value}
-                                                        className="flex items-center gap-2 p-2.5 rounded-lg cursor-pointer transition-all font-label-md"
-                                                        style={{
-                                                            background: active ? 'rgba(219,225,255,0.5)' : 'var(--color-surface-container-low)',
-                                                            boxShadow: active ? '0 0 0 2px var(--color-primary-container)' : '0 0 0 1px transparent',
-                                                            color: 'var(--color-on-surface)',
-                                                            fontSize: '13px',
-                                                            transition: 'all 0.15s',
-                                                        }}>
-                                                        <input type="checkbox" checked={active} onChange={toggleCanal} className="sr-only" />
-                                                        <div className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
-                                                            style={{ background: active ? 'var(--color-primary-container)' : 'var(--color-surface-container-high)', transition: 'background 0.15s' }}>
-                                                            {active && <svg viewBox="0 0 12 12" fill="none" style={{ width: '10px', height: '10px' }}>
-                                                                <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                                                            </svg>}
-                                                        </div>
-                                                        <span className="material-symbols-outlined" style={{ fontSize: '16px', color: active ? 'var(--color-primary)' : 'var(--color-outline)' }}>{icon}</span>
-                                                        {label}
-                                                    </label>
-                                                );
-                                            })}
-                                        </div>
-                                        {Array.isArray(datos.canales) && datos.canales.length > 0 && (
-                                            <p className="font-body-sm text-[11px] mt-1" style={{ color: 'var(--color-secondary)' }}>
-                                                {datos.canales.length} canal{datos.canales.length > 1 ? 'es' : ''} seleccionado{datos.canales.length > 1 ? 's' : ''}: {datos.canales.join(', ')}
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    {/* Presupuesto */}
-                                    <div className="flex flex-col gap-1.5">
-                                        <div className="flex items-center justify-between">
-                                            <label className="font-label-sm" style={{ color: 'var(--color-on-surface)' }}>
-                                                Presupuesto Ads <span style={{ color: 'var(--color-error)' }}>*</span>
-                                            </label>
-                                            <span className="font-label-sm text-[11px] font-semibold" style={{ color: 'var(--color-secondary)' }}>Recomendado</span>
-                                        </div>
-                                        <StyledInput prefix="$us" placeholder="120" type="text"
-                                            value={datos.presupuesto} onChange={(e) => alCambiarDato('presupuesto', e.target.value)} />
-                                    </div>
+                              <SectionHeader num="4" title="Pauta Digital y Tráfico" color="green"
+                                  subtitle="Configuración de presupuesto e inversión publicitaria en redes (Meta Ads & Tráfico)."
+                                  tag="Campañas Meta" tagIcon="campaign" />
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div className="md:col-span-2 flex flex-col gap-1.5">
+                                  <div className="flex items-center justify-between">
+                                    <label className="font-label-sm" style={{ color: 'var(--color-on-surface)' }}>Plataforma Publicitaria</label>
+                                    <span className="font-body-sm text-[11px]" style={{ color: 'var(--color-outline)' }}>Canal de pauta</span>
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-1.5 h-[44px] p-1 rounded-xl bg-surface-container-low border border-surface-container items-center">
+                                    {[
+                                      { id: 'Facebook / Instagram', label: 'Meta (FB/IG)', icon: 'campaign', color: 'text-blue-600', active: 'bg-surface-container-lowest text-blue-700 shadow-xs border-blue-300 ring-1 ring-blue-400/30 font-bold' },
+                                      { id: 'TikTok Ads', label: 'TikTok Ads', icon: 'play_circle', color: 'text-pink-600', active: 'bg-surface-container-lowest text-pink-700 shadow-xs border-pink-300 ring-1 ring-pink-400/30 font-bold' },
+                                      { id: 'Google Ads', label: 'Google Ads', icon: 'ads_click', color: 'text-amber-600', active: 'bg-surface-container-lowest text-amber-700 shadow-xs border-amber-300 ring-1 ring-amber-400/30 font-bold' }
+                                    ].map((plat) => {
+                                      const isSelected = datos.plataforma === plat.id;
+                                      return (
+                                        <button
+                                          key={plat.id}
+                                          type="button"
+                                          onClick={() => alCambiarDato('plataforma', plat.id)}
+                                          className={`h-full flex items-center justify-center gap-1.5 px-2 rounded-lg text-xs transition-all border ${
+                                            isSelected 
+                                              ? `${plat.active}` 
+                                              : 'border-transparent text-outline hover:text-on-surface hover:bg-surface-container'
+                                          }`}
+                                        >
+                                          <span className={`material-symbols-outlined text-[15px] ${isSelected ? plat.color : 'text-outline'}`}>
+                                            {plat.icon}
+                                          </span>
+                                          <span className="truncate">{plat.label}</span>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
                                 </div>
+                                
+                                <div className="flex flex-col gap-1.5">
+                                  <div className="flex items-center justify-between">
+                                    <label className="font-label-sm" style={{ color: 'var(--color-on-surface)' }}>Moneda</label>
+                                    <span className="font-body-sm text-[11px]" style={{ color: 'var(--color-outline)' }}>Divisa</span>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-1.5 h-[44px] p-1 rounded-xl bg-surface-container-low border border-surface-container items-center">
+                                    {[
+                                      { id: 'USD', label: 'USD ($)', icon: 'attach_money', color: 'text-emerald-600', active: 'bg-surface-container-lowest text-emerald-700 shadow-xs border-emerald-300 ring-1 ring-emerald-400/30 font-bold' },
+                                      { id: 'Bs', label: 'Bs.', icon: 'payments', color: 'text-indigo-600', active: 'bg-surface-container-lowest text-indigo-700 shadow-xs border-indigo-300 ring-1 ring-indigo-400/30 font-bold' }
+                                    ].map((m) => {
+                                      const isSelected = datos.moneda === m.id;
+                                      return (
+                                        <button
+                                          key={m.id}
+                                          type="button"
+                                          onClick={() => alCambiarDato('moneda', m.id)}
+                                          className={`h-full flex items-center justify-center gap-1 px-1.5 rounded-lg text-xs transition-all border ${
+                                            isSelected 
+                                              ? `${m.active}` 
+                                              : 'border-transparent text-outline hover:text-on-surface hover:bg-surface-container'
+                                          }`}
+                                        >
+                                          <span className={`material-symbols-outlined text-[15px] ${isSelected ? m.color : 'text-outline'}`}>
+                                            {m.icon}
+                                          </span>
+                                          <span className="truncate">{m.label}</span>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+
+                                <div className="flex flex-col gap-1.5">
+                                  <div className="flex items-center justify-between">
+                                    <label className="font-label-sm" style={{ color: 'var(--color-on-surface)' }}>Presupuesto Estimado</label>
+                                    <span className="font-body-sm text-[11px]" style={{ color: 'var(--color-outline)' }}>Inversión</span>
+                                  </div>
+                                  <StyledInput 
+                                    type="number" 
+                                    icon="payments" 
+                                    placeholder="Ej: 150" 
+                                    value={datos.presupuesto} 
+                                    onChange={(e) => alCambiarDato('presupuesto', e.target.value)} 
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="space-y-4 pt-2">
+                                <div className="flex flex-col gap-2">
+                                  <label className="font-label-sm font-semibold flex items-center justify-between" style={{ color: 'var(--color-on-surface)' }}>
+                                    <span>Duración y Calendario de Pauta</span>
+                                    <span className="text-[11px] font-normal text-outline">Selecciona días específicos en el calendario o ciclo del 28 al 28</span>
+                                  </label>
+                                  <SelectorDuracionPauta 
+                                    valor={datos.periodo_pauta} 
+                                    alCambiar={(nuevoPeriodo) => alCambiarDato('periodo_pauta', nuevoPeriodo)} 
+                                  />
+                                </div>
+
+                                <div className="flex flex-col gap-1.5 pt-2">
+                                  <label className="font-label-sm font-semibold" style={{ color: 'var(--color-on-surface)' }}>Descripción y Objetivos de la Pauta</label>
+                                  <StyledTextarea 
+                                    rows={2} 
+                                    value={datos.descripcion_pauta} 
+                                    onChange={(e) => alCambiarDato('descripcion_pauta', e.target.value)} 
+                                    placeholder="Ej: Generación de leads al WhatsApp inmobiliario, segmentar solo zona equipetrol y norte..."
+                                  />
+                                </div>
+                              </div>
                             </section>
 
                         </motion.div>

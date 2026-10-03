@@ -9,28 +9,91 @@ export const prerender = false;
 export async function POST({ request }) {
   try {
     const body = await request.json();
-    const { id_requerimiento, periodo_mensual, metricas = {}, anuncios = [] } = body;
+    let { 
+      id_requerimiento, 
+      periodo_mensual, 
+      metricas = {}, 
+      anuncios = [],
+      solicitante,
+      titulo,
+      descripcion,
+      fecha: fechaCustom,
+      estado,
+      plataforma,
+      presupuesto,
+      id_agente
+    } = body;
 
-    if (!id_requerimiento) {
-      return new Response(JSON.stringify({ error: 'id_requerimiento es requerido' }), { status: 400 });
+    const fecha = fechaCustom || new Date().toISOString().split('T')[0];
+    const periodo = periodo_mensual || new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+
+    let finalIdRequerimiento = id_requerimiento;
+
+    // Si no se proporcionó id_requerimiento, crear un registro base en requerimientos_propiedad
+    if (!finalIdRequerimiento) {
+      let agenteId = id_agente || null;
+      if (!agenteId && solicitante) {
+        const { data: usuarioExistente } = await supabaseServer
+          .from('usuarios')
+          .select('id_usuario')
+          .ilike('nombre', `%${solicitante.trim()}%`)
+          .limit(1)
+          .maybeSingle();
+        if (usuarioExistente) agenteId = usuarioExistente.id_usuario;
+      }
+
+      if (!agenteId) {
+        const { data: primerAgente } = await supabaseServer
+          .from('usuarios')
+          .select('id_usuario')
+          .limit(1)
+          .maybeSingle();
+        if (primerAgente) agenteId = primerAgente.id_usuario;
+      }
+
+      const { data: nuevoReq, error: errNuevoReq } = await supabaseServer
+        .from('requerimientos_propiedad')
+        .insert([{
+          nombre_propiedad: titulo || 'Reporte de Campaña Publicitaria',
+          id_agente: agenteId,
+          periodo_mensual: periodo,
+          descripcion_propiedad: descripcion || `Reporte solicitado por: ${solicitante || 'Marketing'}`,
+          categoria: 'Meta Ads',
+          tipo: 'Pauta Publicitaria',
+          prioridad: 'Media'
+        }])
+        .select()
+        .single();
+
+      if (errNuevoReq) {
+        return new Response(JSON.stringify({ error: errNuevoReq.message }), { status: 500 });
+      }
+      finalIdRequerimiento = nuevoReq.id_requerimiento;
     }
 
-    const periodo = periodo_mensual || 'Septiembre 2026';
-    const fecha = new Date().toISOString().split('T')[0];
+    // Actualizar tarea de CM si existen datos operativos
+    if (estado || plataforma || presupuesto || descripcion) {
+      await supabaseServer.from('tareas_cm').update({
+        ...(estado ? { estado } : {}),
+        ...(plataforma ? { plataforma } : {}),
+        ...(presupuesto ? { presupuesto } : {}),
+        ...(descripcion ? { descripcion_pauta: descripcion } : {}),
+      }).eq('id_requerimiento', finalIdRequerimiento);
+    }
 
     // 1. Eliminar reportes anteriores del mismo período para este requerimiento
     // (Por FK con CASCADE, también elimina sus reportes_meta_anuncios hijos)
     await supabaseServer
       .from('reportes_meta_cm')
       .delete()
-      .eq('id_requerimiento', id_requerimiento)
+      .eq('id_requerimiento', finalIdRequerimiento)
       .eq('periodo_mensual', periodo);
 
     // 2. Guardar el reporte padre con los totales en 'reportes_meta_cm'
     const { data: reportePadre, error: errorPadre } = await supabaseServer
       .from('reportes_meta_cm')
       .insert([{
-        id_requerimiento,
+        id_requerimiento: finalIdRequerimiento,
         periodo_mensual: periodo,
         fecha_reporte: fecha,
         leads: Math.round(Number(metricas.leads) || 0),
