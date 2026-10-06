@@ -16,17 +16,45 @@ export async function PATCH({ request }) {
     if (progreso_porcentaje !== undefined) updateFields.progreso_porcentaje = progreso_porcentaje;
     if (fecha_limite !== undefined) updateFields.fecha_limite = fecha_limite || null;
 
-    let query = supabaseServer.from('tareas_diseno').update(updateFields);
+    let registroExistente = null;
     if (id_tarea) {
-      query = query.eq('id_tarea', id_tarea);
-    } else {
-      query = query.eq('id_requerimiento', id_requerimiento);
+      const { data } = await supabaseServer.from('tareas_diseno').select('*').eq('id_tarea', id_tarea).maybeSingle();
+      registroExistente = data;
+    }
+    if (!registroExistente && id_requerimiento) {
+      const { data } = await supabaseServer.from('tareas_diseno').select('*').eq('id_requerimiento', id_requerimiento).maybeSingle();
+      registroExistente = data;
     }
 
-    const { data, error } = await query.select().single();
-
-    if (error) {
-      return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    let data = null;
+    if (registroExistente) {
+      const { data: updated, error } = await supabaseServer
+        .from('tareas_diseno')
+        .update(updateFields)
+        .eq('id_tarea', registroExistente.id_tarea)
+        .select()
+        .single();
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+      }
+      data = updated;
+    } else if (id_requerimiento) {
+      const { data: inserted, error } = await supabaseServer
+        .from('tareas_diseno')
+        .insert([{
+          id_requerimiento,
+          estado: estado || 'Por Hacer',
+          progreso_porcentaje: progreso_porcentaje ?? 0,
+          fecha_limite: fecha_limite || null
+        }])
+        .select()
+        .single();
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+      }
+      data = inserted;
+    } else {
+      return new Response(JSON.stringify({ error: 'Tarea no encontrada' }), { status: 404 });
     }
 
     // Registrar en bitácora histórica para reportes completos

@@ -106,14 +106,24 @@ export async function GET({ url }) {
 
     // PATRÓN: DTO (Data Transfer Object) y BFF (Backend for Frontend)
     // El backend transforma los datos crudos en la estructura exacta que el frontend necesita.
-    const respuestaNormalizada = (data || []).map(item => ({
-      ...item,
-      usuarios: Array.isArray(item.usuarios) ? item.usuarios[0] || null : item.usuarios,
-      tareas_diseno: Array.isArray(item.tareas_diseno) ? item.tareas_diseno[0] || null : item.tareas_diseno,
-      tareas_video: Array.isArray(item.tareas_video) ? item.tareas_video[0] || null : item.tareas_video,
-      tareas_cm: Array.isArray(item.tareas_cm) ? item.tareas_cm[0] || null : item.tareas_cm,
-      reportes_meta_cm: Array.isArray(item.reportes_meta_cm) ? item.reportes_meta_cm[0] || null : item.reportes_meta_cm
-    }));
+    const respuestaNormalizada = (data || []).map(item => {
+      const td = Array.isArray(item.tareas_diseno) ? item.tareas_diseno[0] || null : item.tareas_diseno;
+      const necesitaDiseno = Boolean(item.req_arte_estatico || item.req_carrusel || item.categoria === 'Diseño Interno');
+      return {
+        ...item,
+        usuarios: Array.isArray(item.usuarios) ? item.usuarios[0] || null : item.usuarios,
+        tareas_diseno: td || (necesitaDiseno ? {
+          id_tarea: null,
+          id_requerimiento: item.id_requerimiento,
+          estado: 'Por Hacer',
+          progreso_porcentaje: 0,
+          fecha_limite: item.fecha_rodaje || null
+        } : null),
+        tareas_video: Array.isArray(item.tareas_video) ? item.tareas_video[0] || null : item.tareas_video,
+        tareas_cm: Array.isArray(item.tareas_cm) ? item.tareas_cm[0] || null : item.tareas_cm,
+        reportes_meta_cm: Array.isArray(item.reportes_meta_cm) ? item.reportes_meta_cm[0] || null : item.reportes_meta_cm
+      };
+    });
 
     return new Response(JSON.stringify(respuestaNormalizada), { 
       status: 200, 
@@ -187,6 +197,24 @@ export async function POST({ request }) {
         periodo_pauta: body.periodo_pauta || 'Mes',
         descripcion_pauta: body.descripcion_pauta || ''
       }).eq('id_requerimiento', idReq);
+    }
+
+    // Asegurar que si requiere diseño se inserte su tarea en tareas_diseno si el trigger no lo hizo
+    if (body.req_arte_estatico || body.req_carrusel || body.categoria === 'Diseño Interno') {
+      const { data: disenoExistente } = await supabaseServer
+        .from('tareas_diseno')
+        .select('id_tarea')
+        .eq('id_requerimiento', idReq)
+        .maybeSingle();
+
+      if (!disenoExistente) {
+        await supabaseServer.from('tareas_diseno').insert([{
+          id_requerimiento: idReq,
+          estado: 'Por Hacer',
+          progreso_porcentaje: 0,
+          fecha_limite: body.fecha_rodaje || null
+        }]);
+      }
     }
 
     return new Response(JSON.stringify(requerimiento), { 
@@ -303,6 +331,29 @@ export async function PUT({ request }) {
           id_requerimiento: idReq,
           estado: 'Por Hacer',
           ...cmData
+        }]);
+      }
+    }
+
+    // Actualizar o crear tarea de diseño si la propiedad tiene flags de diseño
+    const reqDiseno = body.req_arte_estatico || body.req_carrusel || body.categoria === 'Diseño Interno';
+    if (body.req_arte_estatico !== undefined || body.req_carrusel !== undefined || body.categoria !== undefined) {
+      const { data: disenoExistente } = await supabaseServer
+        .from('tareas_diseno')
+        .select('id_tarea')
+        .eq('id_requerimiento', idReq)
+        .maybeSingle();
+
+      if (disenoExistente) {
+        if (body.fecha_rodaje) {
+          await supabaseServer.from('tareas_diseno').update({ fecha_limite: body.fecha_rodaje }).eq('id_requerimiento', idReq);
+        }
+      } else if (reqDiseno) {
+        await supabaseServer.from('tareas_diseno').insert([{
+          id_requerimiento: idReq,
+          estado: 'Por Hacer',
+          progreso_porcentaje: 0,
+          fecha_limite: body.fecha_rodaje || null
         }]);
       }
     }

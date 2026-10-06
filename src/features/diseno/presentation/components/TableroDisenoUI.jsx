@@ -109,6 +109,7 @@ export default function TableroDisenoUI({
     cargando, 
     alCambiarCampo, 
     alGuardar,
+    alRecargar,
     modalAbierto = false,
     setModalAbierto = () => {},
     tareaInterna = { titulo: '', descripcion: '', prioridad: 'Media', fecha_limite: '', id_agente: '', categoria_diseno: 'Artes estáticos' },
@@ -848,7 +849,8 @@ export default function TableroDisenoUI({
                 alCerrar={() => setRequerimientoAEditar(null)}
                 alGuardarExitoso={() => {
                     setRequerimientoAEditar(null);
-                    if (alGuardar) alGuardar();
+                    if (alRecargar) alRecargar();
+                    else if (alGuardar) alGuardar();
                 }}
                 agentes={listaAgentes}
             />
@@ -861,7 +863,7 @@ export default function TableroDisenoUI({
         const agente = item.usuarios?.nombre || 'Sin agente';
         const s = getStatusStyle(tarea.estado);
         const progreso = ESTADO_PROGRESO[tarea.estado] ?? (tarea.progreso_porcentaje ?? 0);
-        const estaBloqueada = Boolean(tarjetasBloqueadas[tarea.id_tarea] ?? (tarea.estado === 'Finalizado'));
+        const estaBloqueada = tarea.estado === 'Finalizado' && (tarjetasBloqueadas[tarea.id_tarea] ?? true);
         const idTarjeta = item.id_requerimiento;
         const estaExpandida = Boolean(tarjetasExpandidas[idTarjeta]);
         const menuAbierto = menuOpcionesId === idTarjeta;
@@ -1103,7 +1105,7 @@ export default function TableroDisenoUI({
                             <LiquidStateSelector 
                                 estadoActual={tarea.estado || 'Por Hacer'}
                                 alCambiarEstado={(nuevoEstado) => {
-                                    alCambiarCampo(tarea.id_tarea, 'estado', nuevoEstado);
+                                    alCambiarCampo(tarea.id_tarea, 'estado', nuevoEstado, item.id_requerimiento);
                                     if (nuevoEstado === 'Finalizado') {
                                         actualizarBloqueo(tarea.id_tarea, true);
                                     }
