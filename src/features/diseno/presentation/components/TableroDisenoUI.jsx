@@ -138,9 +138,14 @@ export default function TableroDisenoUI({
         return {};
     });
 
-    const actualizarBloqueo = (idTarea, bloqueado) => {
+    const actualizarBloqueo = (idTarea, bloqueado, idRequerimiento) => {
         setTarjetasBloqueadas(prev => {
-            const nuevo = { ...prev, [idTarea]: bloqueado };
+            const key = idTarea || idRequerimiento;
+            const nuevo = { ...prev, [key]: bloqueado };
+            if (idTarea && idRequerimiento) {
+                nuevo[idRequerimiento] = bloqueado;
+                nuevo[idTarea] = bloqueado;
+            }
             try {
                 localStorage.setItem('bloqueadas_diseno', JSON.stringify(nuevo));
             } catch (e) {}
@@ -863,7 +868,8 @@ export default function TableroDisenoUI({
         const agente = item.usuarios?.nombre || 'Sin agente';
         const s = getStatusStyle(tarea.estado);
         const progreso = ESTADO_PROGRESO[tarea.estado] ?? (tarea.progreso_porcentaje ?? 0);
-        const estaBloqueada = tarea.estado === 'Finalizado' && (tarjetasBloqueadas[tarea.id_tarea] ?? true);
+        const keyBloqueo = tarea.id_tarea || item.id_requerimiento;
+        const estaBloqueada = tarea.estado === 'Finalizado' && (tarjetasBloqueadas[keyBloqueo] ?? true);
         const idTarjeta = item.id_requerimiento;
         const estaExpandida = Boolean(tarjetasExpandidas[idTarjeta]);
         const menuAbierto = menuOpcionesId === idTarjeta;
@@ -1107,7 +1113,7 @@ export default function TableroDisenoUI({
                                 alCambiarEstado={(nuevoEstado) => {
                                     alCambiarCampo(tarea.id_tarea, 'estado', nuevoEstado, item.id_requerimiento);
                                     if (nuevoEstado === 'Finalizado') {
-                                        actualizarBloqueo(tarea.id_tarea, true);
+                                        actualizarBloqueo(tarea.id_tarea, true, item.id_requerimiento);
                                     }
                                 }}
                             />
@@ -1130,7 +1136,7 @@ export default function TableroDisenoUI({
                                     icon="lock_open"
                                     confirmedIcon="lock_open"
                                     onConfirm={() => {
-                                        actualizarBloqueo(tarea.id_tarea, false);
+                                        actualizarBloqueo(tarea.id_tarea, false, item.id_requerimiento);
                                     }}
                                 />
                             </div>

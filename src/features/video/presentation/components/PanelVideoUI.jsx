@@ -155,9 +155,14 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
         return {};
     });
 
-    const actualizarBloqueo = (idTarea, bloqueado) => {
+    const actualizarBloqueo = (idTarea, bloqueado, idRequerimiento) => {
         setTarjetasBloqueadas(prev => {
-            const nuevo = { ...prev, [idTarea]: bloqueado };
+            const key = idTarea || idRequerimiento;
+            const nuevo = { ...prev, [key]: bloqueado };
+            if (idTarea && idRequerimiento) {
+                nuevo[idRequerimiento] = bloqueado;
+                nuevo[idTarea] = bloqueado;
+            }
             try {
                 localStorage.setItem('bloqueadas_video', JSON.stringify(nuevo));
             } catch (e) {}
@@ -636,7 +641,8 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
         const agente = item.usuarios?.nombre || 'Sin agente';
         const s = getStatusStyle(video.estado);
         const progreso = video.progreso_porcentaje ?? 0;
-        const estaBloqueada = Boolean(tarjetasBloqueadas[video.id_tarea] ?? (video.estado === 'Finalizado'));
+        const keyBloqueo = video.id_tarea || item.id_requerimiento;
+        const estaBloqueada = Boolean(tarjetasBloqueadas[keyBloqueo] ?? (video.estado === 'Finalizado'));
         const idTarjeta = item.id_requerimiento;
         const estaExpandida = Boolean(tarjetasExpandidas[idTarjeta]);
         const menuAbierto = menuOpcionesId === idTarjeta;
@@ -819,7 +825,7 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                                     req_edicion: Boolean(video.req_edicion),
                                     req_voz_off: Boolean(video.req_voz_off),
                                 }}
-                                alCambiar={(campo, activo) => alCambiarCheck(video.id_tarea, campo, activo)}
+                                alCambiar={(campo, activo) => alCambiarCheck(video.id_tarea, campo, activo, item.id_requerimiento)}
                                 deshabilitado={estaBloqueada}
                             />
                         </div>
@@ -881,9 +887,9 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                                                 value={video.estado || 'Por Hacer'}
                                                 onChange={(e) => {
                                                     const val = e.target.value;
-                                                    alCambiarCampo(video.id_tarea, 'estado', val);
+                                                    alCambiarCampo(video.id_tarea, 'estado', val, item.id_requerimiento);
                                                     if (val === 'Finalizado') {
-                                                        actualizarBloqueo(video.id_tarea, true);
+                                                        actualizarBloqueo(video.id_tarea, true, item.id_requerimiento);
                                                     }
                                                 }}
                                             >
@@ -905,7 +911,7 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                                                 rows={2}
                                                 placeholder="Detalles de las tomas, ambientes clave, iluminación requerida..."
                                                 value={video.Descripcion || video.descripcion || ''}
-                                                onChange={(e) => alCambiarCampo(video.id_tarea, 'Descripcion', e.target.value)}
+                                                onChange={(e) => alCambiarCampo(video.id_tarea, 'Descripcion', e.target.value, item.id_requerimiento)}
                                                 className="w-full text-xs p-2.5 rounded-xl resize-none font-sans focus:outline-none transition-all"
                                                 style={{
                                                     background: 'var(--color-surface-container-lowest)',
@@ -944,7 +950,7 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                                     icon="lock_open"
                                     confirmedIcon="lock_open"
                                     onConfirm={() => {
-                                        actualizarBloqueo(video.id_tarea, false);
+                                        actualizarBloqueo(video.id_tarea, false, item.id_requerimiento);
                                     }}
                                 />
                             </div>

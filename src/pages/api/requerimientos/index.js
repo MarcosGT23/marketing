@@ -108,7 +108,11 @@ export async function GET({ url }) {
     // El backend transforma los datos crudos en la estructura exacta que el frontend necesita.
     const respuestaNormalizada = (data || []).map(item => {
       const td = Array.isArray(item.tareas_diseno) ? item.tareas_diseno[0] || null : item.tareas_diseno;
+      const tv = Array.isArray(item.tareas_video) ? item.tareas_video[0] || null : item.tareas_video;
       const necesitaDiseno = Boolean(item.req_arte_estatico || item.req_carrusel || item.categoria === 'Diseño Interno');
+      const necesitaVideo = Boolean(item.req_reel || item.req_fotos);
+      const tcm = Array.isArray(item.tareas_cm) ? item.tareas_cm[0] || null : item.tareas_cm;
+
       return {
         ...item,
         usuarios: Array.isArray(item.usuarios) ? item.usuarios[0] || null : item.usuarios,
@@ -119,8 +123,28 @@ export async function GET({ url }) {
           progreso_porcentaje: 0,
           fecha_limite: item.fecha_rodaje || null
         } : null),
-        tareas_video: Array.isArray(item.tareas_video) ? item.tareas_video[0] || null : item.tareas_video,
-        tareas_cm: Array.isArray(item.tareas_cm) ? item.tareas_cm[0] || null : item.tareas_cm,
+        tareas_video: tv || (necesitaVideo ? {
+          id_tarea: null,
+          id_requerimiento: item.id_requerimiento,
+          estado: 'Por Hacer',
+          progreso_porcentaje: 0,
+          req_guion: false,
+          req_fotos: Boolean(item.req_fotos),
+          req_grabacion: false,
+          req_edicion: false,
+          req_voz_off: false,
+          Descripcion: null
+        } : null),
+        tareas_cm: tcm || {
+          id_tarea: null,
+          id_requerimiento: item.id_requerimiento,
+          estado: 'Por Hacer',
+          plataforma: null,
+          presupuesto: null,
+          moneda: 'USD',
+          periodo_pauta: 'Mes',
+          descripcion_pauta: null
+        },
         reportes_meta_cm: Array.isArray(item.reportes_meta_cm) ? item.reportes_meta_cm[0] || null : item.reportes_meta_cm
       };
     });

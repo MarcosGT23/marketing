@@ -22,17 +22,50 @@ export async function PATCH({ request }) {
     if (Descripcion !== undefined) updateFields.Descripcion = Descripcion;
     else if (descripcion !== undefined) updateFields.Descripcion = descripcion;
 
-    let query = supabaseServer.from('tareas_video').update(updateFields);
+    let registroExistente = null;
     if (id_tarea) {
-      query = query.eq('id_tarea', id_tarea);
-    } else {
-      query = query.eq('id_requerimiento', id_requerimiento);
+      const { data } = await supabaseServer.from('tareas_video').select('*').eq('id_tarea', id_tarea).maybeSingle();
+      registroExistente = data;
+    }
+    if (!registroExistente && id_requerimiento) {
+      const { data } = await supabaseServer.from('tareas_video').select('*').eq('id_requerimiento', id_requerimiento).maybeSingle();
+      registroExistente = data;
     }
 
-    const { data, error } = await query.select().single();
-
-    if (error) {
-      return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    let data = null;
+    if (registroExistente) {
+      const { data: updated, error } = await supabaseServer
+        .from('tareas_video')
+        .update(updateFields)
+        .eq('id_tarea', registroExistente.id_tarea)
+        .select()
+        .single();
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+      }
+      data = updated;
+    } else if (id_requerimiento) {
+      const { data: inserted, error } = await supabaseServer
+        .from('tareas_video')
+        .insert([{
+          id_requerimiento,
+          estado: estado || 'Por Hacer',
+          progreso_porcentaje: progreso_porcentaje ?? 0,
+          req_guion: Boolean(req_guion),
+          req_fotos: Boolean(req_fotos),
+          req_grabacion: Boolean(req_grabacion),
+          req_edicion: Boolean(req_edicion),
+          req_voz_off: Boolean(req_voz_off),
+          ...updateFields
+        }])
+        .select()
+        .single();
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+      }
+      data = inserted;
+    } else {
+      return new Response(JSON.stringify({ error: 'Tarea de video no encontrada' }), { status: 404 });
     }
 
     // Registrar en bitácora histórica para reportes completos

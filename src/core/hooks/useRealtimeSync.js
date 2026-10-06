@@ -42,9 +42,12 @@ export function useRealtimeSync(onActualizar, tablas = [], opciones = {}) {
   }, [ejecutarActualizacion]);
 
   useEffect(() => {
-    // 1. Escuchar foco y visibilidad de la pestaña del navegador
+    let ultimoFoco = Date.now();
     const manejarVisibilidad = () => {
-      if (document.visibilityState === 'visible') {
+      const ahora = Date.now();
+      // Solo refrescar si la pestaña está visible y han transcurrido al menos 15 segundos desde el último foco/refresco
+      if (document.visibilityState === 'visible' && ahora - ultimoFoco > 15000) {
+        ultimoFoco = ahora;
         ejecutarActualizacion('foco_pestana');
       }
     };

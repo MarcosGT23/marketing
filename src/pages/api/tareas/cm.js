@@ -16,17 +16,44 @@ export async function PATCH({ request }) {
     if (plataforma !== undefined) updateFields.plataforma = plataforma;
     if (presupuesto !== undefined) updateFields.presupuesto = presupuesto;
 
-    let query = supabaseServer.from('tareas_cm').update(updateFields);
+    let registroExistente = null;
     if (id_tarea) {
-      query = query.eq('id_tarea', id_tarea);
-    } else {
-      query = query.eq('id_requerimiento', id_requerimiento);
+      const { data } = await supabaseServer.from('tareas_cm').select('*').eq('id_tarea', id_tarea).maybeSingle();
+      registroExistente = data;
+    }
+    if (!registroExistente && id_requerimiento) {
+      const { data } = await supabaseServer.from('tareas_cm').select('*').eq('id_requerimiento', id_requerimiento).maybeSingle();
+      registroExistente = data;
     }
 
-    const { data, error } = await query.select().single();
-
-    if (error) {
-      return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    let data = null;
+    if (registroExistente) {
+      const { data: updated, error } = await supabaseServer
+        .from('tareas_cm')
+        .update(updateFields)
+        .eq('id_tarea', registroExistente.id_tarea)
+        .select()
+        .single();
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+      }
+      data = updated;
+    } else if (id_requerimiento) {
+      const { data: inserted, error } = await supabaseServer
+        .from('tareas_cm')
+        .insert([{
+          id_requerimiento,
+          estado: estado || 'Por Hacer',
+          ...updateFields
+        }])
+        .select()
+        .single();
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+      }
+      data = inserted;
+    } else {
+      return new Response(JSON.stringify({ error: 'Tarea de CM no encontrada' }), { status: 404 });
     }
 
     // Registrar en bitácora histórica para reportes completos

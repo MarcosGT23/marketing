@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import TableroDisenoUI from './components/TableroDisenoUI';
 import { actualizarTareaDiseno } from '../infrastructure/diseno.api';
 import { useRealtimeSync } from '../../../core/hooks/useRealtimeSync';
@@ -9,6 +9,9 @@ export default function TableroDisenoContainer() {
   const [cargando, setCargando] = useState(true);
   
   const [modalAbierto, setModalAbierto] = useState(false);
+  
+  // Referencia para blindar mutaciones optimistas recientes contra sobreescritura de peticiones concurrentes
+  const mutacionesRecientesRef = useRef(new Map());
   
   // Estado inicial con los nuevos campos
   const [tareaInterna, setTareaInterna] = useState({ 
@@ -28,19 +31,35 @@ export default function TableroDisenoContainer() {
         fetch('/api/usuarios?rol=Agente', { cache: 'no-store' }).then(r => r.json())
       ]);
       
+      const ahora = Date.now();
       const conDiseno = (Array.isArray(resReq) ? resReq : []).filter(item => 
         Boolean(item.tareas_diseno || item.req_arte_estatico || item.req_carrusel || item.categoria === 'Diseño Interno')
       ).map(item => {
         const td = Array.isArray(item.tareas_diseno) ? item.tareas_diseno[0] : item.tareas_diseno;
+        const tareaServidor = td || {
+          id_tarea: null,
+          id_requerimiento: item.id_requerimiento,
+          estado: 'Por Hacer',
+          progreso_porcentaje: 0,
+          fecha_limite: item.fecha_rodaje || null
+        };
+
+        // Si el usuario acaba de cambiar esta tarea en los últimos 4 segundos, preservar su cambio optimista
+        const mutacionReciente = mutacionesRecientesRef.current.get(item.id_requerimiento);
+        if (mutacionReciente && ahora - mutacionReciente.timestamp < 4000) {
+          return {
+            ...item,
+            tareas_diseno: {
+              ...tareaServidor,
+              ...mutacionReciente.actualizado,
+              id_tarea: tareaServidor.id_tarea || mutacionReciente.actualizado.id_tarea
+            }
+          };
+        }
+
         return {
           ...item,
-          tareas_diseno: td || {
-            id_tarea: null,
-            id_requerimiento: item.id_requerimiento,
-            estado: 'Por Hacer',
-            progreso_porcentaje: 0,
-            fecha_limite: item.fecha_rodaje || null
-          }
+          tareas_diseno: tareaServidor
         };
       });
 
@@ -72,23 +91,33 @@ export default function TableroDisenoContainer() {
         usuario: 'Área de Diseño'
       });
 
-      // Si la tarea no tenía id_tarea y el backend la creó, asociar el nuevo id_tarea en memoria
-      if (resultado?.data?.id_tarea && (!idTarea || idTarea === null)) {
-        setDatos(prev => prev.map(item => {
-          if (item.id_requerimiento === idRequerimiento) {
-            return {
-              ...item,
-              tareas_diseno: {
-                ...tareaActualizada,
-                id_tarea: resultado.data.id_tarea
-              }
-            };
-          }
-          return item;
-        }));
+      // Si la tarea no tenía id_tarea y el backend la creó, asociar el nuevo id_tarea en memoria y en la referencia
+      if (resultado?.data?.id_tarea) {
+        const nuevoId = resultado.data.id_tarea;
+        const mut = mutacionesRecientesRef.current.get(idRequerimiento);
+        if (mut) {
+          mut.actualizado.id_tarea = nuevoId;
+        }
+
+        if (!idTarea || idTarea === null) {
+          setDatos(prev => prev.map(item => {
+            if (item.id_requerimiento === idRequerimiento) {
+              return {
+                ...item,
+                tareas_diseno: {
+                  ...tareaActualizada,
+                  id_tarea: nuevoId
+                }
+              };
+            }
+            return item;
+          }));
+        }
       }
     } catch (err) {
       console.error('Error auto-guardando tarea de diseño:', err);
+      // En caso de fallo crítico en el servidor, remover el blindaje para sincronizar con la BD
+      mutacionesRecientesRef.current.delete(idRequerimiento);
     }
   };
 
@@ -110,6 +139,13 @@ export default function TableroDisenoContainer() {
             actualizado.progreso_porcentaje = porcentajes[valor];
           }
         }
+
+        // Blindar inmediatamente la mutación contra sobreescritura de peticiones concurrentes
+        mutacionesRecientesRef.current.set(item.id_requerimiento, {
+          timestamp: Date.now(),
+          actualizado
+        });
+
         datosActualizados = { idTarea: td?.id_tarea || idTarea, tareaActualizada: actualizado, idRequerimiento: item.id_requerimiento };
         return {
           ...item,

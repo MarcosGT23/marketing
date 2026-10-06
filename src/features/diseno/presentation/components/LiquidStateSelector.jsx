@@ -102,6 +102,8 @@ export default function LiquidStateSelector({ estadoActual = 'Por Hacer', alCamb
     return () => ro.disconnect();
   }, [activeIndex, held, x]);
 
+  const justDraggedRef = useRef(false);
+
   // Selección directa por clic
   const handleSelectSlot = (index) => {
     const { slotW } = getMetrics();
@@ -174,14 +176,12 @@ export default function LiquidStateSelector({ estadoActual = 'Por Hacer', alCamb
 
     const { slotW } = getMetrics();
 
-    // 1. Caso CLIC directo (sin arrastre)
+    // 1. Caso CLIC directo (sin arrastre): delegar a button onClick para evitar doble disparo
     if (!g.isDragging) {
-      const targetIndex = g.clickedSlot;
       grabRef.current = null;
       setHeld(false);
       vel.set(0);
       setHoveredIdx(null);
-      handleSelectSlot(targetIndex);
       return;
     }
 
@@ -193,6 +193,12 @@ export default function LiquidStateSelector({ estadoActual = 'Por Hacer', alCamb
     setHeld(false);
     vel.set(0);
     setHoveredIdx(null);
+
+    // Marcar que acaba de arrastrar para ignorar el evento de clic sintético que emite el navegador
+    justDraggedRef.current = true;
+    setTimeout(() => {
+      justDraggedRef.current = false;
+    }, 150);
 
     animate(x, targetIndex * slotW, LIQUID);
 
@@ -254,6 +260,7 @@ export default function LiquidStateSelector({ estadoActual = 'Por Hacer', alCamb
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (justDraggedRef.current) return;
                   handleSelectSlot(idx);
                 }}
                 className={`relative flex items-center justify-center gap-1.5 px-1.5 h-full w-full rounded-lg cursor-pointer transition-colors duration-200 outline-none select-none ${
