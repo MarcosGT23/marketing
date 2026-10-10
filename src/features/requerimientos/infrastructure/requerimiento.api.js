@@ -1,3 +1,5 @@
+import { notificarCambioLocal } from '../../../core/hooks/useRealtimeSync';
+
 export async function crearRequerimiento(datosFormulario) {
   const respuesta = await fetch('/api/requerimientos', {
     method: 'POST',
@@ -12,6 +14,8 @@ export async function crearRequerimiento(datosFormulario) {
   if (!respuesta.ok) {
     throw new Error(resultado.error || 'Error al guardar el requerimiento');
   }
+
+  notificarCambioLocal({ tipo: 'requerimiento_creado', id: resultado.id_requerimiento });
 
   return resultado;
 }
@@ -30,6 +34,8 @@ export async function actualizarRequerimiento(idRequerimiento, datosFormulario) 
   if (!respuesta.ok) {
     throw new Error(resultado.error || 'Error al actualizar el requerimiento');
   }
+
+  notificarCambioLocal({ tipo: 'requerimiento_actualizado', id: idRequerimiento });
 
   return resultado;
 }

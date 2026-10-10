@@ -159,15 +159,19 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
 
   const manejarGuardar = async () => {
     setGuardando(true);
+    const tcm = (Array.isArray(item.tareas_cm) ? item.tareas_cm[0] : item.tareas_cm) || {};
     try {
       await alGuardarTodo({
         id_requerimiento: item.id_requerimiento,
-        id_tarea_cm: (Array.isArray(item.tareas_cm) ? item.tareas_cm[0]?.id_tarea : item.tareas_cm?.id_tarea),
+        id_tarea_cm: tcm?.id_tarea || null,
         id_agente: item.id_agente,
         periodo_mensual: item.periodo_mensual,
         estado: estadoCm,
         plataforma,
         presupuesto,
+        moneda: tcm.moneda || 'USD',
+        periodo_pauta: tcm.periodo_pauta,
+        descripcion_pauta: tcm.descripcion_pauta,
         metricas: {
           leads: Math.round(Number(totales.leads) || 0),
           costo_por_lead: Math.round(Number(totales.costo_por_lead) || 0),

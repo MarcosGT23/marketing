@@ -1,3 +1,5 @@
+import { notificarCambioLocal } from '../../../core/hooks/useRealtimeSync';
+
 export async function actualizarTareaCm(id_tarea, campos) {
   const res = await fetch('/api/tareas/cm', {
     method: 'PATCH',
@@ -6,6 +8,7 @@ export async function actualizarTareaCm(id_tarea, campos) {
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Error al actualizar tarea de CM');
+  notificarCambioLocal({ tipo: 'tarea_cm_actualizada', id_tarea, campos });
   return data;
 }
 
@@ -18,5 +21,6 @@ export async function registrarReporteMeta({ id_requerimiento, id_agente, period
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Error al registrar reporte de Meta');
+  notificarCambioLocal({ tipo: 'reporte_cm_creado', id_requerimiento });
   return data;
 }

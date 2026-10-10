@@ -1,3 +1,5 @@
+import { notificarCambioLocal } from '../../../core/hooks/useRealtimeSync';
+
 export async function actualizarTareaDiseno(id_tarea, campos) {
   const res = await fetch('/api/tareas/diseno', {
     method: 'PATCH',
@@ -6,5 +8,6 @@ export async function actualizarTareaDiseno(id_tarea, campos) {
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Error al actualizar tarea de diseño');
+  notificarCambioLocal({ tipo: 'tarea_diseno_actualizada', id_tarea, campos });
   return data;
 }

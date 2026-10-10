@@ -93,12 +93,33 @@ export default function PanelCmContainer() {
 
   // Guarda el estado de la tarea CM + las métricas y anuncios del CSV en Supabase
   const manejarGuardarTodo = async (payload) => {
-    const { id_tarea_cm, estado, plataforma, presupuesto, id_requerimiento, id_agente, periodo_mensual, metricas, anuncios } = payload;
+    const { 
+      id_tarea_cm, 
+      estado, 
+      plataforma, 
+      presupuesto, 
+      id_requerimiento, 
+      id_agente, 
+      periodo_mensual, 
+      metricas, 
+      anuncios,
+      moneda,
+      periodo_pauta,
+      descripcion_pauta
+    } = payload;
 
     // Actualización optimista inmediata en memoria y en la referencia
     mutacionesRecientesRef.current.set(id_requerimiento, {
       timestamp: Date.now(),
-      actualizado: { estado, plataforma, presupuesto, id_tarea: id_tarea_cm }
+      actualizado: { 
+        estado, 
+        plataforma, 
+        presupuesto, 
+        id_tarea: id_tarea_cm,
+        ...(moneda ? { moneda } : {}),
+        ...(periodo_pauta ? { periodo_pauta } : {}),
+        ...(descripcion_pauta ? { descripcion_pauta } : {})
+      }
     });
 
     setDatos(prev => prev.map(p => {
@@ -110,7 +131,10 @@ export default function PanelCmContainer() {
             ...tcm,
             estado,
             plataforma,
-            presupuesto
+            presupuesto,
+            ...(moneda ? { moneda } : {}),
+            ...(periodo_pauta ? { periodo_pauta } : {}),
+            ...(descripcion_pauta ? { descripcion_pauta } : {})
           }]
         };
       }
@@ -123,7 +147,10 @@ export default function PanelCmContainer() {
         id_requerimiento,
         estado, 
         plataforma, 
-        presupuesto 
+        presupuesto,
+        ...(moneda !== undefined ? { moneda } : {}),
+        ...(periodo_pauta !== undefined ? { periodo_pauta } : {}),
+        ...(descripcion_pauta !== undefined ? { descripcion_pauta } : {})
       });
 
       if (resCm?.data?.id_tarea) {

@@ -5,7 +5,7 @@ export const prerender = false;
 export async function PATCH({ request }) {
   try {
     const body = await request.json();
-    const { id_tarea, id_requerimiento, estado, plataforma, presupuesto } = body;
+    const { id_tarea, id_requerimiento, estado, plataforma, presupuesto, moneda, periodo_pauta, descripcion_pauta } = body;
 
     if (!id_tarea && !id_requerimiento) {
       return new Response(JSON.stringify({ error: 'id_tarea o id_requerimiento es requerido' }), { status: 400 });
@@ -15,6 +15,9 @@ export async function PATCH({ request }) {
     if (estado !== undefined) updateFields.estado = estado;
     if (plataforma !== undefined) updateFields.plataforma = plataforma;
     if (presupuesto !== undefined) updateFields.presupuesto = presupuesto;
+    if (moneda !== undefined) updateFields.moneda = moneda;
+    if (periodo_pauta !== undefined) updateFields.periodo_pauta = periodo_pauta;
+    if (descripcion_pauta !== undefined) updateFields.descripcion_pauta = descripcion_pauta;
 
     let registroExistente = null;
     if (id_tarea) {
@@ -64,7 +67,7 @@ export async function PATCH({ request }) {
           departamento: 'CM',
           usuario: body.usuario || 'Área de Pauta & CM',
           accion: `Campaña CM actualizada a "${data.estado || estado}"`,
-          comentario: body.comentario || `Plataforma: ${data.plataforma || 'N/A'} | Presupuesto: ${data.presupuesto || 'Sin definir'}`,
+          comentario: body.comentario || `Plataforma: ${data.plataforma || 'N/A'} | Presupuesto: ${data.presupuesto ? (data.moneda || 'USD') + ' ' + data.presupuesto : 'Sin definir'} | Duración: ${data.periodo_pauta || 'N/A'}`,
           fecha_registro: new Date().toISOString()
         });
       } catch (errHist) {
@@ -77,6 +80,7 @@ export async function PATCH({ request }) {
       headers: { 'Content-Type': 'application/json' }
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: 'Error actualizando tarea de CM' }), { status: 500 });
+    console.error('Error en PATCH /api/tareas/cm:', err);
+    return new Response(JSON.stringify({ error: err.message || 'Error actualizando tarea de CM' }), { status: 500 });
   }
 }

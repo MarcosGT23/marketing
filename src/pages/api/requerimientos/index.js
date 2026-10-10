@@ -203,24 +203,61 @@ export async function POST({ request }) {
     if (errorReq) throw errorReq;
     const idReq = requerimiento.id_requerimiento;
 
-    if (body.req_reel) {
-      await supabaseServer.from('tareas_video').update({
+    // Garantizar tarea de video si se marcó reel o algún flag audiovisual
+    const necesitaVideo = Boolean(body.req_reel || body.req_fotos || body.req_guion || body.req_grabacion || body.req_edicion || body.req_voz_off);
+    if (necesitaVideo) {
+      const { data: videoExistente } = await supabaseServer
+        .from('tareas_video')
+        .select('id_tarea')
+        .eq('id_requerimiento', idReq)
+        .maybeSingle();
+
+      const videoData = {
         req_guion: Boolean(body.req_guion),
         req_fotos: Boolean(body.req_fotos),
         req_grabacion: Boolean(body.req_grabacion),
         req_edicion: Boolean(body.req_edicion),
         req_voz_off: Boolean(body.req_voz_off)
-      }).eq('id_requerimiento', idReq);
+      };
+
+      if (videoExistente) {
+        await supabaseServer.from('tareas_video').update(videoData).eq('id_requerimiento', idReq);
+      } else {
+        await supabaseServer.from('tareas_video').insert([{
+          id_requerimiento: idReq,
+          estado: 'Por Hacer',
+          progreso_porcentaje: 0,
+          ...videoData
+        }]);
+      }
     }
 
-    if (body.plataforma) {
-      await supabaseServer.from('tareas_cm').update({
-        plataforma: body.plataforma,
+    // Garantizar tarea de CM si tiene plataforma, presupuesto, duración o descripción
+    const tienePauta = Boolean(body.plataforma || body.presupuesto || body.periodo_pauta || body.descripcion_pauta);
+    if (tienePauta) {
+      const { data: cmExistente } = await supabaseServer
+        .from('tareas_cm')
+        .select('id_tarea')
+        .eq('id_requerimiento', idReq)
+        .maybeSingle();
+
+      const cmData = {
+        plataforma: body.plataforma || 'Facebook / Instagram',
         presupuesto: body.presupuesto || null,
         moneda: body.moneda || 'USD',
         periodo_pauta: body.periodo_pauta || 'Mes',
         descripcion_pauta: body.descripcion_pauta || ''
-      }).eq('id_requerimiento', idReq);
+      };
+
+      if (cmExistente) {
+        await supabaseServer.from('tareas_cm').update(cmData).eq('id_requerimiento', idReq);
+      } else {
+        await supabaseServer.from('tareas_cm').insert([{
+          id_requerimiento: idReq,
+          estado: 'Por Hacer',
+          ...cmData
+        }]);
+      }
     }
 
     // Asegurar que si requiere diseño se inserte su tarea en tareas_diseno si el trigger no lo hizo
@@ -350,7 +387,7 @@ export async function PUT({ request }) {
 
       if (cmExistente) {
         await supabaseServer.from('tareas_cm').update(cmData).eq('id_requerimiento', idReq);
-      } else if (body.plataforma) {
+      } else if (body.plataforma || body.presupuesto || body.periodo_pauta || body.descripcion_pauta) {
         await supabaseServer.from('tareas_cm').insert([{
           id_requerimiento: idReq,
           estado: 'Por Hacer',
