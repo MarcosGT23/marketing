@@ -381,7 +381,14 @@ export async function PUT({ request }) {
 
     // Actualizar tarea de CM SOLO si el panel es 'cm' o 'general'
     if (panel === 'cm' || panel === 'general') {
-      if (body.plataforma !== undefined || body.presupuesto !== undefined || body.periodo_pauta !== undefined || body.descripcion_pauta !== undefined) {
+      if (body.quitar_pauta || body.habilitar_pauta === false) {
+        await supabaseServer.from('tareas_cm').update({
+          plataforma: null,
+          presupuesto: null,
+          estado: 'Sin Pauta',
+          descripcion_pauta: null
+        }).eq('id_requerimiento', idReq);
+      } else if (body.plataforma !== undefined || body.presupuesto !== undefined || body.periodo_pauta !== undefined || body.descripcion_pauta !== undefined) {
         const { data: cmExistente } = await supabaseServer
           .from('tareas_cm')
           .select('id_tarea')

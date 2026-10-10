@@ -2,6 +2,7 @@
 import { useState, useMemo } from 'react';
 import ModalEditarRequerimiento from '../../../requerimientos/presentation/components/ModalEditarRequerimiento';
 import { eliminarRequerimiento } from '../../../requerimientos/infrastructure/requerimiento.api';
+import { quitarPautaCm } from '../../infrastructure/cm.api';
 
 // Paleta de gradientes para avatares de agentes
 const COLORES_AVATAR = [
@@ -27,6 +28,23 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
   const [tarjetasExpandidas, setTarjetasExpandidas] = useState({});
   const [menuOpcionesId, setMenuOpcionesId] = useState(null);
   const [requerimientoAEditar, setRequerimientoAEditar] = useState(null);
+
+  const handleQuitarPauta = async (item) => {
+    const nombre = item.nombre_propiedad || `Requerimiento #${item.id_requerimiento}`;
+    const confirmar = window.confirm(
+      `¿Estás seguro de que deseas quitar el pauteo de "${nombre}"?\nEsta propiedad dejará de figurar en el Panel de CM.`
+    );
+    if (!confirmar) return;
+
+    try {
+      const tcm = (Array.isArray(item.tareas_cm) ? item.tareas_cm[0] : item.tareas_cm) || {};
+      await quitarPautaCm(item.id_requerimiento, tcm.id_tarea);
+      if (alRecargar) alRecargar();
+    } catch (err) {
+      console.error('Error al quitar pauteo:', err);
+      alert(err.message || 'Error al quitar el pauteo');
+    }
+  };
 
   const handleEliminarRequerimiento = async (item) => {
     const nombre = item.nombre_propiedad || `Requerimiento #${item.id_requerimiento}`;
@@ -608,6 +626,19 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
                     >
                       <span className="material-symbols-outlined text-[16px] text-secondary">edit_note</span>
                       <span>Modificar requerimiento</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMenuOpcionesId(null);
+                        handleQuitarPauta(item);
+                      }}
+                      className="w-full px-3 py-2 text-left text-xs font-semibold flex items-center gap-2 hover:bg-amber-500/10 text-amber-700 dark:text-amber-300 cursor-pointer border-t"
+                      style={{ borderColor: 'var(--color-outline-variant)' }}
+                    >
+                      <span className="material-symbols-outlined text-[16px] text-amber-600">cancel</span>
+                      <span>Quitar pauteo</span>
                     </button>
                     <button
                       type="button"

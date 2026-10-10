@@ -46,6 +46,7 @@ export default function ModalEditarRequerimiento({
     fecha_rodaje: '',
     notas_produccion: '',
     // CM
+    habilitar_pauta: true,
     plataforma: 'Facebook / Instagram',
     moneda: 'USD',
     presupuesto: '',
@@ -101,6 +102,7 @@ export default function ModalEditarRequerimiento({
         fecha_rodaje: requerimiento.fecha_rodaje || '',
         notas_produccion: requerimiento.notas_produccion || '',
         // CM
+        habilitar_pauta: Boolean(tcm.plataforma && tcm.plataforma.trim() !== '' && tcm.estado !== 'Sin Pauta'),
         plataforma: tcm.plataforma || 'Facebook / Instagram',
         moneda: tcm.moneda || 'USD',
         presupuesto: tcm.presupuesto !== null && tcm.presupuesto !== undefined ? String(tcm.presupuesto) : '',
@@ -175,16 +177,20 @@ export default function ModalEditarRequerimiento({
       } else if (panel === 'cm') {
         payload = {
           ...datosPropiedad,
-          plataforma: formData.plataforma,
+          habilitar_pauta: formData.habilitar_pauta,
+          quitar_pauta: !formData.habilitar_pauta,
+          plataforma: formData.habilitar_pauta ? (formData.plataforma || 'Facebook / Instagram') : null,
           moneda: formData.moneda,
-          presupuesto: formData.presupuesto,
-          periodo_pauta: formData.periodo_pauta,
-          descripcion_pauta: formData.descripcion_pauta,
+          presupuesto: formData.habilitar_pauta ? formData.presupuesto : null,
+          periodo_pauta: formData.habilitar_pauta ? formData.periodo_pauta : null,
+          descripcion_pauta: formData.habilitar_pauta ? formData.descripcion_pauta : null,
           panel: 'cm'
         };
       } else {
         payload = {
           ...formData,
+          quitar_pauta: !formData.habilitar_pauta,
+          plataforma: formData.habilitar_pauta ? formData.plataforma : null,
           panel: 'general'
         };
       }
@@ -850,6 +856,65 @@ export default function ModalEditarRequerimiento({
           {/* TAB 3: PAUTA DIGITAL */}
           {tabActiva === 'pauta' && (
             <div className="space-y-4">
+              {/* Tarjeta de estado de pauteo (Activar / Quitar pauteo) */}
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-surface-container-low border border-surface-container">
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${formData.habilitar_pauta ? 'bg-secondary/15 text-secondary' : 'bg-surface-container-high text-outline'}`}>
+                    <span className="material-symbols-outlined text-[20px]">campaign</span>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-on-surface">Pauta Publicitaria (CM)</p>
+                    <p className="text-[10px] text-outline">
+                      {formData.habilitar_pauta 
+                        ? 'Activo: Esta propiedad aparecerá en el Panel de CM' 
+                        : 'Desactivado: Esta propiedad no aparecerá en el Panel de CM'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {formData.habilitar_pauta && (
+                    <button
+                      type="button"
+                      onClick={() => handleChange('habilitar_pauta', false)}
+                      className="px-2.5 py-1 rounded-lg text-xs font-semibold text-amber-700 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 flex items-center gap-1 cursor-pointer transition-colors"
+                      title="Quitar pauteo para que no figure en CM"
+                    >
+                      <span className="material-symbols-outlined text-[15px]">cancel</span>
+                      <span>Quitar Pauteo</span>
+                    </button>
+                  )}
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={formData.habilitar_pauta}
+                      onChange={(e) => handleChange('habilitar_pauta', e.target.checked)}
+                      className="w-4 h-4 rounded text-secondary cursor-pointer"
+                    />
+                    <span className={`text-xs font-bold ${formData.habilitar_pauta ? 'text-secondary' : 'text-outline'}`}>
+                      {formData.habilitar_pauta ? 'Con Pauta' : 'Sin Pauta'}
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              {!formData.habilitar_pauta ? (
+                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-900 dark:text-amber-200 text-xs flex items-center gap-2.5">
+                  <span className="material-symbols-outlined text-amber-600 text-[20px]">info</span>
+                  <div className="flex-1">
+                    <p className="font-semibold">El pauteo está desactivado para esta propiedad</p>
+                    <p className="text-[11px] opacity-80 mt-0.5">Al guardar los cambios, esta propiedad se retirará del Panel de CM y no figurará en la lista de campañas publicitarias.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleChange('habilitar_pauta', true)}
+                    className="px-3 py-1.5 rounded-xl text-xs font-bold bg-secondary text-white hover:bg-secondary-container transition-all cursor-pointer shadow-xs shrink-0"
+                  >
+                    Activar Pauteo
+                  </button>
+                </div>
+              ) : (
+                <>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center justify-between">
@@ -954,9 +1019,11 @@ export default function ModalEditarRequerimiento({
                   placeholder="Segmentación geográfica, objetivo de leads, llamada a la acción..."
                 />
               </div>
-            </div>
+            </>
           )}
         </div>
+      )}
+    </div>
 
         {/* Footer Actions */}
         <div 

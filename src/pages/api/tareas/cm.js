@@ -12,12 +12,19 @@ export async function PATCH({ request }) {
     }
 
     const updateFields = {};
-    if (estado !== undefined) updateFields.estado = estado;
-    if (plataforma !== undefined) updateFields.plataforma = plataforma;
-    if (presupuesto !== undefined) updateFields.presupuesto = presupuesto;
-    if (moneda !== undefined) updateFields.moneda = moneda;
-    if (periodo_pauta !== undefined) updateFields.periodo_pauta = periodo_pauta;
-    if (descripcion_pauta !== undefined) updateFields.descripcion_pauta = descripcion_pauta;
+    if (body.quitar_pauta) {
+      updateFields.plataforma = null;
+      updateFields.presupuesto = null;
+      updateFields.estado = 'Sin Pauta';
+      updateFields.descripcion_pauta = null;
+    } else {
+      if (estado !== undefined) updateFields.estado = estado;
+      if (plataforma !== undefined) updateFields.plataforma = plataforma;
+      if (presupuesto !== undefined) updateFields.presupuesto = presupuesto;
+      if (moneda !== undefined) updateFields.moneda = moneda;
+      if (periodo_pauta !== undefined) updateFields.periodo_pauta = periodo_pauta;
+      if (descripcion_pauta !== undefined) updateFields.descripcion_pauta = descripcion_pauta;
+    }
 
     let registroExistente = null;
     if (id_tarea) {

@@ -24,3 +24,21 @@ export async function registrarReporteMeta({ id_requerimiento, id_agente, period
   notificarCambioLocal({ tipo: 'reporte_cm_creado', id_requerimiento });
   return data;
 }
+
+export async function quitarPautaCm(id_requerimiento, id_tarea) {
+  const res = await fetch('/api/tareas/cm', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      id_requerimiento,
+      id_tarea,
+      quitar_pauta: true,
+      usuario: 'Área de Pauta & CM',
+      comentario: 'Pauta publicitaria retirada del panel de CM'
+    })
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Error al quitar pauta');
+  notificarCambioLocal({ tipo: 'tarea_cm_actualizada', id_requerimiento, campos: { plataforma: null, estado: 'Sin Pauta' } });
+  return data;
+}

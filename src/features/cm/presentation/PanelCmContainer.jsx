@@ -29,21 +29,26 @@ export default function PanelCmContainer() {
       }
       
       const ahora = Date.now();
-      const datosActualizados = (Array.isArray(json) ? json : []).map(item => {
-        const mut = mutacionesRecientesRef.current.get(item.id_requerimiento);
-        if (mut && ahora - mut.timestamp < 4000) {
+      const datosActualizados = (Array.isArray(json) ? json : [])
+        .map(item => {
+          const mut = mutacionesRecientesRef.current.get(item.id_requerimiento);
+          if (mut && ahora - mut.timestamp < 4000) {
+            const tcm = (Array.isArray(item.tareas_cm) ? item.tareas_cm[0] : item.tareas_cm) || {};
+            return {
+              ...item,
+              tareas_cm: [{
+                ...tcm,
+                ...mut.actualizado,
+                id_tarea: tcm.id_tarea || mut.actualizado.id_tarea
+              }]
+            };
+          }
+          return item;
+        })
+        .filter(item => {
           const tcm = (Array.isArray(item.tareas_cm) ? item.tareas_cm[0] : item.tareas_cm) || {};
-          return {
-            ...item,
-            tareas_cm: [{
-              ...tcm,
-              ...mut.actualizado,
-              id_tarea: tcm.id_tarea || mut.actualizado.id_tarea
-            }]
-          };
-        }
-        return item;
-      });
+          return Boolean(tcm.plataforma && tcm.plataforma.trim() !== '' && tcm.estado !== 'Sin Pauta');
+        });
 
       setDatos(datosActualizados);
     } catch (err) {
