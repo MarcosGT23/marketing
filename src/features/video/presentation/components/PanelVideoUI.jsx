@@ -4,6 +4,7 @@ import { SlideConfirm } from '../../../diseno/presentation/components/SlideConfi
 import '../../../diseno/presentation/components/SlideConfirm.css';
 import { ChecklistRequerimientos } from './ChecklistRequerimientos';
 import ModalEditarRequerimiento from '../../../requerimientos/presentation/components/ModalEditarRequerimiento';
+import { eliminarRequerimiento } from '../../../requerimientos/infrastructure/requerimiento.api';
 
 function StyledSelect({ children, ...rest }) {
     const [focused, setFocused] = useState(false);
@@ -139,6 +140,22 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
     const [tarjetasExpandidas, setTarjetasExpandidas] = useState({});
     const [menuOpcionesId, setMenuOpcionesId] = useState(null);
     const [requerimientoAEditar, setRequerimientoAEditar] = useState(null);
+
+    const handleEliminarRequerimiento = async (item) => {
+        const nombre = item.nombre_propiedad || `Requerimiento #${item.id_requerimiento}`;
+        const confirmar = window.confirm(
+            `¿Estás seguro de que deseas eliminar "${nombre}"?\nEsta acción eliminará el requerimiento y todas sus tareas asociadas en todos los paneles.`
+        );
+        if (!confirmar) return;
+
+        try {
+            await eliminarRequerimiento(item.id_requerimiento);
+            if (alGuardar) alGuardar();
+        } catch (err) {
+            console.error('Error al eliminar requerimiento:', err);
+            alert(err.message || 'Error al eliminar el requerimiento');
+        }
+    };
 
     const toggleExpandir = (id) => {
         setTarjetasExpandidas(prev => ({ ...prev, [id]: !prev[id] }));
@@ -622,10 +639,11 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                 </div>
             )}
             
-            {/* Modal para Modificar Requerimiento Completo */}
+            {/* Modal para Modificar Requerimiento Audiovisual */}
             <ModalEditarRequerimiento
                 abierto={Boolean(requerimientoAEditar)}
                 requerimiento={requerimientoAEditar}
+                panel="video"
                 alCerrar={() => setRequerimientoAEditar(null)}
                 alGuardarExitoso={() => {
                     setRequerimientoAEditar(null);
@@ -730,6 +748,18 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                                         >
                                             <span className="material-symbols-outlined text-[16px] text-tertiary">edit_note</span>
                                             <span>Modificar requerimiento</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setMenuOpcionesId(null);
+                                                handleEliminarRequerimiento(item);
+                                            }}
+                                            className="w-full px-3 py-2 text-left text-xs font-semibold flex items-center gap-2 hover:bg-red-500/10 text-error cursor-pointer border-t"
+                                            style={{ borderColor: 'var(--color-outline-variant)' }}
+                                        >
+                                            <span className="material-symbols-outlined text-[16px] text-error">delete</span>
+                                            <span>Eliminar requerimiento</span>
                                         </button>
                                     </div>
                                 )}

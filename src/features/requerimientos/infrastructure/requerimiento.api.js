@@ -20,13 +20,13 @@ export async function crearRequerimiento(datosFormulario) {
   return resultado;
 }
 
-export async function actualizarRequerimiento(idRequerimiento, datosFormulario) {
+export async function actualizarRequerimiento(idRequerimiento, datosFormulario, panel = 'general') {
   const respuesta = await fetch('/api/requerimientos', {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ ...datosFormulario, id_requerimiento: idRequerimiento })
+    body: JSON.stringify({ ...datosFormulario, id_requerimiento: idRequerimiento, panel: datosFormulario?.panel || panel })
   });
 
   const resultado = await respuesta.json();
@@ -35,7 +35,27 @@ export async function actualizarRequerimiento(idRequerimiento, datosFormulario) 
     throw new Error(resultado.error || 'Error al actualizar el requerimiento');
   }
 
-  notificarCambioLocal({ tipo: 'requerimiento_actualizado', id: idRequerimiento });
+  notificarCambioLocal({ tipo: 'requerimiento_actualizado', id: idRequerimiento, panel });
+
+  return resultado;
+}
+
+export async function eliminarRequerimiento(idRequerimiento) {
+  const respuesta = await fetch('/api/requerimientos', {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ id_requerimiento: idRequerimiento })
+  });
+
+  const resultado = await respuesta.json();
+
+  if (!respuesta.ok) {
+    throw new Error(resultado.error || 'Error al eliminar el requerimiento');
+  }
+
+  notificarCambioLocal({ tipo: 'requerimiento_eliminado', id: idRequerimiento });
 
   return resultado;
 }

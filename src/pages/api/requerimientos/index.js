@@ -303,6 +303,7 @@ export async function PUT({ request }) {
   try {
     const body = await request.json();
     const idReq = body.id_requerimiento;
+    const panel = body.panel || 'general'; // 'diseno' | 'video' | 'cm' | 'general'
 
     if (!idReq) {
       return new Response(JSON.stringify({ error: 'id_requerimiento es requerido para actualizar' }), {
@@ -316,7 +317,6 @@ export async function PUT({ request }) {
     if (body.periodo_mensual !== undefined) camposActualizar.periodo_mensual = body.periodo_mensual;
     if (body.nombre_propiedad !== undefined) camposActualizar.nombre_propiedad = body.nombre_propiedad;
     if (body.categoria !== undefined) camposActualizar.categoria = body.categoria;
-    if (body.categoria_diseno !== undefined) camposActualizar.categoria_diseno = body.categoria_diseno || null;
     if (body.ubicacion !== undefined) camposActualizar.ubicacion = body.ubicacion || null;
     if (body.tipo !== undefined) camposActualizar.tipo = body.tipo || null;
     if (body.precio !== undefined) camposActualizar.precio = body.precio || null;
@@ -326,11 +326,19 @@ export async function PUT({ request }) {
     if (body.superficie !== undefined) camposActualizar.superficie = body.superficie || null;
     if (body.habitaciones !== undefined) camposActualizar.habitaciones = body.habitaciones ? parseInt(body.habitaciones, 10) : null;
     if (body.prioridad !== undefined) camposActualizar.prioridad = body.prioridad;
-    if (body.req_arte_estatico !== undefined) camposActualizar.req_arte_estatico = Boolean(body.req_arte_estatico);
-    if (body.req_carrusel !== undefined) camposActualizar.req_carrusel = Boolean(body.req_carrusel);
-    if (body.req_reel !== undefined) camposActualizar.req_reel = Boolean(body.req_reel);
-    if (body.fecha_rodaje !== undefined) camposActualizar.fecha_rodaje = body.fecha_rodaje || null;
-    if (body.notas_produccion !== undefined) camposActualizar.notas_produccion = body.notas_produccion || null;
+
+    // Campos específicos según panel
+    if (panel === 'diseno' || panel === 'general') {
+      if (body.categoria_diseno !== undefined) camposActualizar.categoria_diseno = body.categoria_diseno || null;
+      if (body.req_arte_estatico !== undefined) camposActualizar.req_arte_estatico = Boolean(body.req_arte_estatico);
+      if (body.req_carrusel !== undefined) camposActualizar.req_carrusel = Boolean(body.req_carrusel);
+    }
+
+    if (panel === 'video' || panel === 'general') {
+      if (body.req_reel !== undefined) camposActualizar.req_reel = Boolean(body.req_reel);
+      if (body.fecha_rodaje !== undefined) camposActualizar.fecha_rodaje = body.fecha_rodaje || null;
+      if (body.notas_produccion !== undefined) camposActualizar.notas_produccion = body.notas_produccion || null;
+    }
 
     const { data: requerimiento, error: errorReq } = await supabaseServer
       .from('requerimientos_propiedad')
@@ -341,81 +349,90 @@ export async function PUT({ request }) {
 
     if (errorReq) throw errorReq;
 
-    // Actualizar tarea de video si se envían flags de video
-    if (body.req_reel !== undefined || body.req_guion !== undefined || body.req_fotos !== undefined) {
-      const { data: videoExistente } = await supabaseServer
-        .from('tareas_video')
-        .select('id_tarea')
-        .eq('id_requerimiento', idReq)
-        .maybeSingle();
+    // Actualizar tarea de video SOLO si el panel es 'video' o 'general'
+    if (panel === 'video' || panel === 'general') {
+      if (body.req_reel !== undefined || body.req_guion !== undefined || body.req_fotos !== undefined) {
+        const { data: videoExistente } = await supabaseServer
+          .from('tareas_video')
+          .select('id_tarea')
+          .eq('id_requerimiento', idReq)
+          .maybeSingle();
 
-      const videoData = {
-        req_guion: Boolean(body.req_guion),
-        req_fotos: Boolean(body.req_fotos),
-        req_grabacion: Boolean(body.req_grabacion),
-        req_edicion: Boolean(body.req_edicion),
-        req_voz_off: Boolean(body.req_voz_off)
-      };
+        const videoData = {
+          req_guion: Boolean(body.req_guion),
+          req_fotos: Boolean(body.req_fotos),
+          req_grabacion: Boolean(body.req_grabacion),
+          req_edicion: Boolean(body.req_edicion),
+          req_voz_off: Boolean(body.req_voz_off)
+        };
 
-      if (videoExistente) {
-        await supabaseServer.from('tareas_video').update(videoData).eq('id_requerimiento', idReq);
-      } else if (body.req_reel) {
-        await supabaseServer.from('tareas_video').insert([{
-          id_requerimiento: idReq,
-          estado: 'Por Hacer',
-          progreso_porcentaje: 0,
-          ...videoData
-        }]);
-      }
-    }
-
-    // Actualizar tarea de CM si se envían datos de pauta
-    if (body.plataforma !== undefined || body.presupuesto !== undefined || body.periodo_pauta !== undefined || body.descripcion_pauta !== undefined) {
-      const { data: cmExistente } = await supabaseServer
-        .from('tareas_cm')
-        .select('id_tarea')
-        .eq('id_requerimiento', idReq)
-        .maybeSingle();
-
-      const cmData = {
-        plataforma: body.plataforma || 'Facebook / Instagram',
-        presupuesto: body.presupuesto || null,
-        moneda: body.moneda || 'USD',
-        periodo_pauta: body.periodo_pauta || 'Mes',
-        descripcion_pauta: body.descripcion_pauta !== undefined ? body.descripcion_pauta : ''
-      };
-
-      if (cmExistente) {
-        await supabaseServer.from('tareas_cm').update(cmData).eq('id_requerimiento', idReq);
-      } else if (body.plataforma || body.presupuesto || body.periodo_pauta || body.descripcion_pauta) {
-        await supabaseServer.from('tareas_cm').insert([{
-          id_requerimiento: idReq,
-          estado: 'Por Hacer',
-          ...cmData
-        }]);
-      }
-    }
-
-    // Actualizar o crear tarea de diseño si la propiedad tiene flags de diseño
-    const reqDiseno = body.req_arte_estatico || body.req_carrusel || body.categoria === 'Diseño Interno';
-    if (body.req_arte_estatico !== undefined || body.req_carrusel !== undefined || body.categoria !== undefined) {
-      const { data: disenoExistente } = await supabaseServer
-        .from('tareas_diseno')
-        .select('id_tarea')
-        .eq('id_requerimiento', idReq)
-        .maybeSingle();
-
-      if (disenoExistente) {
-        if (body.fecha_rodaje) {
-          await supabaseServer.from('tareas_diseno').update({ fecha_limite: body.fecha_rodaje }).eq('id_requerimiento', idReq);
+        if (videoExistente) {
+          await supabaseServer.from('tareas_video').update(videoData).eq('id_requerimiento', idReq);
+        } else if (body.req_reel) {
+          await supabaseServer.from('tareas_video').insert([{
+            id_requerimiento: idReq,
+            estado: 'Por Hacer',
+            progreso_porcentaje: 0,
+            ...videoData
+          }]);
         }
-      } else if (reqDiseno) {
-        await supabaseServer.from('tareas_diseno').insert([{
-          id_requerimiento: idReq,
-          estado: 'Por Hacer',
-          progreso_porcentaje: 0,
-          fecha_limite: body.fecha_rodaje || null
-        }]);
+      }
+    }
+
+    // Actualizar tarea de CM SOLO si el panel es 'cm' o 'general'
+    if (panel === 'cm' || panel === 'general') {
+      if (body.plataforma !== undefined || body.presupuesto !== undefined || body.periodo_pauta !== undefined || body.descripcion_pauta !== undefined) {
+        const { data: cmExistente } = await supabaseServer
+          .from('tareas_cm')
+          .select('id_tarea')
+          .eq('id_requerimiento', idReq)
+          .maybeSingle();
+
+        const cmData = {
+          plataforma: body.plataforma || 'Facebook / Instagram',
+          presupuesto: body.presupuesto || null,
+          moneda: body.moneda || 'USD',
+          periodo_pauta: body.periodo_pauta || 'Mes',
+          descripcion_pauta: body.descripcion_pauta !== undefined ? body.descripcion_pauta : ''
+        };
+
+        if (cmExistente) {
+          await supabaseServer.from('tareas_cm').update(cmData).eq('id_requerimiento', idReq);
+        } else if (body.plataforma || body.presupuesto || body.periodo_pauta || body.descripcion_pauta) {
+          await supabaseServer.from('tareas_cm').insert([{
+            id_requerimiento: idReq,
+            estado: 'Por Hacer',
+            ...cmData
+          }]);
+        }
+      }
+    }
+
+    // Actualizar tarea de diseño SOLO si el panel es 'diseno' o 'general'
+    if (panel === 'diseno' || panel === 'general') {
+      const reqDiseno = body.req_arte_estatico || body.req_carrusel || body.categoria === 'Diseño Interno';
+      if (body.req_arte_estatico !== undefined || body.req_carrusel !== undefined || body.categoria !== undefined || body.fecha_limite !== undefined) {
+        const { data: disenoExistente } = await supabaseServer
+          .from('tareas_diseno')
+          .select('id_tarea')
+          .eq('id_requerimiento', idReq)
+          .maybeSingle();
+
+        if (disenoExistente) {
+          const updateObj = {};
+          if (body.fecha_limite !== undefined) updateObj.fecha_limite = body.fecha_limite || null;
+          else if (body.fecha_rodaje) updateObj.fecha_limite = body.fecha_rodaje;
+          if (Object.keys(updateObj).length > 0) {
+            await supabaseServer.from('tareas_diseno').update(updateObj).eq('id_requerimiento', idReq);
+          }
+        } else if (reqDiseno) {
+          await supabaseServer.from('tareas_diseno').insert([{
+            id_requerimiento: idReq,
+            estado: 'Por Hacer',
+            progreso_porcentaje: 0,
+            fecha_limite: body.fecha_limite || body.fecha_rodaje || null
+          }]);
+        }
       }
     }
 
@@ -428,6 +445,63 @@ export async function PUT({ request }) {
     });
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, no-cache, must-revalidate'
+      }
+    });
+  }
+}
+
+// ============================================================================
+// DELETE: Eliminar requerimiento existente y todas sus dependencias en cascada
+// ============================================================================
+export async function DELETE({ request }) {
+  try {
+    const body = await request.json();
+    const idReq = body.id_requerimiento;
+
+    if (!idReq) {
+      return new Response(JSON.stringify({ error: 'id_requerimiento es requerido para eliminar' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // 1. Eliminar reportes publicitarios o de CM asociados
+    try {
+      await supabaseServer.from('reportes_meta_cm').delete().eq('id_requerimiento', idReq);
+    } catch (_) {}
+
+    // 2. Eliminar tareas de diseño, video y CM
+    await supabaseServer.from('tareas_diseno').delete().eq('id_requerimiento', idReq);
+    await supabaseServer.from('tareas_video').delete().eq('id_requerimiento', idReq);
+    await supabaseServer.from('tareas_cm').delete().eq('id_requerimiento', idReq);
+
+    // 3. Eliminar historial de seguimiento
+    try {
+      await supabaseServer.from('historial_seguimiento').delete().eq('id_requerimiento', idReq);
+    } catch (_) {}
+
+    // 4. Eliminar el requerimiento de propiedad principal
+    const { error: errReq } = await supabaseServer
+      .from('requerimientos_propiedad')
+      .delete()
+      .eq('id_requerimiento', idReq);
+
+    if (errReq) throw errReq;
+
+    return new Response(JSON.stringify({ success: true, id_requerimiento: idReq }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, no-cache, must-revalidate'
+      }
+    });
+  } catch (err) {
+    console.error('Error al eliminar requerimiento en DELETE /api/requerimientos:', err);
+    return new Response(JSON.stringify({ error: err.message || 'Error al eliminar requerimiento' }), {
       status: 500,
       headers: {
         'Content-Type': 'application/json',

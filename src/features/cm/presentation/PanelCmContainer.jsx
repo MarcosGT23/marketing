@@ -190,6 +190,7 @@ export default function PanelCmContainer() {
         cargando={cargando}
         alSeleccionarPropiedad={abrirDetalle}
         alAbrirNuevoReporte={() => setModalNuevoReporteAbierto(true)}
+        alRecargar={() => cargarRequerimientos(false)}
       />
 
       <ModalDetallePropiedadCM

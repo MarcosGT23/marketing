@@ -358,6 +358,7 @@ export default function DashboardUI({ metricas, campanas, cargando, periodoSelec
             <ModalEditarRequerimiento
                 abierto={Boolean(requerimientoAEditar)}
                 requerimiento={requerimientoAEditar}
+                panel="general"
                 alCerrar={() => setRequerimientoAEditar(null)}
                 alGuardarExitoso={() => {
                     setRequerimientoAEditar(null);

@@ -1,6 +1,7 @@
 // src/features/cm/presentation/components/PanelCmUI.jsx
 import { useState, useMemo } from 'react';
 import ModalEditarRequerimiento from '../../../requerimientos/presentation/components/ModalEditarRequerimiento';
+import { eliminarRequerimiento } from '../../../requerimientos/infrastructure/requerimiento.api';
 
 // Paleta de gradientes para avatares de agentes
 const COLORES_AVATAR = [
@@ -19,13 +20,29 @@ function obtenerIniciales(nombre) {
   return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
 }
 
-export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropiedad, alAbrirNuevoReporte }) {
+export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropiedad, alAbrirNuevoReporte, alRecargar }) {
   const [agenteSeleccionadoId, setAgenteSeleccionadoId] = useState(null);
   const [vistaModo, setVistaModo] = useState('agentes'); // 'agentes' | 'todos'
   const [busqueda, setBusqueda] = useState('');
   const [tarjetasExpandidas, setTarjetasExpandidas] = useState({});
   const [menuOpcionesId, setMenuOpcionesId] = useState(null);
   const [requerimientoAEditar, setRequerimientoAEditar] = useState(null);
+
+  const handleEliminarRequerimiento = async (item) => {
+    const nombre = item.nombre_propiedad || `Requerimiento #${item.id_requerimiento}`;
+    const confirmar = window.confirm(
+      `¿Estás seguro de que deseas eliminar "${nombre}"?\nEsta acción eliminará el requerimiento y todas sus tareas asociadas en todos los paneles.`
+    );
+    if (!confirmar) return;
+
+    try {
+      await eliminarRequerimiento(item.id_requerimiento);
+      if (alRecargar) alRecargar();
+    } catch (err) {
+      console.error('Error al eliminar requerimiento:', err);
+      alert(err.message || 'Error al eliminar el requerimiento');
+    }
+  };
 
   const toggleExpandir = (id) => {
     setTarjetasExpandidas(prev => ({ ...prev, [id]: !prev[id] }));
@@ -493,13 +510,15 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
         </div>
       )}
 
-      {/* Modal para Modificar Requerimiento Completo */}
+      {/* Modal para Modificar Requerimiento de CM */}
       <ModalEditarRequerimiento
         abierto={Boolean(requerimientoAEditar)}
         requerimiento={requerimientoAEditar}
+        panel="cm"
         alCerrar={() => setRequerimientoAEditar(null)}
         alGuardarExitoso={() => {
           setRequerimientoAEditar(null);
+          if (alRecargar) alRecargar();
         }}
       />
 
@@ -589,6 +608,19 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
                     >
                       <span className="material-symbols-outlined text-[16px] text-secondary">edit_note</span>
                       <span>Modificar requerimiento</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMenuOpcionesId(null);
+                        handleEliminarRequerimiento(item);
+                      }}
+                      className="w-full px-3 py-2 text-left text-xs font-semibold flex items-center gap-2 hover:bg-red-500/10 text-error cursor-pointer border-t"
+                      style={{ borderColor: 'var(--color-outline-variant)' }}
+                    >
+                      <span className="material-symbols-outlined text-[16px] text-error">delete</span>
+                      <span>Eliminar requerimiento</span>
                     </button>
                   </div>
                 )}

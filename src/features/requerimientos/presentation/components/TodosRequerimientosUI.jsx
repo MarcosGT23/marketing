@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import ModalEditarRequerimiento from './ModalEditarRequerimiento';
+import { eliminarRequerimiento } from '../../infrastructure/requerimiento.api';
 
 const COLORES_AVATAR = [
   'from-blue-600 to-indigo-600',
@@ -29,7 +30,24 @@ export default function TodosRequerimientosUI({
   const [periodoFiltro, setPeriodoFiltro] = useState('');
   const [categoriaFiltro, setCategoriaFiltro] = useState('');
   const [requerimientoAEditar, setRequerimientoAEditar] = useState(null);
+  const [menuOpcionesId, setMenuOpcionesId] = useState(null);
   const [expandidos, setExpandidos] = useState({});
+
+  const handleEliminarRequerimiento = async (item) => {
+    const nombre = item.nombre_propiedad || `Requerimiento #${item.id_requerimiento}`;
+    const confirmar = window.confirm(
+      `¿Estás seguro de que deseas eliminar "${nombre}"?\nEsta acción eliminará el requerimiento y todas sus tareas asociadas en todos los paneles.`
+    );
+    if (!confirmar) return;
+
+    try {
+      await eliminarRequerimiento(item.id_requerimiento);
+      if (alActualizar) alActualizar();
+    } catch (err) {
+      console.error('Error al eliminar requerimiento:', err);
+      alert(err.message || 'Error al eliminar el requerimiento');
+    }
+  };
 
   const toggleExpandir = (id) => {
     setExpandidos(prev => ({ ...prev, [id]: !prev[id] }));
@@ -454,6 +472,7 @@ export default function TodosRequerimientosUI({
       <ModalEditarRequerimiento
         abierto={Boolean(requerimientoAEditar)}
         requerimiento={requerimientoAEditar}
+        panel="general"
         alCerrar={() => setRequerimientoAEditar(null)}
         alGuardarExitoso={() => {
           setRequerimientoAEditar(null);
@@ -511,16 +530,52 @@ export default function TodosRequerimientosUI({
               </p>
             </div>
 
-            {/* Botón Editar Requerimiento Completo */}
-            <button
-              type="button"
-              onClick={() => setRequerimientoAEditar(item)}
-              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-primary-fixed text-on-primary-fixed-variant hover:bg-primary-container hover:text-white transition-all shadow-xs flex items-center gap-1.5 shrink-0 active:scale-95 cursor-pointer"
-              title="Editar todos los campos del requerimiento"
-            >
-              <span className="material-symbols-outlined text-[16px]">edit_note</span>
-              <span>Editar Completo</span>
-            </button>
+            {/* Botón de 3 puntitos con menú de opciones */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenuOpcionesId(menuOpcionesId === item.id_requerimiento ? null : item.id_requerimiento);
+                }}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container transition-colors"
+                title="Opciones del requerimiento"
+              >
+                <span className="material-symbols-outlined text-[18px]">more_vert</span>
+              </button>
+
+              {menuOpcionesId === item.id_requerimiento && (
+                <div 
+                  className="absolute right-0 top-8 z-30 w-48 py-1 rounded-xl shadow-xl border bg-surface-container-lowest animate-fadeIn"
+                  style={{ borderColor: 'var(--color-outline-variant)' }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpcionesId(null);
+                      setRequerimientoAEditar(item);
+                    }}
+                    className="w-full px-3 py-2 text-left text-xs font-semibold flex items-center gap-2 hover:bg-surface-container text-on-surface cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-[16px] text-primary-container">edit_note</span>
+                    <span>Modificar requerimiento</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpcionesId(null);
+                      handleEliminarRequerimiento(item);
+                    }}
+                    className="w-full px-3 py-2 text-left text-xs font-semibold flex items-center gap-2 hover:bg-red-500/10 text-error cursor-pointer border-t"
+                    style={{ borderColor: 'var(--color-outline-variant)' }}
+                  >
+                    <span className="material-symbols-outlined text-[16px] text-error">delete</span>
+                    <span>Eliminar requerimiento</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Tags de Entregables */}

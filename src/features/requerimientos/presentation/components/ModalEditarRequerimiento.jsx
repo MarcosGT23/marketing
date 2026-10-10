@@ -8,9 +8,10 @@ export default function ModalEditarRequerimiento({
   requerimiento,
   alCerrar,
   alGuardarExitoso,
-  agentes = []
+  agentes = [],
+  panel = 'general' // 'diseno' | 'video' | 'cm' | 'general'
 }) {
-  const [tabActiva, setTabActiva] = useState('propiedad'); // 'propiedad' | 'audiovisual' | 'pauta'
+  const [tabActiva, setTabActiva] = useState('propiedad'); // 'propiedad' | 'diseno' | 'video' | 'pauta' | 'audiovisual'
   const [guardando, setGuardando] = useState(false);
   const [listaAgentes, setListaAgentes] = useState(agentes);
   const [mensajeError, setMensajeError] = useState(null);
@@ -31,11 +32,12 @@ export default function ModalEditarRequerimiento({
     descripcion_propiedad: '',
     elemento_destacar: '',
     publico_objetivo: '',
-    // Entregables
+    // Entregables Diseño
     req_arte_estatico: false,
     req_carrusel: false,
-    req_reel: false,
+    fecha_limite: '',
     // Video
+    req_reel: false,
     req_guion: false,
     req_fotos: false,
     req_grabacion: false,
@@ -66,13 +68,14 @@ export default function ModalEditarRequerimiento({
   // Sincronizar datos cuando cambia el requerimiento o se abre el modal
   useEffect(() => {
     if (requerimiento && abierto) {
+      const td = (Array.isArray(requerimiento.tareas_diseno) ? requerimiento.tareas_diseno[0] : requerimiento.tareas_diseno) || {};
       const tv = (Array.isArray(requerimiento.tareas_video) ? requerimiento.tareas_video[0] : requerimiento.tareas_video) || {};
       const tcm = (Array.isArray(requerimiento.tareas_cm) ? requerimiento.tareas_cm[0] : requerimiento.tareas_cm) || {};
 
       setFormData({
         nombre_propiedad: requerimiento.nombre_propiedad || '',
         id_agente: requerimiento.id_agente || (requerimiento.usuarios?.id_usuario || ''),
-        periodo_mensual: requerimiento.periodo_mensual || 'Septiembre 2026',
+        periodo_mensual: requerimiento.periodo_mensual || obtenerPeriodoActual(),
         categoria: requerimiento.categoria || 'Departamento',
         categoria_diseno: requerimiento.categoria_diseno || '',
         tipo: requerimiento.tipo || 'Venta',
@@ -84,11 +87,12 @@ export default function ModalEditarRequerimiento({
         descripcion_propiedad: requerimiento.descripcion_propiedad || '',
         elemento_destacar: requerimiento.elemento_destacar || '',
         publico_objetivo: requerimiento.publico_objetivo || '',
-        // Entregables
+        // Entregables Diseño
         req_arte_estatico: Boolean(requerimiento.req_arte_estatico),
         req_carrusel: Boolean(requerimiento.req_carrusel),
-        req_reel: Boolean(requerimiento.req_reel),
+        fecha_limite: td.fecha_limite || '',
         // Video
+        req_reel: Boolean(requerimiento.req_reel),
         req_guion: Boolean(tv.req_guion),
         req_fotos: Boolean(tv.req_fotos),
         req_grabacion: Boolean(tv.req_grabacion),
@@ -129,7 +133,63 @@ export default function ModalEditarRequerimiento({
     setMensajeError(null);
 
     try {
-      const res = await actualizarRequerimiento(requerimiento.id_requerimiento, formData);
+      const datosPropiedad = {
+        nombre_propiedad: formData.nombre_propiedad,
+        id_agente: formData.id_agente,
+        periodo_mensual: formData.periodo_mensual,
+        categoria: formData.categoria,
+        tipo: formData.tipo,
+        ubicacion: formData.ubicacion,
+        precio: formData.precio,
+        superficie: formData.superficie,
+        habitaciones: formData.habitaciones,
+        prioridad: formData.prioridad,
+        descripcion_propiedad: formData.descripcion_propiedad,
+        elemento_destacar: formData.elemento_destacar,
+        publico_objetivo: formData.publico_objetivo,
+      };
+
+      let payload = {};
+      if (panel === 'diseno') {
+        payload = {
+          ...datosPropiedad,
+          req_arte_estatico: formData.req_arte_estatico,
+          req_carrusel: formData.req_carrusel,
+          categoria_diseno: formData.categoria_diseno,
+          fecha_limite: formData.fecha_limite,
+          panel: 'diseno'
+        };
+      } else if (panel === 'video') {
+        payload = {
+          ...datosPropiedad,
+          req_reel: formData.req_reel,
+          req_guion: formData.req_guion,
+          req_fotos: formData.req_fotos,
+          req_grabacion: formData.req_grabacion,
+          req_edicion: formData.req_edicion,
+          req_voz_off: formData.req_voz_off,
+          fecha_rodaje: formData.fecha_rodaje,
+          notas_produccion: formData.notas_produccion,
+          panel: 'video'
+        };
+      } else if (panel === 'cm') {
+        payload = {
+          ...datosPropiedad,
+          plataforma: formData.plataforma,
+          moneda: formData.moneda,
+          presupuesto: formData.presupuesto,
+          periodo_pauta: formData.periodo_pauta,
+          descripcion_pauta: formData.descripcion_pauta,
+          panel: 'cm'
+        };
+      } else {
+        payload = {
+          ...formData,
+          panel: 'general'
+        };
+      }
+
+      const res = await actualizarRequerimiento(requerimiento.id_requerimiento, payload, panel);
       if (alGuardarExitoso) {
         alGuardarExitoso(res);
       }
@@ -141,6 +201,36 @@ export default function ModalEditarRequerimiento({
       setGuardando(false);
     }
   };
+
+  // Configuración de visualización según el panel
+  const configHeaderPorPanel = {
+    diseno: {
+      titulo: 'Modificar Requerimiento de Diseño',
+      subtitulo: `Solo modifica entregables gráficos de diseño • ID: ${requerimiento.id_requerimiento}`,
+      icono: 'palette',
+      iconoColor: 'bg-primary-container text-white',
+    },
+    video: {
+      titulo: 'Modificar Requerimiento Audiovisual',
+      subtitulo: `Solo modifica producción de video • ID: ${requerimiento.id_requerimiento}`,
+      icono: 'movie',
+      iconoColor: 'bg-tertiary text-white',
+    },
+    cm: {
+      titulo: 'Modificar Requerimiento de Pauta (CM)',
+      subtitulo: `Solo modifica pauta digital y presupuesto • ID: ${requerimiento.id_requerimiento}`,
+      icono: 'campaign',
+      iconoColor: 'bg-secondary text-white',
+    },
+    general: {
+      titulo: 'Modificar Requerimiento Completo',
+      subtitulo: `Edición integral de todos los paneles • ID: ${requerimiento.id_requerimiento}`,
+      icono: 'edit_note',
+      iconoColor: 'bg-primary-container text-white',
+    }
+  };
+
+  const headerConfig = configHeaderPorPanel[panel] || configHeaderPorPanel.general;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-sm animate-fadeIn">
@@ -162,15 +252,15 @@ export default function ModalEditarRequerimiento({
           }}
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-primary-container text-white flex items-center justify-center shadow-md">
-              <span className="material-symbols-outlined text-[22px]">edit_note</span>
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-md ${headerConfig.iconoColor}`}>
+              <span className="material-symbols-outlined text-[22px]">{headerConfig.icono}</span>
             </div>
             <div>
               <h2 className="font-display font-bold text-base sm:text-lg" style={{ color: 'var(--color-on-surface)' }}>
-                Modificar Requerimiento
+                {headerConfig.titulo}
               </h2>
               <p className="text-xs" style={{ color: 'var(--color-outline)' }}>
-                ID: {requerimiento.id_requerimiento} • {requerimiento.nombre_propiedad}
+                {headerConfig.subtitulo}
               </p>
             </div>
           </div>
@@ -200,31 +290,80 @@ export default function ModalEditarRequerimiento({
             <span>Propiedad y General</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setTabActiva('audiovisual')}
-            className={`py-3 px-3.5 text-xs sm:text-sm font-semibold flex items-center gap-2 border-b-2 transition-all ${
-              tabActiva === 'audiovisual'
-                ? 'border-tertiary text-tertiary'
-                : 'border-transparent text-outline hover:text-on-surface'
-            }`}
-          >
-            <span className="material-symbols-outlined text-[18px]">palette</span>
-            <span>Diseño y Video</span>
-          </button>
+          {panel === 'diseno' && (
+            <button
+              type="button"
+              onClick={() => setTabActiva('diseno')}
+              className={`py-3 px-3.5 text-xs sm:text-sm font-semibold flex items-center gap-2 border-b-2 transition-all ${
+                tabActiva === 'diseno'
+                  ? 'border-primary-container text-primary-container'
+                  : 'border-transparent text-outline hover:text-on-surface'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[18px]">palette</span>
+              <span>Entregables de Diseño</span>
+            </button>
+          )}
 
-          <button
-            type="button"
-            onClick={() => setTabActiva('pauta')}
-            className={`py-3 px-3.5 text-xs sm:text-sm font-semibold flex items-center gap-2 border-b-2 transition-all ${
-              tabActiva === 'pauta'
-                ? 'border-secondary text-secondary'
-                : 'border-transparent text-outline hover:text-on-surface'
-            }`}
-          >
-            <span className="material-symbols-outlined text-[18px]">campaign</span>
-            <span>Pauta Digital (CM)</span>
-          </button>
+          {panel === 'video' && (
+            <button
+              type="button"
+              onClick={() => setTabActiva('video')}
+              className={`py-3 px-3.5 text-xs sm:text-sm font-semibold flex items-center gap-2 border-b-2 transition-all ${
+                tabActiva === 'video'
+                  ? 'border-tertiary text-tertiary'
+                  : 'border-transparent text-outline hover:text-on-surface'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[18px]">movie</span>
+              <span>Producción de Video</span>
+            </button>
+          )}
+
+          {panel === 'cm' && (
+            <button
+              type="button"
+              onClick={() => setTabActiva('pauta')}
+              className={`py-3 px-3.5 text-xs sm:text-sm font-semibold flex items-center gap-2 border-b-2 transition-all ${
+                tabActiva === 'pauta'
+                  ? 'border-secondary text-secondary'
+                  : 'border-transparent text-outline hover:text-on-surface'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[18px]">campaign</span>
+              <span>Pauta Digital (CM)</span>
+            </button>
+          )}
+
+          {panel === 'general' && (
+            <>
+              <button
+                type="button"
+                onClick={() => setTabActiva('audiovisual')}
+                className={`py-3 px-3.5 text-xs sm:text-sm font-semibold flex items-center gap-2 border-b-2 transition-all ${
+                  tabActiva === 'audiovisual'
+                    ? 'border-tertiary text-tertiary'
+                    : 'border-transparent text-outline hover:text-on-surface'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[18px]">palette</span>
+                <span>Diseño y Video</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTabActiva('pauta')}
+                className={`py-3 px-3.5 text-xs sm:text-sm font-semibold flex items-center gap-2 border-b-2 transition-all ${
+                  tabActiva === 'pauta'
+                    ? 'border-secondary text-secondary'
+                    : 'border-transparent text-outline hover:text-on-surface'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[18px]">campaign</span>
+                <span>Pauta Digital (CM)</span>
+              </button>
+            </>
+          )}
         </div>
 
         {/* Mensaje de Error */}
@@ -430,6 +569,153 @@ export default function ModalEditarRequerimiento({
                     style={{ borderColor: 'var(--color-outline-variant)' }}
                     placeholder="Ej: Familias jóvenes e inversionistas de renta alta"
                   />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: ENTREGABLES DE DISEÑO (CUANDO PANEL === 'diseno') */}
+          {tabActiva === 'diseno' && (
+            <div className="space-y-5">
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-outline mb-2.5">
+                  Entregables Gráficos Requeridos
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className={`flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
+                    formData.req_arte_estatico ? 'bg-secondary-container/25 border-secondary' : 'bg-surface-container-low border-surface-container'
+                  }`}>
+                    <input
+                      type="checkbox"
+                      checked={formData.req_arte_estatico}
+                      onChange={(e) => handleCheckbox('req_arte_estatico', e.target.checked)}
+                      className="w-4 h-4 rounded text-secondary"
+                    />
+                    <div>
+                      <p className="text-xs font-bold text-on-surface">Arte Estático</p>
+                      <p className="text-[10px] text-outline">Diseño Gráfico (Flyer / Publicación)</p>
+                    </div>
+                  </label>
+
+                  <label className={`flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
+                    formData.req_carrusel ? 'bg-secondary-container/25 border-secondary' : 'bg-surface-container-low border-surface-container'
+                  }`}>
+                    <input
+                      type="checkbox"
+                      checked={formData.req_carrusel}
+                      onChange={(e) => handleCheckbox('req_carrusel', e.target.checked)}
+                      className="w-4 h-4 rounded text-secondary"
+                    />
+                    <div>
+                      <p className="text-xs font-bold text-on-surface">Carrusel</p>
+                      <p className="text-[10px] text-outline">Diseño Gráfico de Múltiples Diapositivas</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {formData.categoria === 'Diseño Interno' && (
+                <div className="flex flex-col gap-1.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/25">
+                  <label className="text-xs font-semibold text-amber-900 dark:text-amber-200">
+                    Tipo de Diseño Interno
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.categoria_diseno}
+                    onChange={(e) => handleChange('categoria_diseno', e.target.value)}
+                    placeholder="Ej: Banner corporativo, Flyer de evento, Papelería..."
+                    className="w-full px-3 py-2 rounded-lg text-xs bg-surface-container-lowest border border-amber-500/30"
+                  />
+                </div>
+              )}
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-on-surface">Fecha Límite de Entrega de Diseño</label>
+                <input
+                  type="date"
+                  value={formData.fecha_limite || ''}
+                  onChange={(e) => handleChange('fecha_limite', e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl text-sm border bg-surface-container-low focus:ring-2 focus:ring-primary-container focus:outline-none"
+                  style={{ borderColor: 'var(--color-outline-variant)' }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* TAB: PRODUCCIÓN DE VIDEO (CUANDO PANEL === 'video') */}
+          {tabActiva === 'video' && (
+            <div className="space-y-5">
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-outline mb-2.5">
+                  Formato de Video
+                </h3>
+                <label className={`flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
+                  formData.req_reel ? 'bg-tertiary-fixed/30 border-tertiary' : 'bg-surface-container-low border-surface-container'
+                }`}>
+                  <input
+                    type="checkbox"
+                    checked={formData.req_reel}
+                    onChange={(e) => handleCheckbox('req_reel', e.target.checked)}
+                    className="w-4 h-4 rounded text-tertiary"
+                  />
+                  <div>
+                    <p className="text-xs font-bold text-on-surface">Grabación Reel / Video Vertical</p>
+                    <p className="text-[10px] text-outline">Producción Audiovisual completa en locación</p>
+                  </div>
+                </label>
+              </div>
+
+              {/* Tareas de Video */}
+              <div className="p-4 rounded-2xl bg-tertiary-fixed/15 border border-tertiary/30 space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-on-surface flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-tertiary text-[18px]">movie</span>
+                    Especificaciones Audiovisuales
+                  </span>
+                  <span className="text-[10px] text-outline">Checklist de producción</span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                  {[
+                    { key: 'req_guion', label: 'Guion / Storyboard' },
+                    { key: 'req_fotos', label: 'Sesión Fotos' },
+                    { key: 'req_grabacion', label: 'Grabación Locación' },
+                    { key: 'req_edicion', label: 'Edición & Montaje' },
+                    { key: 'req_voz_off', label: 'Voz en Off' }
+                  ].map(spec => (
+                    <label key={spec.key} className="flex items-center gap-2 p-2 bg-surface-container-lowest rounded-lg border border-surface-container cursor-pointer hover:bg-surface-container-low transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(formData[spec.key])}
+                        onChange={(e) => handleCheckbox(spec.key, e.target.checked)}
+                        className="rounded text-tertiary"
+                      />
+                      <span className="text-on-surface font-medium">{spec.label}</span>
+                    </label>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-on-surface">Fecha Tentativa de Rodaje</label>
+                    <input
+                      type="date"
+                      value={formData.fecha_rodaje || ''}
+                      onChange={(e) => handleChange('fecha_rodaje', e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl text-xs border bg-surface-container-lowest"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-on-surface">Notas de Producción</label>
+                    <input
+                      type="text"
+                      value={formData.notas_produccion || ''}
+                      onChange={(e) => handleChange('notas_produccion', e.target.value)}
+                      placeholder="Coordinar llaves, mejor horario de luz..."
+                      className="w-full px-3 py-2 rounded-xl text-xs border bg-surface-container-lowest"
+                    />
+                  </div>
                 </div>
               </div>
             </div>

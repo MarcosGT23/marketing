@@ -3,6 +3,7 @@ import LiquidStateSelector from './LiquidStateSelector';
 import { SlideConfirm } from "./SlideConfirm";
 import "./SlideConfirm.css";
 import ModalEditarRequerimiento from '../../../requerimientos/presentation/components/ModalEditarRequerimiento';
+import { eliminarRequerimiento } from '../../../requerimientos/infrastructure/requerimiento.api';
 
 function StyledInput({ icon, ...rest }) {
     const [focused, setFocused] = useState(false);
@@ -122,6 +123,23 @@ export default function TableroDisenoUI({
     const [tarjetasExpandidas, setTarjetasExpandidas] = useState({});
     const [menuOpcionesId, setMenuOpcionesId] = useState(null);
     const [requerimientoAEditar, setRequerimientoAEditar] = useState(null);
+
+    const handleEliminarRequerimiento = async (item) => {
+        const nombre = item.nombre_propiedad || `Requerimiento #${item.id_requerimiento}`;
+        const confirmar = window.confirm(
+            `¿Estás seguro de que deseas eliminar "${nombre}"?\nEsta acción eliminará el requerimiento y todas sus tareas asociadas en todos los paneles.`
+        );
+        if (!confirmar) return;
+
+        try {
+            await eliminarRequerimiento(item.id_requerimiento);
+            if (alRecargar) alRecargar();
+            else if (alGuardar) alGuardar();
+        } catch (err) {
+            console.error('Error al eliminar requerimiento:', err);
+            alert(err.message || 'Error al eliminar el requerimiento');
+        }
+    };
 
     const toggleExpandir = (id) => {
         setTarjetasExpandidas(prev => ({ ...prev, [id]: !prev[id] }));
@@ -847,10 +865,11 @@ export default function TableroDisenoUI({
                 </div>
             )}
             
-            {/* Modal para Modificar Requerimiento Completo */}
+            {/* Modal para Modificar Requerimiento de Diseño */}
             <ModalEditarRequerimiento
                 abierto={Boolean(requerimientoAEditar)}
                 requerimiento={requerimientoAEditar}
+                panel="diseno"
                 alCerrar={() => setRequerimientoAEditar(null)}
                 alGuardarExitoso={() => {
                     setRequerimientoAEditar(null);
@@ -993,6 +1012,18 @@ export default function TableroDisenoUI({
                                         >
                                             <span className="material-symbols-outlined text-[16px] text-primary-container">edit_note</span>
                                             <span>Modificar requerimiento</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setMenuOpcionesId(null);
+                                                handleEliminarRequerimiento(item);
+                                            }}
+                                            className="w-full px-3 py-2 text-left text-xs font-semibold flex items-center gap-2 hover:bg-red-500/10 text-error cursor-pointer border-t"
+                                            style={{ borderColor: 'var(--color-outline-variant)' }}
+                                        >
+                                            <span className="material-symbols-outlined text-[16px] text-error">delete</span>
+                                            <span>Eliminar requerimiento</span>
                                         </button>
                                     </div>
                                 )}
