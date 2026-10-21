@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import ModalEditarRequerimiento from './ModalEditarRequerimiento';
 import { eliminarRequerimiento } from '../../infrastructure/requerimiento.api';
+import { normalizarPeriodo, periodoAFecha } from '../../../../core/utils/dateUtils';
 
 const COLORES_AVATAR = [
   'from-blue-600 to-indigo-600',
@@ -115,17 +116,23 @@ export default function TodosRequerimientosUI({
         (item.ubicacion && item.ubicacion.toLowerCase().includes(busqueda.toLowerCase())) ||
         (item.usuarios?.nombre && item.usuarios.nombre.toLowerCase().includes(busqueda.toLowerCase()));
 
-      const matchPeriodo = !periodoFiltro || item.periodo_mensual === periodoFiltro;
+      const matchPeriodo = !periodoFiltro || normalizarPeriodo(item.periodo_mensual) === normalizarPeriodo(periodoFiltro);
       const matchCategoria = !categoriaFiltro || item.categoria === categoriaFiltro;
 
       return matchBusqueda && matchPeriodo && matchCategoria;
     });
   }, [agenteActivo, requerimientos, busqueda, periodoFiltro, categoriaFiltro]);
 
-  // Periodos únicos disponibles
+  // Periodos únicos disponibles (normalizados: "Octubre 2026" y "octubre de 2026" son el mismo)
   const periodosDisponibles = useMemo(() => {
-    const setP = new Set(requerimientos.map(r => r.periodo_mensual).filter(Boolean));
-    return Array.from(setP);
+    const setP = new Set(
+      requerimientos.map(r => normalizarPeriodo(r.periodo_mensual)).filter(Boolean)
+    );
+    return Array.from(setP).sort((a, b) => {
+      const fa = periodoAFecha(a)?.getTime() ?? 0;
+      const fb = periodoAFecha(b)?.getTime() ?? 0;
+      return fb - fa;
+    });
   }, [requerimientos]);
 
   if (cargando) {

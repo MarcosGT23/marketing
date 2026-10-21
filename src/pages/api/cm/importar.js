@@ -3,6 +3,8 @@
 // 1. Totales en 'reportes_meta_cm'
 // 2. Anuncios individuales en 'reportes_meta_anuncios' (enlazados por id_reporte)
 import { supabaseServer } from '../../../core/lib/supabaseServer';
+import { normalizarPeriodo, variantesPeriodo, obtenerPeriodoActual } from '../../../core/utils/dateUtils';
+import { ESTADO_CAMPANA_ACTIVO } from '../../../core/utils/campanaUtils';
 
 export const prerender = false;
 
@@ -25,7 +27,7 @@ export async function POST({ request }) {
     } = body;
 
     const fecha = fechaCustom || new Date().toISOString().split('T')[0];
-    const periodo = periodo_mensual || new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+    const periodo = normalizarPeriodo(periodo_mensual) || obtenerPeriodoActual();
 
     let finalIdRequerimiento = id_requerimiento;
 
@@ -57,6 +59,7 @@ export async function POST({ request }) {
           nombre_propiedad: titulo || 'Reporte de Campaña Publicitaria',
           id_agente: agenteId,
           periodo_mensual: periodo,
+          estado_general: ESTADO_CAMPANA_ACTIVO,
           descripcion_propiedad: descripcion || `Reporte solicitado por: ${solicitante || 'Marketing'}`,
           categoria: 'Meta Ads',
           tipo: 'Pauta Publicitaria',
@@ -83,11 +86,12 @@ export async function POST({ request }) {
 
     // 1. Eliminar reportes anteriores del mismo período para este requerimiento
     // (Por FK con CASCADE, también elimina sus reportes_meta_anuncios hijos)
+    // Se eliminan todas las variantes de escritura del período
     await supabaseServer
       .from('reportes_meta_cm')
       .delete()
       .eq('id_requerimiento', finalIdRequerimiento)
-      .eq('periodo_mensual', periodo);
+      .in('periodo_mensual', variantesPeriodo(periodo));
 
     // 2. Guardar el reporte padre con los totales en 'reportes_meta_cm'
     const { data: reportePadre, error: errorPadre } = await supabaseServer

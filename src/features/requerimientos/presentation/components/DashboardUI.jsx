@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Button } from '../../../../core/ui';
 import ModalEditarRequerimiento from './ModalEditarRequerimiento';
+import { esCampanaActivada, etiquetaEstadoCampana } from '../../../../core/utils/campanaUtils';
+import { normalizarPeriodo } from '../../../../core/utils/dateUtils';
 
 /* ─── Shared styled input (same as form page) ─── */
 function StyledInput({ icon, ...rest }) {
@@ -88,7 +90,7 @@ function StatusBadge({ status }) {
     );
 }
 
-export default function DashboardUI({ metricas, campanas, cargando, periodoSeleccionado, alCambiarPeriodo }) {
+export default function DashboardUI({ metricas, campanas, periodos = [], cargando, periodoSeleccionado, alCambiarPeriodo }) {
     const [requerimientoAEditar, setRequerimientoAEditar] = useState(null);
 
     if (cargando) {
@@ -101,16 +103,20 @@ export default function DashboardUI({ metricas, campanas, cargando, periodoSelec
         );
     }
 
+    const totalCampanas = metricas.total ?? 0;
+    const campanasActivadas = metricas.activas ?? 0;
+    const pctActivadas = totalCampanas > 0 ? Math.round((campanasActivadas / totalCampanas) * 100) : 0;
+
     const kpis = [
         {
-            label: 'Campañas Activas',
-            value: metricas.activas ?? 0,
+            label: 'Campañas Activadas',
+            value: campanasActivadas,
             icon: 'campaign',
             bg: 'rgba(37,99,235,0.08)',
             iconColor: 'var(--color-primary-container)',
             valueColor: 'var(--color-primary-container)',
-            sub: `Total en cartera: ${(metricas.activas ?? 0) + 5}`,
-            subRight: '74% efectivas',
+            sub: `Total en cartera: ${totalCampanas}`,
+            subRight: `${pctActivadas}% activas`,
         },
         {
             label: 'Diseños Gráficos',
@@ -175,8 +181,11 @@ export default function DashboardUI({ metricas, campanas, cargando, periodoSelec
                         <StyledSelect value={periodoSeleccionado} onChange={(e) => alCambiarPeriodo(e.target.value)}
                             style={{ height: '36px', fontSize: '13px', border: 'none', background: 'transparent', width: 'auto' }}>
                             <option value="">Todos los periodos</option>
-                            <option value="Septiembre 2026">Septiembre 2026</option>
-                            <option value="Agosto 2026">Agosto 2026</option>
+                            {periodos.map(p => (
+                                <option key={p.periodo} value={p.periodo}>
+                                    {p.periodo} ({p.activas} activadas)
+                                </option>
+                            ))}
                         </StyledSelect>
                     </div>
                     <button
@@ -240,6 +249,76 @@ export default function DashboardUI({ metricas, campanas, cargando, periodoSelec
                 ))}
             </section>
 
+            {/* Campañas activadas por periodo mensual */}
+            {periodos.length > 0 && (
+                <section className="rounded-2xl p-4 sm:p-5"
+                    style={{ background: 'var(--color-surface-container-lowest)', border: '1px solid var(--color-outline-variant)', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+                    <div className="flex items-center justify-between gap-3 mb-4">
+                        <div>
+                            <h2 className="font-headline-md font-bold" style={{ color: 'var(--color-on-surface)', fontSize: '16px' }}>
+                                Campañas Activadas por Periodo Mensual
+                            </h2>
+                            <p className="font-body-sm mt-0.5 text-xs" style={{ color: 'var(--color-outline)' }}>
+                                Datos de la tabla de periodos mensuales · haz clic en un periodo para filtrar el dashboard
+                            </p>
+                        </div>
+                        <span className="material-symbols-outlined shrink-0" style={{ fontSize: '22px', color: 'var(--color-primary-container)' }}>calendar_month</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                        {periodos.map(p => {
+                            const activo = normalizarPeriodo(p.periodo) === normalizarPeriodo(periodoSeleccionado);
+                            const pct = p.total > 0 ? Math.round((p.activas / p.total) * 100) : 0;
+
+                            return (
+                                <button
+                                    key={p.periodo}
+                                    type="button"
+                                    onClick={() => alCambiarPeriodo(activo ? '' : p.periodo)}
+                                    className="text-left rounded-xl p-3.5 transition-all active:scale-[0.98]"
+                                    style={{
+                                        background: activo ? 'var(--color-primary-fixed)' : 'var(--color-surface-container-low)',
+                                        border: `1px solid ${activo ? 'var(--color-primary-container)' : 'var(--color-outline-variant)'}`,
+                                        color: activo ? 'var(--color-on-primary-fixed-variant)' : 'var(--color-on-surface)'
+                                    }}
+                                    title={activo ? 'Quitar filtro de periodo' : `Filtrar por ${p.periodo}`}
+                                >
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="font-title-md font-semibold text-[13px]">{p.periodo}</span>
+                                        <span className="px-1.5 py-0.5 rounded-full font-label-sm text-[10px]"
+                                            style={{
+                                                background: activo ? 'var(--color-on-primary-fixed-variant)' : 'var(--color-primary-container)',
+                                                color: activo ? 'var(--color-primary-fixed)' : 'var(--color-on-primary)'
+                                            }}>
+                                            {p.activas} activas
+                                        </span>
+                                    </div>
+
+                                    <div className="mt-3 flex items-center gap-2">
+                                        <div className="flex-1 h-1.5 rounded-full overflow-hidden"
+                                            style={{ background: activo ? 'var(--color-on-primary-fixed-variant)' : 'var(--color-surface-container-high)' }}>
+                                            <div className="h-full rounded-full"
+                                                style={{
+                                                    width: `${pct}%`,
+                                                    background: activo ? 'var(--color-primary-fixed)' : 'var(--color-primary-container)'
+                                                }} />
+                                        </div>
+                                        <span className="font-label-sm text-[10px]" style={{ color: activo ? 'var(--color-on-primary-fixed-variant)' : 'var(--color-outline)' }}>
+                                            {pct}%
+                                        </span>
+                                    </div>
+
+                                    <p className="font-body-sm mt-2 text-[11px]"
+                                        style={{ color: activo ? 'var(--color-on-primary-fixed-variant)' : 'var(--color-outline)' }}>
+                                        {p.total} {p.total === 1 ? 'campaña registrada' : 'campañas registradas'} en el periodo
+                                    </p>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </section>
+            )}
+
             {/* Properties Table */}
             <section className="rounded-2xl overflow-hidden" style={{ background: 'var(--color-surface-container-lowest)', border: '1px solid var(--color-outline-variant)', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
                 {/* Table header controls */}
@@ -250,7 +329,7 @@ export default function DashboardUI({ metricas, campanas, cargando, periodoSelec
                             Propiedades y Flujo de Trabajo
                         </h2>
                         <p className="font-body-sm mt-0.5 text-xs" style={{ color: 'var(--color-outline)' }}>
-                            {campanas.length} {campanas.length === 1 ? 'registro activo' : 'registros activos'}
+                            {campanas.length} {campanas.length === 1 ? 'registro' : 'registros'} · {campanasActivadas} {campanasActivadas === 1 ? 'campaña activada' : 'campañas activadas'}
                         </p>
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -290,6 +369,7 @@ export default function DashboardUI({ metricas, campanas, cargando, periodoSelec
                                 const cm = (Array.isArray(c.tareas_cm) ? c.tareas_cm[0]?.estado : c.tareas_cm?.estado) || 'Por Hacer';
                                 const agente = c.usuarios?.nombre || 'General';
                                 const initials = agente.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+                                const estaActiva = esCampanaActivada(c);
 
                                 return (
                                     <tr key={c.id_requerimiento}
@@ -298,11 +378,23 @@ export default function DashboardUI({ metricas, campanas, cargando, periodoSelec
                                         onMouseEnter={e => e.currentTarget.style.background = 'var(--color-surface-container-low)'}
                                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                                         <td className="px-5 py-4">
-                                            <p className="font-title-md font-semibold" style={{ color: 'var(--color-on-surface)', fontSize: '14px' }}>
+                                            <p className="font-title-md font-semibold flex items-center gap-2 flex-wrap" style={{ color: 'var(--color-on-surface)', fontSize: '14px' }}>
                                                 {c.nombre_propiedad}
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-label-sm text-[10px]"
+                                                    style={{
+                                                        background: estaActiva ? 'var(--color-primary-fixed)' : 'var(--color-surface-container-high)',
+                                                        color: estaActiva ? 'var(--color-on-primary-fixed-variant)' : 'var(--color-outline)'
+                                                    }}
+                                                    title={`Estado de la campaña: ${c.estado_general || 'Sin estado'}`}>
+                                                    <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>
+                                                        {estaActiva ? 'check_circle' : 'pause_circle'}
+                                                    </span>
+                                                    {etiquetaEstadoCampana(c.estado_general)}
+                                                </span>
                                             </p>
                                             <p className="font-body-sm mt-0.5" style={{ color: 'var(--color-outline)', fontSize: '12px' }}>
                                                 {c.ubicacion || c.categoria}
+                                                {c.periodo_mensual ? ` · ${c.periodo_mensual}` : ''}
                                             </p>
                                         </td>
                                         <td className="px-5 py-4">

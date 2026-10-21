@@ -44,9 +44,9 @@ export default function TableroDisenoContainer() {
           fecha_limite: item.fecha_rodaje || null
         };
 
-        // Si el usuario acaba de cambiar esta tarea en los últimos 4 segundos, preservar su cambio optimista
+        // Si el usuario acaba de cambiar esta tarea en los últimos 6 segundos, preservar su cambio optimista
         const mutacionReciente = mutacionesRecientesRef.current.get(item.id_requerimiento);
-        if (mutacionReciente && ahora - mutacionReciente.timestamp < 4000) {
+        if (mutacionReciente && ahora - mutacionReciente.timestamp < 6000) {
           return {
             ...item,
             tareas_diseno: {
@@ -122,41 +122,43 @@ export default function TableroDisenoContainer() {
   };
 
   const manejarCambioCampo = (idTarea, campo, valor, idRequerimiento) => {
-    let datosActualizados = null;
-    setDatos(prev => prev.map(item => {
-      const td = Array.isArray(item.tareas_diseno) ? item.tareas_diseno[0] : item.tareas_diseno;
-      const coincide = (idTarea && td?.id_tarea === idTarea) || (idRequerimiento && item.id_requerimiento === idRequerimiento);
-      if (coincide) {
-        const actualizado = { ...td, [campo]: valor };
-        if (campo === 'estado') {
-          const porcentajes = {
-            'Por Hacer': 0,
-            'En Proceso': 50,
-            'Revisión': 75,
-            'Finalizado': 100
-          };
-          if (porcentajes[valor] !== undefined) {
-            actualizado.progreso_porcentaje = porcentajes[valor];
+    let objetivo = null;
+    setDatos(prev => {
+      return prev.map(item => {
+        const td = Array.isArray(item.tareas_diseno) ? item.tareas_diseno[0] : item.tareas_diseno;
+        const coincide = (idTarea && td?.id_tarea === idTarea) || (idRequerimiento && item.id_requerimiento === idRequerimiento);
+        if (coincide) {
+          const actualizado = { ...td, [campo]: valor };
+          if (campo === 'estado') {
+            const porcentajes = {
+              'Por Hacer': 0,
+              'En Proceso': 50,
+              'Revisión': 75,
+              'Finalizado': 100
+            };
+            if (porcentajes[valor] !== undefined) {
+              actualizado.progreso_porcentaje = porcentajes[valor];
+            }
           }
+
+          // Blindar inmediatamente la mutación contra sobreescritura de peticiones concurrentes
+          mutacionesRecientesRef.current.set(item.id_requerimiento, {
+            timestamp: Date.now(),
+            actualizado
+          });
+
+          objetivo = { idTarea: td?.id_tarea || idTarea, tareaActualizada: actualizado, idRequerimiento: item.id_requerimiento };
+          return {
+            ...item,
+            tareas_diseno: actualizado
+          };
         }
+        return item;
+      });
+    });
 
-        // Blindar inmediatamente la mutación contra sobreescritura de peticiones concurrentes
-        mutacionesRecientesRef.current.set(item.id_requerimiento, {
-          timestamp: Date.now(),
-          actualizado
-        });
-
-        datosActualizados = { idTarea: td?.id_tarea || idTarea, tareaActualizada: actualizado, idRequerimiento: item.id_requerimiento };
-        return {
-          ...item,
-          tareas_diseno: actualizado
-        };
-      }
-      return item;
-    }));
-
-    if (datosActualizados) {
-      dispararAutoGuardadoDiseno(datosActualizados.idTarea, datosActualizados.tareaActualizada, datosActualizados.idRequerimiento);
+    if (objetivo) {
+      dispararAutoGuardadoDiseno(objetivo.idTarea, objetivo.tareaActualizada, objetivo.idRequerimiento);
     }
   };
 

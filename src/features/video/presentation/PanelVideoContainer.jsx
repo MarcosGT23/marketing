@@ -55,9 +55,9 @@ export default function PanelVideoContainer() {
                         ? { ...tareaServidor, progreso_porcentaje: pctEsperado }
                         : tareaServidor;
 
-                    // Si el usuario modificó esta tarea en los últimos 4 segundos, preservar su estado optimista
+                    // Si el usuario modificó esta tarea en los últimos 6 segundos, preservar su estado optimista
                     const mutacionReciente = mutacionesRecientesRef.current.get(item.id_requerimiento);
-                    if (mutacionReciente && ahora - mutacionReciente.timestamp < 4000) {
+                    if (mutacionReciente && ahora - mutacionReciente.timestamp < 6000) {
                         return {
                             ...item,
                             tareas_video: [{
@@ -137,60 +137,62 @@ export default function PanelVideoContainer() {
 
     const manejarCambioCheck = (idTarea, campo, checked, idRequerimiento) => {
         let datosActualizados = null;
-        setDatos(prev => prev.map(item => {
-            const tv = item.tareas_video?.[0];
-            const coincide = (idTarea && tv?.id_tarea === idTarea) || (idRequerimiento && item.id_requerimiento === idRequerimiento);
-            if (coincide && tv) {
-                const actualizado = { ...tv, [campo]: checked };
+        setDatos(prev => {
+            return prev.map(item => {
+                const tv = item.tareas_video?.[0];
+                const coincide = (idTarea && tv?.id_tarea === idTarea) || (idRequerimiento && item.id_requerimiento === idRequerimiento);
+                if (coincide && tv) {
+                    const actualizado = { ...tv, [campo]: checked };
 
-                const esSoloFotos = Boolean(actualizado.req_fotos) &&
-                    !actualizado.req_guion &&
-                    !actualizado.req_grabacion &&
-                    !actualizado.req_edicion &&
-                    !actualizado.req_voz_off;
+                    const esSoloFotos = Boolean(actualizado.req_fotos) &&
+                        !actualizado.req_guion &&
+                        !actualizado.req_grabacion &&
+                        !actualizado.req_edicion &&
+                        !actualizado.req_voz_off;
 
-                if (esSoloFotos) {
-                    const porcentajesFase = {
-                        'Por Hacer': 0,
-                        'Grabando': 40,
-                        'En Edición': 75,
-                        'Finalizado': 100
-                    };
-                    if (actualizado.estado && porcentajesFase[actualizado.estado] !== undefined && porcentajesFase[actualizado.estado] > 0) {
-                        actualizado.progreso_porcentaje = porcentajesFase[actualizado.estado];
+                    if (esSoloFotos) {
+                        const porcentajesFase = {
+                            'Por Hacer': 0,
+                            'Grabando': 40,
+                            'En Edición': 75,
+                            'Finalizado': 100
+                        };
+                        if (actualizado.estado && porcentajesFase[actualizado.estado] !== undefined && porcentajesFase[actualizado.estado] > 0) {
+                            actualizado.progreso_porcentaje = porcentajesFase[actualizado.estado];
+                        } else {
+                            actualizado.progreso_porcentaje = 20;
+                            actualizado.estado = 'Grabando';
+                        }
                     } else {
-                        actualizado.progreso_porcentaje = 20;
-                        actualizado.estado = 'Grabando';
+                        let totalProgreso = 0;
+                        if (actualizado.req_guion) totalProgreso += 20;
+                        if (actualizado.req_fotos) totalProgreso += 20;
+                        if (actualizado.req_grabacion) totalProgreso += 20;
+                        if (actualizado.req_edicion) totalProgreso += 20;
+                        if (actualizado.req_voz_off) totalProgreso += 20;
+
+                        actualizado.progreso_porcentaje = totalProgreso;
+
+                        if (totalProgreso === 0) actualizado.estado = 'Por Hacer';
+                        else if (totalProgreso <= 40) actualizado.estado = 'Grabando';
+                        else if (totalProgreso < 100) actualizado.estado = 'En Edición';
+                        else if (totalProgreso === 100) actualizado.estado = 'Finalizado';
                     }
-                } else {
-                    let totalProgreso = 0;
-                    if (actualizado.req_guion) totalProgreso += 20;
-                    if (actualizado.req_fotos) totalProgreso += 20;
-                    if (actualizado.req_grabacion) totalProgreso += 20;
-                    if (actualizado.req_edicion) totalProgreso += 20;
-                    if (actualizado.req_voz_off) totalProgreso += 20;
 
-                    actualizado.progreso_porcentaje = totalProgreso;
+                    mutacionesRecientesRef.current.set(item.id_requerimiento, {
+                        timestamp: Date.now(),
+                        tareaActualizada: actualizado
+                    });
 
-                    if (totalProgreso === 0) actualizado.estado = 'Por Hacer';
-                    else if (totalProgreso <= 40) actualizado.estado = 'Grabando';
-                    else if (totalProgreso < 100) actualizado.estado = 'En Edición';
-                    else if (totalProgreso === 100) actualizado.estado = 'Finalizado';
+                    datosActualizados = { item, tareaActualizada: actualizado };
+                    return {
+                        ...item,
+                        tareas_video: [actualizado]
+                    };
                 }
-
-                mutacionesRecientesRef.current.set(item.id_requerimiento, {
-                    timestamp: Date.now(),
-                    tareaActualizada: actualizado
-                });
-
-                datosActualizados = { item, tareaActualizada: actualizado };
-                return {
-                    ...item,
-                    tareas_video: [actualizado]
-                };
-            }
-            return item;
-        }));
+                return item;
+            });
+        });
 
         if (datosActualizados) {
             dispararAutoGuardado(datosActualizados.item, datosActualizados.tareaActualizada);
@@ -199,36 +201,38 @@ export default function PanelVideoContainer() {
 
     const manejarCambioCampo = (idTarea, campo, valor, idRequerimiento) => {
         let datosActualizados = null;
-        setDatos(prev => prev.map(item => {
-            const tv = item.tareas_video?.[0];
-            const coincide = (idTarea && tv?.id_tarea === idTarea) || (idRequerimiento && item.id_requerimiento === idRequerimiento);
-            if (coincide && tv) {
-                const actualizado = { ...tv, [campo]: valor };
-                if (campo === 'estado') {
-                    const porcentajes = {
-                        'Por Hacer': 0,
-                        'Grabando': 40,
-                        'En Edición': 75,
-                        'Finalizado': 100
-                    };
-                    if (porcentajes[valor] !== undefined) {
-                        actualizado.progreso_porcentaje = porcentajes[valor];
+        setDatos(prev => {
+            return prev.map(item => {
+                const tv = item.tareas_video?.[0];
+                const coincide = (idTarea && tv?.id_tarea === idTarea) || (idRequerimiento && item.id_requerimiento === idRequerimiento);
+                if (coincide && tv) {
+                    const actualizado = { ...tv, [campo]: valor };
+                    if (campo === 'estado') {
+                        const porcentajes = {
+                            'Por Hacer': 0,
+                            'Grabando': 40,
+                            'En Edición': 75,
+                            'Finalizado': 100
+                        };
+                        if (porcentajes[valor] !== undefined) {
+                            actualizado.progreso_porcentaje = porcentajes[valor];
+                        }
                     }
+
+                    mutacionesRecientesRef.current.set(item.id_requerimiento, {
+                        timestamp: Date.now(),
+                        tareaActualizada: actualizado
+                    });
+
+                    datosActualizados = { item, tareaActualizada: actualizado };
+                    return {
+                        ...item,
+                        tareas_video: [actualizado]
+                    };
                 }
-
-                mutacionesRecientesRef.current.set(item.id_requerimiento, {
-                    timestamp: Date.now(),
-                    tareaActualizada: actualizado
-                });
-
-                datosActualizados = { item, tareaActualizada: actualizado };
-                return {
-                    ...item,
-                    tareas_video: [actualizado]
-                };
-            }
-            return item;
-        }));
+                return item;
+            });
+        });
 
         if (datosActualizados) {
             const reqKey = datosActualizados.item.id_requerimiento;

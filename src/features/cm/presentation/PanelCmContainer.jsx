@@ -32,7 +32,7 @@ export default function PanelCmContainer() {
       const datosActualizados = (Array.isArray(json) ? json : [])
         .map(item => {
           const mut = mutacionesRecientesRef.current.get(item.id_requerimiento);
-          if (mut && ahora - mut.timestamp < 4000) {
+          if (mut && ahora - mut.timestamp < 6000) {
             const tcm = (Array.isArray(item.tareas_cm) ? item.tareas_cm[0] : item.tareas_cm) || {};
             return {
               ...item,

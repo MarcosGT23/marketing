@@ -2,6 +2,7 @@
 // Endpoint exclusivo del panel de Brenda (Community Manager)
 // Incluye reportes_meta_cm y reportes_meta_anuncios
 import { supabaseServer } from '../../../core/lib/supabaseServer';
+import { variantesPeriodo } from '../../../core/utils/dateUtils';
 
 export const prerender = false;
 
@@ -29,7 +30,10 @@ export async function GET({ url }) {
       .order('fecha_creacion', { ascending: false });
 
     if (periodo) {
-      consulta = consulta.eq('periodo_mensual', periodo);
+      const variantes = variantesPeriodo(periodo);
+      consulta = variantes.length
+        ? consulta.in('periodo_mensual', variantes)
+        : consulta.eq('periodo_mensual', periodo);
     }
 
     const { data, error } = await consulta;

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import SelectorDuracionPauta from './SelectorDuracionPauta';
 import { actualizarRequerimiento } from '../../infrastructure/requerimiento.api';
 import { obtenerPeriodoActual } from '../../../../core/utils/dateUtils';
+import { ESTADO_CAMPANA_ACTIVO, ESTADO_CAMPANA_INACTIVO } from '../../../../core/utils/campanaUtils';
 
 export default function ModalEditarRequerimiento({
   abierto,
@@ -21,6 +22,7 @@ export default function ModalEditarRequerimiento({
     nombre_propiedad: '',
     id_agente: '',
     periodo_mensual: obtenerPeriodoActual(),
+    estado_general: ESTADO_CAMPANA_ACTIVO,
     categoria: 'Departamento',
     categoria_diseno: '',
     tipo: 'Venta',
@@ -77,6 +79,7 @@ export default function ModalEditarRequerimiento({
         nombre_propiedad: requerimiento.nombre_propiedad || '',
         id_agente: requerimiento.id_agente || (requerimiento.usuarios?.id_usuario || ''),
         periodo_mensual: requerimiento.periodo_mensual || obtenerPeriodoActual(),
+        estado_general: requerimiento.estado_general || ESTADO_CAMPANA_ACTIVO,
         categoria: requerimiento.categoria || 'Departamento',
         categoria_diseno: requerimiento.categoria_diseno || '',
         tipo: requerimiento.tipo || 'Venta',
@@ -238,6 +241,8 @@ export default function ModalEditarRequerimiento({
 
   const headerConfig = configHeaderPorPanel[panel] || configHeaderPorPanel.general;
 
+  const campanaActiva = (formData.estado_general || ESTADO_CAMPANA_ACTIVO) === ESTADO_CAMPANA_ACTIVO;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-sm animate-fadeIn">
       {/* Ventana Modal */}
@@ -385,6 +390,45 @@ export default function ModalEditarRequerimiento({
           {/* TAB 1: PROPIEDAD */}
           {tabActiva === 'propiedad' && (
             <div className="space-y-4">
+              {/* Estado de activación de la campaña (estado_general) */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-surface-container-low border border-surface-container">
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${campanaActiva ? 'bg-primary/15 text-primary-container' : 'bg-surface-container-high text-outline'}`}>
+                    <span className="material-symbols-outlined text-[20px]">campaign</span>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-on-surface">Campaña Activada</p>
+                    <p className="text-[10px] text-outline">
+                      {campanaActiva
+                        ? 'Suma en el KPI "Campañas Activadas" del dashboard'
+                        : 'No suma en el KPI "Campañas Activadas" del dashboard'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1 h-[36px] p-0.5 rounded-xl bg-surface-container-lowest border border-surface-container self-start sm:self-auto shrink-0">
+                  {[
+                    { valor: ESTADO_CAMPANA_ACTIVO, label: 'Activa', icon: 'check_circle', active: 'bg-primary-container text-white' },
+                    { valor: ESTADO_CAMPANA_INACTIVO, label: 'Inactiva', icon: 'pause_circle', active: 'bg-surface-container-high text-on-surface' }
+                  ].map(op => {
+                    const isSelected = formData.estado_general === op.valor;
+                    return (
+                      <button
+                        key={op.valor}
+                        type="button"
+                        onClick={() => handleChange('estado_general', op.valor)}
+                        className={`h-full px-3 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+                          isSelected ? op.active : 'text-outline hover:text-on-surface'
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-[13px]">{op.icon}</span>
+                        {op.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold" style={{ color: 'var(--color-on-surface)' }}>

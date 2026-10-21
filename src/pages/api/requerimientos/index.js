@@ -1,4 +1,6 @@
 import { supabaseServer } from '../../../core/lib/supabaseServer';
+import { variantesPeriodo, normalizarPeriodo, obtenerPeriodoActual } from '../../../core/utils/dateUtils';
+import { ESTADO_CAMPANA_ACTIVO, ESTADO_CAMPANA_INACTIVO } from '../../../core/utils/campanaUtils';
 
 export const prerender = false;
 
@@ -18,6 +20,7 @@ export async function GET({ url }) {
         id_requerimiento,
         id_agente,
         periodo_mensual,
+        estado_general,
         nombre_propiedad,
         categoria,
         categoria_diseno,
@@ -89,7 +92,13 @@ export async function GET({ url }) {
       .order('fecha_creacion', { ascending: false });
 
     // Filtros dinámicos
-    if (periodo) consulta = consulta.eq('periodo_mensual', periodo);
+    // El periodo se busca por todas sus variantes de escritura ("Octubre 2026" / "octubre de 2026")
+    if (periodo) {
+      const variantes = variantesPeriodo(periodo);
+      consulta = variantes.length
+        ? consulta.in('periodo_mensual', variantes)
+        : consulta.eq('periodo_mensual', periodo);
+    }
     if (idAgente) consulta = consulta.eq('id_agente', idAgente);
 
     const { data, error } = await consulta;
@@ -178,7 +187,8 @@ export async function POST({ request }) {
       .from('requerimientos_propiedad')
       .insert([{
         id_agente: body.id_agente || null,
-        periodo_mensual: body.periodo_mensual || 'Septiembre 2026',
+        periodo_mensual: normalizarPeriodo(body.periodo_mensual) || obtenerPeriodoActual(),
+        estado_general: body.estado_general || ESTADO_CAMPANA_ACTIVO,
         nombre_propiedad: body.nombre_propiedad,
         categoria: body.categoria,
         categoria_diseno: body.categoria_diseno || null,
@@ -314,7 +324,7 @@ export async function PUT({ request }) {
 
     const camposActualizar = {};
     if (body.id_agente !== undefined) camposActualizar.id_agente = body.id_agente || null;
-    if (body.periodo_mensual !== undefined) camposActualizar.periodo_mensual = body.periodo_mensual;
+    if (body.periodo_mensual !== undefined) camposActualizar.periodo_mensual = normalizarPeriodo(body.periodo_mensual) || body.periodo_mensual;
     if (body.nombre_propiedad !== undefined) camposActualizar.nombre_propiedad = body.nombre_propiedad;
     if (body.categoria !== undefined) camposActualizar.categoria = body.categoria;
     if (body.ubicacion !== undefined) camposActualizar.ubicacion = body.ubicacion || null;
@@ -326,6 +336,11 @@ export async function PUT({ request }) {
     if (body.superficie !== undefined) camposActualizar.superficie = body.superficie || null;
     if (body.habitaciones !== undefined) camposActualizar.habitaciones = body.habitaciones ? parseInt(body.habitaciones, 10) : null;
     if (body.prioridad !== undefined) camposActualizar.prioridad = body.prioridad;
+
+    // Estado de activación de la campaña (solo desde el panel general)
+    if (panel === 'general' && body.estado_general !== undefined) {
+      camposActualizar.estado_general = body.estado_general || ESTADO_CAMPANA_INACTIVO;
+    }
 
     // Campos específicos según panel
     if (panel === 'diseno' || panel === 'general') {
