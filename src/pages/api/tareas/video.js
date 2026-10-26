@@ -1,102 +1,107 @@
-import { supabaseServer } from '../../../core/lib/supabaseServer';
+import { guardarTarea, registrarHistorial, json, estadoValido } from '../../../core/lib/taskStore';
 
 export const prerender = false;
 
+const ESTADOS = ['Por Hacer', 'Grabando', 'En Edición', 'Finalizado'];
+const COLUMNAS = 'id_tarea, id_requerimiento, estado, progreso_porcentaje, req_guion, req_fotos, req_grabacion, req_edicion, req_voz_off, Descripcion';
+
 export async function PATCH({ request }) {
   try {
-    const body = await request.json();
-    const { id_tarea, id_requerimiento, req_guion, req_fotos, req_grabacion, req_edicion, req_voz_off, estado, progreso_porcentaje, Descripcion, descripcion } = body;
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return json({ error: 'Body JSON inválido' }, 400);
+    }
+
+    const {
+      id_tarea,
+      id_requerimiento,
+      req_guion,
+      req_fotos,
+      req_grabacion,
+      req_edicion,
+      req_voz_off,
+      estado,
+      progreso_porcentaje,
+      Descripcion,
+      descripcion
+    } = body;
 
     if (!id_tarea && !id_requerimiento) {
-      return new Response(JSON.stringify({ error: 'id_tarea o id_requerimiento es requerido' }), { status: 400 });
+      return json({ error: 'id_tarea o id_requerimiento es requerido' }, 400);
     }
 
-    const updateFields = {};
-    if (req_guion !== undefined) updateFields.req_guion = Boolean(req_guion);
-    if (req_fotos !== undefined) updateFields.req_fotos = Boolean(req_fotos);
-    if (req_grabacion !== undefined) updateFields.req_grabacion = Boolean(req_grabacion);
-    if (req_edicion !== undefined) updateFields.req_edicion = Boolean(req_edicion);
-    if (req_voz_off !== undefined) updateFields.req_voz_off = Boolean(req_voz_off);
-    if (estado !== undefined) updateFields.estado = estado;
-    if (progreso_porcentaje !== undefined) updateFields.progreso_porcentaje = progreso_porcentaje;
-    if (Descripcion !== undefined) updateFields.Descripcion = Descripcion;
-    else if (descripcion !== undefined) updateFields.Descripcion = descripcion;
-
-    let registroExistente = null;
-    if (id_tarea) {
-      const { data } = await supabaseServer.from('tareas_video').select('*').eq('id_tarea', id_tarea).maybeSingle();
-      registroExistente = data;
-    }
-    if (!registroExistente && id_requerimiento) {
-      const { data } = await supabaseServer.from('tareas_video').select('*').eq('id_requerimiento', id_requerimiento).maybeSingle();
-      registroExistente = data;
+    if (!estadoValido(estado, ESTADOS)) {
+      return json({ error: `Estado inválido: ${estado}` }, 400);
     }
 
-    let data = null;
-    if (registroExistente) {
-      const { data: updated, error } = await supabaseServer
-        .from('tareas_video')
-        .update(updateFields)
-        .eq('id_tarea', registroExistente.id_tarea)
-        .select()
-        .single();
-      if (error) {
-        return new Response(JSON.stringify({ error: error.message }), { status: 500 });
-      }
-      data = updated;
-    } else if (id_requerimiento) {
-      const { data: inserted, error } = await supabaseServer
-        .from('tareas_video')
-        .insert([{
-          id_requerimiento,
-          estado: estado || 'Por Hacer',
-          progreso_porcentaje: progreso_porcentaje ?? 0,
-          req_guion: Boolean(req_guion),
-          req_fotos: Boolean(req_fotos),
-          req_grabacion: Boolean(req_grabacion),
-          req_edicion: Boolean(req_edicion),
-          req_voz_off: Boolean(req_voz_off),
-          ...updateFields
-        }])
-        .select()
-        .single();
-      if (error) {
-        return new Response(JSON.stringify({ error: error.message }), { status: 500 });
-      }
-      data = inserted;
-    } else {
-      return new Response(JSON.stringify({ error: 'Tarea de video no encontrada' }), { status: 404 });
+    const campos = {};
+    if (req_guion !== undefined) campos.req_guion = Boolean(req_guion);
+    if (req_fotos !== undefined) campos.req_fotos = Boolean(req_fotos);
+    if (req_grabacion !== undefined) campos.req_grabacion = Boolean(req_grabacion);
+    if (req_edicion !== undefined) campos.req_edicion = Boolean(req_edicion);
+    if (req_voz_off !== undefined) campos.req_voz_off = Boolean(req_voz_off);
+    if (estado !== undefined) campos.estado = estado;
+    if (progreso_porcentaje !== undefined) {
+      const porcentaje = Number(progreso_porcentaje);
+      campos.progreso_porcentaje = Number.isFinite(porcentaje)
+        ? Math.max(0, Math.min(100, Math.round(porcentaje)))
+        : 0;
     }
+    if (Descripcion !== undefined) campos.Descripcion = Descripcion;
+    else if (descripcion !== undefined) campos.Descripcion = descripcion;
 
-    // Registrar en bitácora histórica para reportes completos
-    if (data?.id_requerimiento) {
-      try {
-        const checks = [];
-        if (data.req_guion) checks.push('Guion');
-        if (data.req_fotos) checks.push('Fotos');
-        if (data.req_grabacion) checks.push('Grabación');
-        if (data.req_edicion) checks.push('Edición');
-        if (data.req_voz_off) checks.push('Voz en Off');
-        const resumenChecks = checks.length > 0 ? `Checklist: ${checks.join(', ')}` : 'Sin checks activos';
-
-        await supabaseServer.from('historial_seguimiento').insert({
-          id_requerimiento: data.id_requerimiento,
-          departamento: 'Video',
-          usuario: body.usuario || 'Área Audiovisual',
-          accion: `Video actualizado a "${data.estado || estado}" (${data.progreso_porcentaje ?? progreso_porcentaje}%)`,
-          comentario: body.comentario || resumenChecks,
-          fecha_registro: new Date().toISOString()
-        });
-      } catch (errHist) {
-        console.warn('Error registrando en historial_seguimiento:', errHist.message);
-      }
-    }
-
-    return new Response(JSON.stringify({ mensaje: 'Tarea de video actualizada con éxito', data }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
+    const resultado = await guardarTarea({
+      tabla: 'tareas_video',
+      idTarea: id_tarea,
+      idRequerimiento: id_requerimiento,
+      campos,
+      valoresIniciales: {
+        estado: 'Por Hacer',
+        progreso_porcentaje: 0,
+        req_guion: false,
+        req_fotos: false,
+        req_grabacion: false,
+        req_edicion: false,
+        req_voz_off: false
+      },
+      columnas: COLUMNAS
     });
+
+    if (resultado.error) {
+      console.error('[PATCH /api/tareas/video] Error de base de datos:', resultado.error);
+      return json({ error: resultado.error.message }, 500);
+    }
+
+    if (resultado.noEncontrada) {
+      return json({ error: 'Tarea de video no encontrada' }, 404);
+    }
+
+    const data = resultado.data;
+
+    if (data?.id_requerimiento) {
+      const checks = [];
+      if (data.req_guion) checks.push('Guion');
+      if (data.req_fotos) checks.push('Fotos');
+      if (data.req_grabacion) checks.push('Grabación');
+      if (data.req_edicion) checks.push('Edición');
+      if (data.req_voz_off) checks.push('Voz en Off');
+
+      const progreso = data.progreso_porcentaje ?? progreso_porcentaje ?? 0;
+      await registrarHistorial({
+        id_requerimiento: data.id_requerimiento,
+        departamento: 'Video',
+        usuario: body.usuario || 'Área Audiovisual',
+        accion: `Video actualizado a "${data.estado || estado}" (${progreso}%)`,
+        comentario: body.comentario || (checks.length > 0 ? `Checklist: ${checks.join(', ')}` : 'Sin checks activos'),
+        fecha_registro: new Date().toISOString()
+      });
+    }
+
+    return json({ mensaje: 'Tarea de video actualizada con éxito', data });
   } catch (err) {
-    return new Response(JSON.stringify({ error: 'Error actualizando tarea de video' }), { status: 500 });
+    console.error('[PATCH /api/tareas/video] Error inesperado:', err);
+    return json({ error: err?.message || 'Error actualizando tarea de video' }, 500);
   }
 }

@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import TableroDisenoUI from './components/TableroDisenoUI';
 import { actualizarTareaDiseno } from '../infrastructure/diseno.api';
 import { useRealtimeSync } from '../../../core/hooks/useRealtimeSync';
+import { encolar, debePreservar, tienePendientes, esperarCola } from '../../../core/utils/serialQueue';
+import { notificarExito, notificarError } from '../../../core/ui/notifications';
 
 export default function TableroDisenoContainer() {
   const [datos, setDatos] = useState([]);
@@ -12,6 +14,10 @@ export default function TableroDisenoContainer() {
   
   // Referencia para blindar mutaciones optimistas recientes contra sobreescritura de peticiones concurrentes
   const mutacionesRecientesRef = useRef(new Map());
+  const datosRef = useRef(datos);
+  useEffect(() => {
+    datosRef.current = datos;
+  }, [datos]);
   
   // Estado inicial con los nuevos campos
   const [tareaInterna, setTareaInterna] = useState({ 
@@ -44,9 +50,9 @@ export default function TableroDisenoContainer() {
           fecha_limite: item.fecha_rodaje || null
         };
 
-        // Si el usuario acaba de cambiar esta tarea en los últimos 6 segundos, preservar su cambio optimista
+        // Preservar el cambio optimista mientras haya guardados pendientes o recién confirmados
         const mutacionReciente = mutacionesRecientesRef.current.get(item.id_requerimiento);
-        if (mutacionReciente && ahora - mutacionReciente.timestamp < 6000) {
+        if (mutacionReciente && (debePreservar(item.id_requerimiento) || ahora - mutacionReciente.timestamp < 2000)) {
           return {
             ...item,
             tareas_diseno: {
@@ -81,85 +87,83 @@ export default function TableroDisenoContainer() {
     cargarDatos(true);
   }, ['requerimientos_propiedad', 'tareas_diseno', 'usuarios']);
 
-  const dispararAutoGuardadoDiseno = async (idTarea, tareaActualizada, idRequerimiento) => {
-    try {
-      const resultado = await actualizarTareaDiseno(idTarea, {
-        id_requerimiento: idRequerimiento,
-        estado: tareaActualizada.estado,
-        progreso_porcentaje: Number(tareaActualizada.progreso_porcentaje) || 0,
-        fecha_limite: tareaActualizada.fecha_limite || null,
-        usuario: 'Área de Diseño'
-      });
+  const dispararAutoGuardadoDiseno = (idRequerimiento) => {
+    encolar(idRequerimiento, async () => {
+      const item = datosRef.current.find(d => d.id_requerimiento === idRequerimiento);
+      if (!item) return;
 
-      // Si la tarea no tenía id_tarea y el backend la creó, asociar el nuevo id_tarea en memoria y en la referencia
-      if (resultado?.data?.id_tarea) {
-        const nuevoId = resultado.data.id_tarea;
-        const mut = mutacionesRecientesRef.current.get(idRequerimiento);
-        if (mut) {
-          mut.actualizado.id_tarea = nuevoId;
-        }
+      const td = Array.isArray(item.tareas_diseno) ? item.tareas_diseno[0] : item.tareas_diseno;
+      if (!td) return;
 
-        if (!idTarea || idTarea === null) {
-          setDatos(prev => prev.map(item => {
-            if (item.id_requerimiento === idRequerimiento) {
-              return {
-                ...item,
-                tareas_diseno: {
-                  ...tareaActualizada,
-                  id_tarea: nuevoId
-                }
-              };
-            }
-            return item;
+      try {
+        const resultado = await actualizarTareaDiseno(td.id_tarea || null, {
+          id_requerimiento: idRequerimiento,
+          estado: td.estado,
+          progreso_porcentaje: Number(td.progreso_porcentaje) || 0,
+          fecha_limite: td.fecha_limite || null,
+          usuario: 'Área de Diseño'
+        });
+
+        // Si la tarea no tenía id_tarea y el backend la creó, asociar el nuevo id en memoria
+        if (resultado?.data?.id_tarea && !td.id_tarea) {
+          const nuevoId = resultado.data.id_tarea;
+          const mut = mutacionesRecientesRef.current.get(idRequerimiento);
+          if (mut) mut.actualizado.id_tarea = nuevoId;
+
+          setDatos(prev => prev.map(p => {
+            if (p.id_requerimiento !== idRequerimiento) return p;
+            const actual = Array.isArray(p.tareas_diseno) ? p.tareas_diseno[0] : p.tareas_diseno;
+            return { ...p, tareas_diseno: { ...actual, id_tarea: nuevoId } };
           }));
         }
+      } catch (err) {
+        console.error('Error auto-guardando tarea de diseño:', err);
+        // Al quedar la cola libre, sincronizar con la BD para reflejar el estado real
+        esperarCola(idRequerimiento).then(() => {
+          if (!tienePendientes(idRequerimiento)) {
+            mutacionesRecientesRef.current.delete(idRequerimiento);
+            cargarDatos(true);
+          }
+        });
       }
-    } catch (err) {
-      console.error('Error auto-guardando tarea de diseño:', err);
-      // En caso de fallo crítico en el servidor, remover el blindaje para sincronizar con la BD
-      mutacionesRecientesRef.current.delete(idRequerimiento);
-    }
+    });
   };
 
   const manejarCambioCampo = (idTarea, campo, valor, idRequerimiento) => {
-    let objetivo = null;
-    setDatos(prev => {
-      return prev.map(item => {
-        const td = Array.isArray(item.tareas_diseno) ? item.tareas_diseno[0] : item.tareas_diseno;
-        const coincide = (idTarea && td?.id_tarea === idTarea) || (idRequerimiento && item.id_requerimiento === idRequerimiento);
-        if (coincide) {
-          const actualizado = { ...td, [campo]: valor };
-          if (campo === 'estado') {
-            const porcentajes = {
-              'Por Hacer': 0,
-              'En Proceso': 50,
-              'Revisión': 75,
-              'Finalizado': 100
-            };
-            if (porcentajes[valor] !== undefined) {
-              actualizado.progreso_porcentaje = porcentajes[valor];
-            }
-          }
+    const actual = datosRef.current;
+    const indice = actual.findIndex(item => {
+      const td = Array.isArray(item.tareas_diseno) ? item.tareas_diseno[0] : item.tareas_diseno;
+      return (idTarea && td?.id_tarea === idTarea) || (idRequerimiento && item.id_requerimiento === idRequerimiento);
+    });
+    if (indice === -1) return;
 
-          // Blindar inmediatamente la mutación contra sobreescritura de peticiones concurrentes
-          mutacionesRecientesRef.current.set(item.id_requerimiento, {
-            timestamp: Date.now(),
-            actualizado
-          });
+    const item = actual[indice];
+    const td = Array.isArray(item.tareas_diseno) ? item.tareas_diseno[0] : item.tareas_diseno;
+    const actualizado = { ...td, [campo]: valor };
 
-          objetivo = { idTarea: td?.id_tarea || idTarea, tareaActualizada: actualizado, idRequerimiento: item.id_requerimiento };
-          return {
-            ...item,
-            tareas_diseno: actualizado
-          };
-        }
-        return item;
-      });
+    if (campo === 'estado') {
+      const porcentajes = {
+        'Por Hacer': 0,
+        'En Proceso': 50,
+        'Revisión': 75,
+        'Finalizado': 100
+      };
+      if (porcentajes[valor] !== undefined) {
+        actualizado.progreso_porcentaje = porcentajes[valor];
+      }
+    }
+
+    // Actualizar la referencia antes de encolar para que el guardado lea siempre el último estado
+    const nuevaLista = actual.map((p, i) => i === indice ? { ...p, tareas_diseno: actualizado } : p);
+    datosRef.current = nuevaLista;
+    setDatos(nuevaLista);
+
+    mutacionesRecientesRef.current.set(item.id_requerimiento, {
+      timestamp: Date.now(),
+      actualizado
     });
 
-    if (objetivo) {
-      dispararAutoGuardadoDiseno(objetivo.idTarea, objetivo.tareaActualizada, objetivo.idRequerimiento);
-    }
+    dispararAutoGuardadoDiseno(item.id_requerimiento);
   };
 
   const manejarGuardar = async (idTarea) => {
@@ -187,10 +191,10 @@ export default function TableroDisenoContainer() {
         progreso_porcentaje: Number(progreso_porcentaje) || 0,
         fecha_limite: fecha_limite || null
       });
-      alert('¡Avance de diseño guardado y registrado en la bitácora!');
+      notificarExito('El avance de diseño se guardó y quedó registrado en la bitácora.', 'Avance actualizado');
       await cargarDatos();
     } catch (err) {
-      alert('Error al guardar: ' + err.message);
+      notificarError(err.message || 'No se pudo guardar el avance de diseño.');
     }
   };
 
@@ -214,9 +218,10 @@ export default function TableroDisenoContainer() {
       
       setModalAbierto(false);
       setTareaInterna({ titulo: '', descripcion: '', prioridad: 'Media', fecha_limite: '', id_agente: '', categoria_diseno: 'Artes estáticos' });
+      notificarExito('La nueva tarea de diseño ya está en el tablero.', 'Tarea creada');
       cargarDatos(); 
     } catch (err) {
-      alert("Error al crear tarea: " + err.message);
+      notificarError(err.message || 'No se pudo crear la tarea de diseño.');
     }
   };
 

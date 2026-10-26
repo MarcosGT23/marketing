@@ -3,6 +3,7 @@ import FormularioPropiedadUI from './components/FormularioPropiedadUI';
 import { crearRequerimiento } from '../infrastructure/requerimiento.api';
 import { useRealtimeSync } from '../../../core/hooks/useRealtimeSync';
 import { obtenerPeriodoActual } from '../../../core/utils/dateUtils';
+import { notificarAviso, notificarError } from '../../../core/ui/notifications';
 
 const CREAR_PROP_INICIAL = (idAgente = '', periodo = obtenerPeriodoActual()) => ({
     id_agente: idAgente,
@@ -105,12 +106,12 @@ export default function AgenteContainer() {
     // Añadir o actualizar requerimiento en forma de burbuja con animación de cierre
     const manejarAnadirRequerimiento = () => {
         if (!formData.nombre_propiedad || !formData.nombre_propiedad.trim()) {
-            alert('Por favor, ingresa el nombre de la propiedad antes de añadirla a la lista de requerimientos.');
+            notificarAviso('Escribe el nombre de la propiedad antes de añadirla a la lista.');
             return;
         }
 
         if (!formData.id_agente) {
-            alert('Por favor, selecciona un agente solicitante.');
+            notificarAviso('Selecciona un agente solicitante para continuar.');
             return;
         }
 
@@ -216,7 +217,7 @@ export default function AgenteContainer() {
         // Si el usuario tiene datos en el formulario actual y no estaba en modo edición de una existente
         if (editandoIndex === null && formData.nombre_propiedad && formData.nombre_propiedad.trim()) {
             if (!formData.id_agente) {
-                alert('Por favor, selecciona un agente.');
+                notificarAviso('Selecciona un agente antes de continuar.');
                 return;
             }
             listaFinal.push({ ...formData, _id: 'req-actual-' + Date.now() });
@@ -226,12 +227,12 @@ export default function AgenteContainer() {
         }
 
         if (listaFinal.length === 0) {
-            alert('Por favor, ingresa al menos el nombre de la propiedad antes de enviar.');
+            notificarAviso('Ingresa al menos el nombre de la propiedad antes de enviar.');
             return;
         }
 
         if (!listaFinal[0].id_agente) {
-            alert('Por favor, selecciona un agente solicitante.');
+            notificarAviso('Selecciona un agente solicitante para continuar.');
             return;
         }
 
@@ -311,7 +312,7 @@ export default function AgenteContainer() {
 
         } catch (error) {
             console.error('Error al guardar requerimientos:', error);
-            alert(`Error al guardar: ${error.message}`);
+            notificarError('No se pudieron guardar los requerimientos. Intenta de nuevo.');
             setCargando(false);
             setProgresoEnvio(null);
         }

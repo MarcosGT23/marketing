@@ -4,6 +4,7 @@ import ModalDetallePropiedadCM from './components/ModalDetallePropiedadCM';
 import ModalNuevoReporteCM from './components/ModalNuevoReporteCM';
 import { actualizarTareaCm, registrarReporteMeta } from '../infrastructure/cm.api';
 import { useRealtimeSync } from '../../../core/hooks/useRealtimeSync';
+import { notificarError } from '../../../core/ui/notifications';
 
 export default function PanelCmContainer() {
   const [datos, setDatos] = useState([]);
@@ -24,7 +25,7 @@ export default function PanelCmContainer() {
       const json = await res.json();
       if (!res.ok || json?.error) {
         console.error("Error API CM:", json);
-        if (!silent) alert(json?.error || 'Error cargando pautas de CM');
+        if (!silent) notificarError(json?.error || 'No se pudieron cargar las pautas de CM.');
         return;
       }
       
@@ -53,7 +54,7 @@ export default function PanelCmContainer() {
       setDatos(datosActualizados);
     } catch (err) {
       console.error('[PanelCmContainer] Error:', err);
-      if (!silent) alert('Error cargando pautas de CM: ' + err.message);
+      if (!silent) notificarError('No se pudieron cargar las pautas de CM. Intenta de nuevo.');
     } finally {
       if (!silent) setCargando(false);
     }
@@ -146,46 +147,48 @@ export default function PanelCmContainer() {
       return p;
     }));
 
-    // 1. Actualizar estado/plataforma/presupuesto en tareas_cm (por id_tarea o id_requerimiento)
-    try {
-      const resCm = await actualizarTareaCm(id_tarea_cm || null, { 
+    const tieneMetricas = metricas && Object.values(metricas).some(v => v !== 0 && v !== '' && v != null);
+    const debeGuardarReporte = (anuncios && anuncios.length > 0) || tieneMetricas;
+
+    // 1 y 2. Guardar tarea CM y reporte/anuncios en paralelo
+    const [resultadoTarea, resultadoReporte] = await Promise.allSettled([
+      actualizarTareaCm(id_tarea_cm || null, {
         id_requerimiento,
-        estado, 
-        plataforma, 
+        estado,
+        plataforma,
         presupuesto,
         ...(moneda !== undefined ? { moneda } : {}),
         ...(periodo_pauta !== undefined ? { periodo_pauta } : {}),
         ...(descripcion_pauta !== undefined ? { descripcion_pauta } : {})
-      });
+      }),
+      debeGuardarReporte
+        ? registrarReporteMeta({
+            id_requerimiento,
+            id_agente,
+            periodo_mensual,
+            metricas,
+            anuncios: anuncios || []
+          })
+        : Promise.resolve(null)
+    ]);
 
-      if (resCm?.data?.id_tarea) {
-        const mut = mutacionesRecientesRef.current.get(id_requerimiento);
-        if (mut) mut.actualizado.id_tarea = resCm.data.id_tarea;
-      }
-    } catch (errCm) {
-      console.warn('Error actualizando tareas_cm:', errCm.message);
+    if (resultadoTarea.status === 'fulfilled' && resultadoTarea.value?.data?.id_tarea) {
+      const mut = mutacionesRecientesRef.current.get(id_requerimiento);
+      if (mut) mut.actualizado.id_tarea = resultadoTarea.value.data.id_tarea;
+    }
+
+    if (resultadoTarea.status === 'rejected') {
       mutacionesRecientesRef.current.delete(id_requerimiento);
+      throw resultadoTarea.reason;
     }
 
-    // 2. Guardar reporte (totales) y cada anuncio en Supabase si hay métricas o anuncios
-    const tieneMetricas = metricas && Object.values(metricas).some(v => v !== 0 && v !== '' && v != null);
-    if ((anuncios && anuncios.length > 0) || tieneMetricas) {
-      await registrarReporteMeta({
-        id_requerimiento,
-        id_agente,
-        periodo_mensual,
-        metricas,
-        anuncios: anuncios || []
-      });
+    if (resultadoReporte.status === 'rejected') {
+      throw resultadoReporte.reason;
     }
 
-    alert('¡Campaña y métricas sincronizadas exitosamente en Supabase!');
-
-    // 3. Re-consultar requerimientos y reporte actualizado para refrescar inmediatamente
-    await cargarRequerimientos(true);
-    if (id_requerimiento) {
-      await consultarReporte(id_requerimiento);
-    }
+    // 3. Refrescar en segundo plano sin demorar el cierre del modal
+    cargarRequerimientos(true);
+    if (id_requerimiento) consultarReporte(id_requerimiento);
   };
 
   return (

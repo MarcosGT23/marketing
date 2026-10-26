@@ -1,93 +1,87 @@
-import { supabaseServer } from '../../../core/lib/supabaseServer';
+import { guardarTarea, registrarHistorial, json, estadoValido } from '../../../core/lib/taskStore';
 
 export const prerender = false;
 
+const ESTADOS = ['Por Hacer', 'Configurando', 'Campaña Activa', 'Finalizado', 'Sin Pauta'];
+const COLUMNAS = 'id_tarea, id_requerimiento, estado, plataforma, presupuesto, moneda, periodo_pauta, descripcion_pauta';
+
 export async function PATCH({ request }) {
   try {
-    const body = await request.json();
-    const { id_tarea, id_requerimiento, estado, plataforma, presupuesto, moneda, periodo_pauta, descripcion_pauta } = body;
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return json({ error: 'Body JSON inválido' }, 400);
+    }
+
+    const {
+      id_tarea,
+      id_requerimiento,
+      estado,
+      plataforma,
+      presupuesto,
+      moneda,
+      periodo_pauta,
+      descripcion_pauta
+    } = body;
 
     if (!id_tarea && !id_requerimiento) {
-      return new Response(JSON.stringify({ error: 'id_tarea o id_requerimiento es requerido' }), { status: 400 });
+      return json({ error: 'id_tarea o id_requerimiento es requerido' }, 400);
     }
 
-    const updateFields = {};
+    if (!body.quitar_pauta && !estadoValido(estado, ESTADOS)) {
+      return json({ error: `Estado inválido: ${estado}` }, 400);
+    }
+
+    const campos = {};
     if (body.quitar_pauta) {
-      updateFields.plataforma = null;
-      updateFields.presupuesto = null;
-      updateFields.estado = 'Sin Pauta';
-      updateFields.descripcion_pauta = null;
+      campos.plataforma = null;
+      campos.presupuesto = null;
+      campos.estado = 'Sin Pauta';
+      campos.descripcion_pauta = null;
     } else {
-      if (estado !== undefined) updateFields.estado = estado;
-      if (plataforma !== undefined) updateFields.plataforma = plataforma;
-      if (presupuesto !== undefined) updateFields.presupuesto = presupuesto;
-      if (moneda !== undefined) updateFields.moneda = moneda;
-      if (periodo_pauta !== undefined) updateFields.periodo_pauta = periodo_pauta;
-      if (descripcion_pauta !== undefined) updateFields.descripcion_pauta = descripcion_pauta;
+      if (estado !== undefined) campos.estado = estado;
+      if (plataforma !== undefined) campos.plataforma = plataforma;
+      if (presupuesto !== undefined) campos.presupuesto = presupuesto;
+      if (moneda !== undefined) campos.moneda = moneda;
+      if (periodo_pauta !== undefined) campos.periodo_pauta = periodo_pauta;
+      if (descripcion_pauta !== undefined) campos.descripcion_pauta = descripcion_pauta;
     }
 
-    let registroExistente = null;
-    if (id_tarea) {
-      const { data } = await supabaseServer.from('tareas_cm').select('*').eq('id_tarea', id_tarea).maybeSingle();
-      registroExistente = data;
-    }
-    if (!registroExistente && id_requerimiento) {
-      const { data } = await supabaseServer.from('tareas_cm').select('*').eq('id_requerimiento', id_requerimiento).maybeSingle();
-      registroExistente = data;
-    }
-
-    let data = null;
-    if (registroExistente) {
-      const { data: updated, error } = await supabaseServer
-        .from('tareas_cm')
-        .update(updateFields)
-        .eq('id_tarea', registroExistente.id_tarea)
-        .select()
-        .single();
-      if (error) {
-        return new Response(JSON.stringify({ error: error.message }), { status: 500 });
-      }
-      data = updated;
-    } else if (id_requerimiento) {
-      const { data: inserted, error } = await supabaseServer
-        .from('tareas_cm')
-        .insert([{
-          id_requerimiento,
-          estado: estado || 'Por Hacer',
-          ...updateFields
-        }])
-        .select()
-        .single();
-      if (error) {
-        return new Response(JSON.stringify({ error: error.message }), { status: 500 });
-      }
-      data = inserted;
-    } else {
-      return new Response(JSON.stringify({ error: 'Tarea de CM no encontrada' }), { status: 404 });
-    }
-
-    // Registrar en bitácora histórica para reportes completos
-    if (data?.id_requerimiento) {
-      try {
-        await supabaseServer.from('historial_seguimiento').insert({
-          id_requerimiento: data.id_requerimiento,
-          departamento: 'CM',
-          usuario: body.usuario || 'Área de Pauta & CM',
-          accion: `Campaña CM actualizada a "${data.estado || estado}"`,
-          comentario: body.comentario || `Plataforma: ${data.plataforma || 'N/A'} | Presupuesto: ${data.presupuesto ? (data.moneda || 'USD') + ' ' + data.presupuesto : 'Sin definir'} | Duración: ${data.periodo_pauta || 'N/A'}`,
-          fecha_registro: new Date().toISOString()
-        });
-      } catch (errHist) {
-        console.warn('Error registrando en historial_seguimiento:', errHist.message);
-      }
-    }
-
-    return new Response(JSON.stringify({ mensaje: 'Tarea de CM actualizada con éxito', data }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
+    const resultado = await guardarTarea({
+      tabla: 'tareas_cm',
+      idTarea: id_tarea,
+      idRequerimiento: id_requerimiento,
+      campos,
+      valoresIniciales: { estado: 'Por Hacer' },
+      columnas: COLUMNAS
     });
+
+    if (resultado.error) {
+      console.error('[PATCH /api/tareas/cm] Error de base de datos:', resultado.error);
+      return json({ error: resultado.error.message }, 500);
+    }
+
+    if (resultado.noEncontrada) {
+      return json({ error: 'Tarea de CM no encontrada' }, 404);
+    }
+
+    const data = resultado.data;
+
+    if (data?.id_requerimiento) {
+      await registrarHistorial({
+        id_requerimiento: data.id_requerimiento,
+        departamento: 'CM',
+        usuario: body.usuario || 'Área de Pauta & CM',
+        accion: `Campaña CM actualizada a "${data.estado || estado}"`,
+        comentario: body.comentario || `Plataforma: ${data.plataforma || 'N/A'} | Presupuesto: ${data.presupuesto ? `${data.moneda || 'USD'} ${data.presupuesto}` : 'Sin definir'} | Duración: ${data.periodo_pauta || 'N/A'}`,
+        fecha_registro: new Date().toISOString()
+      });
+    }
+
+    return json({ mensaje: 'Tarea de CM actualizada con éxito', data });
   } catch (err) {
-    console.error('Error en PATCH /api/tareas/cm:', err);
-    return new Response(JSON.stringify({ error: err.message || 'Error actualizando tarea de CM' }), { status: 500 });
+    console.error('[PATCH /api/tareas/cm] Error inesperado:', err);
+    return json({ error: err?.message || 'Error actualizando tarea de CM' }, 500);
   }
 }

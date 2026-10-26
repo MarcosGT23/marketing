@@ -40,16 +40,23 @@ export function useRealtimeSync(onActualizar, tablas = [], opciones = {}) {
   const [ultimaActualizacion, setUltimaActualizacion] = useState(() => new Date());
   const callbackRef = useRef(onActualizar);
   callbackRef.current = onActualizar;
+  const temporizadorRef = useRef(null);
 
+  // Agrupa ráfagas de eventos (broadcast local + realtime + polling) en una sola recarga
   const ejecutarActualizacion = useCallback((origen, extra = {}) => {
     setUltimaActualizacion(new Date());
-    if (callbackRef.current) {
-      try {
-        callbackRef.current({ origen, ...extra, silent: true });
-      } catch (err) {
-        console.warn('[useRealtimeSync] Error ejecutando callback de actualización:', err);
+
+    if (temporizadorRef.current) clearTimeout(temporizadorRef.current);
+    temporizadorRef.current = setTimeout(() => {
+      temporizadorRef.current = null;
+      if (callbackRef.current) {
+        try {
+          callbackRef.current({ origen, ...extra, silent: true });
+        } catch (err) {
+          console.warn('[useRealtimeSync] Error ejecutando callback de actualización:', err);
+        }
       }
-    }
+    }, 250);
   }, []);
 
   const forzarSincronizacion = useCallback(() => {
@@ -131,6 +138,10 @@ export function useRealtimeSync(onActualizar, tablas = [], opciones = {}) {
 
     // Limpieza al desmontar
     return () => {
+      if (temporizadorRef.current) {
+        clearTimeout(temporizadorRef.current);
+        temporizadorRef.current = null;
+      }
       if (bcListener) {
         try { bcListener.close(); } catch (e) {}
       }
