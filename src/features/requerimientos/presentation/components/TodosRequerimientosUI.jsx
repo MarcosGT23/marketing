@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import ModalEditarRequerimiento from './ModalEditarRequerimiento';
 import { eliminarRequerimiento } from '../../infrastructure/requerimiento.api';
+import { notificarExito, notificarError } from '../../../../core/ui/notifications';
 import { normalizarPeriodo, periodoAFecha } from '../../../../core/utils/dateUtils';
 
 const COLORES_AVATAR = [
@@ -43,10 +44,11 @@ export default function TodosRequerimientosUI({
 
     try {
       await eliminarRequerimiento(item.id_requerimiento);
+      notificarExito(`Se eliminó "${nombre}" de todos los paneles.`, 'Requerimiento eliminado');
       if (alActualizar) alActualizar();
     } catch (err) {
       console.error('Error al eliminar requerimiento:', err);
-      alert(err.message || 'Error al eliminar el requerimiento');
+      notificarError(err.message || 'No se pudo eliminar el requerimiento.');
     }
   };
 
