@@ -25,9 +25,7 @@ export function getSupabaseCredentials() {
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
     process.env.SUPABASE_SERVICE_KEY ||
     process.env.SUPABASE_KEY ||
-    (typeof import.meta !== 'undefined' && import.meta.env?.SUPABASE_SERVICE_ROLE_KEY) ||
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNydGJmeGVjaW1yb2Vid3hzZWJmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MDE5MzMyNiwiZXhwIjoyMTA1NzY5MzI2fQ.C6vjzdo2Rw5Z9toiTwLA02vVobRNyfWysvxi_DQBx1o';
-
+    (typeof import.meta !== 'undefined' && import.meta.env?.SUPABASE_SERVICE_ROLE_KEY);
   return { url, serviceKey };
 }
 

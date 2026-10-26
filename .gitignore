@@ -16,7 +16,14 @@ pnpm-debug.log*
 
 # environment variables
 .env
-.env.production
+.env.*
+!.env.example
+
+# QA scratch and local agent tooling
+.qa/
+.qoder/
+SKILL.md
+skills-lock.json
 
 # macOS-specific files
 .DS_Store
