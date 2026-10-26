@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import LiquidStateSelector from './LiquidStateSelector';
 import { SlideConfirm } from "./SlideConfirm";
 import "./SlideConfirm.css";
 import ModalEditarRequerimiento from '../../../requerimientos/presentation/components/ModalEditarRequerimiento';
 import { eliminarRequerimiento } from '../../../requerimientos/infrastructure/requerimiento.api';
+import { notificarExito, notificarError } from '../../../../core/ui/notifications';
 
 function StyledInput({ icon, ...rest }) {
     const [focused, setFocused] = useState(false);
@@ -123,6 +125,7 @@ export default function TableroDisenoUI({
     const [tarjetasExpandidas, setTarjetasExpandidas] = useState({});
     const [menuOpcionesId, setMenuOpcionesId] = useState(null);
     const [requerimientoAEditar, setRequerimientoAEditar] = useState(null);
+    const reducirMovimiento = useReducedMotion();
 
     const handleEliminarRequerimiento = async (item) => {
         const nombre = item.nombre_propiedad || `Requerimiento #${item.id_requerimiento}`;
@@ -133,11 +136,12 @@ export default function TableroDisenoUI({
 
         try {
             await eliminarRequerimiento(item.id_requerimiento);
+            notificarExito(`Se eliminó "${nombre}" de todos los paneles.`, 'Requerimiento eliminado');
             if (alRecargar) alRecargar();
             else if (alGuardar) alGuardar();
         } catch (err) {
             console.error('Error al eliminar requerimiento:', err);
-            alert(err.message || 'Error al eliminar el requerimiento');
+            notificarError(err.message || 'No se pudo eliminar el requerimiento.');
         }
     };
 
@@ -359,28 +363,44 @@ export default function TableroDisenoUI({
                             <button
                                 type="button"
                                 onClick={() => { setVistaModo('agentes'); setAgenteSeleccionadoId(null); }}
-                                className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95"
-                                style={{
-                                    background: vistaModo === 'agentes' ? 'var(--color-primary-container)' : 'transparent',
-                                    color: vistaModo === 'agentes' ? 'white' : 'var(--color-on-surface-variant)',
-                                    boxShadow: vistaModo === 'agentes' ? '0 2px 6px rgba(37,99,235,0.25)' : 'none'
-                                }}
+                                aria-pressed={vistaModo === 'agentes'}
+                                className="relative flex-1 sm:flex-initial flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors active:scale-95"
+                                style={{ color: vistaModo === 'agentes' ? 'white' : 'var(--color-on-surface-variant)' }}
                             >
-                                <span className="material-symbols-outlined text-[16px]">group</span>
-                                <span>Por Agentes ({agentes.length})</span>
+                                {vistaModo === 'agentes' && (
+                                    <motion.span
+                                        layoutId="diseno-vista-pill"
+                                        aria-hidden="true"
+                                        className="absolute inset-0 rounded-lg"
+                                        transition={reducirMovimiento ? { duration: 0 } : { type: 'spring', stiffness: 480, damping: 38, mass: 0.7 }}
+                                        style={{ background: 'var(--color-primary-container)', boxShadow: '0 2px 6px rgba(37,99,235,0.25)' }}
+                                    />
+                                )}
+                                <span className="relative z-10 flex items-center gap-1.5">
+                                    <span className="material-symbols-outlined text-[16px]">group</span>
+                                    <span>Por Agentes ({agentes.length})</span>
+                                </span>
                             </button>
                             <button
                                 type="button"
                                 onClick={() => { setVistaModo('todos'); setAgenteSeleccionadoId(null); }}
-                                className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95"
-                                style={{
-                                    background: vistaModo === 'todos' ? 'var(--color-primary-container)' : 'transparent',
-                                    color: vistaModo === 'todos' ? 'white' : 'var(--color-on-surface-variant)',
-                                    boxShadow: vistaModo === 'todos' ? '0 2px 6px rgba(37,99,235,0.25)' : 'none'
-                                }}
+                                aria-pressed={vistaModo === 'todos'}
+                                className="relative flex-1 sm:flex-initial flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors active:scale-95"
+                                style={{ color: vistaModo === 'todos' ? 'white' : 'var(--color-on-surface-variant)' }}
                             >
-                                <span className="material-symbols-outlined text-[16px]">view_agenda</span>
-                                <span>Tareas ({tareas.length})</span>
+                                {vistaModo === 'todos' && (
+                                    <motion.span
+                                        layoutId="diseno-vista-pill"
+                                        aria-hidden="true"
+                                        className="absolute inset-0 rounded-lg"
+                                        transition={reducirMovimiento ? { duration: 0 } : { type: 'spring', stiffness: 480, damping: 38, mass: 0.7 }}
+                                        style={{ background: 'var(--color-primary-container)', boxShadow: '0 2px 6px rgba(37,99,235,0.25)' }}
+                                    />
+                                )}
+                                <span className="relative z-10 flex items-center gap-1.5">
+                                    <span className="material-symbols-outlined text-[16px]">view_agenda</span>
+                                    <span>Tareas ({tareas.length})</span>
+                                </span>
                             </button>
                         </div>
                     )}
@@ -419,7 +439,7 @@ export default function TableroDisenoUI({
 
             {/* ── VISTA 1: Directorio / Menú de Agentes ── */}
             {!agenteActivo && vistaModo === 'agentes' && (
-                <div className="space-y-4">
+                <div className="tab-panel space-y-4">
                     <div className="flex items-center justify-between">
                         <h2 className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5"
                             style={{ color: 'var(--color-outline)' }}>
@@ -531,7 +551,7 @@ export default function TableroDisenoUI({
 
             {/* ── VISTA 2: Requerimientos del Agente Seleccionado ── */}
             {agenteActivo && (
-                <div className="space-y-5">
+                <div key={agenteActivo.id} className="tab-panel space-y-5">
                     {/* Perfil del Agente */}
                     <div className="p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                         style={{
@@ -613,7 +633,7 @@ export default function TableroDisenoUI({
 
             {/* ── VISTA 3: Todas las Tareas (Modo Global) ── */}
             {!agenteActivo && vistaModo === 'todos' && (
-                <div className="space-y-4">
+                <div className="tab-panel space-y-4">
                     <div className="flex items-center justify-between">
                         <h2 className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5"
                             style={{ color: 'var(--color-outline)' }}>

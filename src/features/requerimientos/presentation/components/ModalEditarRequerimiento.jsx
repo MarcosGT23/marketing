@@ -1,8 +1,22 @@
 import React, { useState, useEffect } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import SelectorDuracionPauta from './SelectorDuracionPauta';
 import { actualizarRequerimiento } from '../../infrastructure/requerimiento.api';
 import { obtenerPeriodoActual } from '../../../../core/utils/dateUtils';
 import { ESTADO_CAMPANA_ACTIVO, ESTADO_CAMPANA_INACTIVO } from '../../../../core/utils/campanaUtils';
+
+function SubrayadoTab({ activo, color, reducirMovimiento }) {
+  if (!activo) return null;
+  return (
+    <motion.span
+      layoutId="modal-tab-underline"
+      aria-hidden="true"
+      className="absolute inset-x-1 -bottom-px h-[2px] rounded-full"
+      transition={reducirMovimiento ? { duration: 0 } : { type: 'spring', stiffness: 500, damping: 40, mass: 0.7 }}
+      style={{ background: color }}
+    />
+  );
+}
 
 export default function ModalEditarRequerimiento({
   abierto,
@@ -13,6 +27,7 @@ export default function ModalEditarRequerimiento({
   panel = 'general' // 'diseno' | 'video' | 'cm' | 'general'
 }) {
   const [tabActiva, setTabActiva] = useState('propiedad'); // 'propiedad' | 'diseno' | 'video' | 'pauta' | 'audiovisual'
+  const reducirMovimiento = useReducedMotion();
   const [guardando, setGuardando] = useState(false);
   const [listaAgentes, setListaAgentes] = useState(agentes);
   const [mensajeError, setMensajeError] = useState(null);
@@ -291,28 +306,32 @@ export default function ModalEditarRequerimiento({
           <button
             type="button"
             onClick={() => setTabActiva('propiedad')}
-            className={`py-3 px-3.5 text-xs sm:text-sm font-semibold flex items-center gap-2 border-b-2 transition-all ${
+            aria-current={tabActiva === 'propiedad' ? 'page' : undefined}
+            className={`relative py-3 px-3.5 text-xs sm:text-sm font-semibold flex items-center gap-2 transition-colors ${
               tabActiva === 'propiedad'
-                ? 'border-primary-container text-primary-container'
-                : 'border-transparent text-outline hover:text-on-surface'
+                ? 'text-primary-container'
+                : 'text-outline hover:text-on-surface'
             }`}
           >
             <span className="material-symbols-outlined text-[18px]">home</span>
             <span>Propiedad y General</span>
+            <SubrayadoTab activo={tabActiva === 'propiedad'} color="var(--color-primary-container)" reducirMovimiento={reducirMovimiento} />
           </button>
 
           {panel === 'diseno' && (
             <button
               type="button"
               onClick={() => setTabActiva('diseno')}
-              className={`py-3 px-3.5 text-xs sm:text-sm font-semibold flex items-center gap-2 border-b-2 transition-all ${
+              aria-current={tabActiva === 'diseno' ? 'page' : undefined}
+              className={`relative py-3 px-3.5 text-xs sm:text-sm font-semibold flex items-center gap-2 transition-colors ${
                 tabActiva === 'diseno'
-                  ? 'border-primary-container text-primary-container'
-                  : 'border-transparent text-outline hover:text-on-surface'
+                  ? 'text-primary-container'
+                  : 'text-outline hover:text-on-surface'
               }`}
             >
               <span className="material-symbols-outlined text-[18px]">palette</span>
               <span>Entregables de Diseño</span>
+              <SubrayadoTab activo={tabActiva === 'diseno'} color="var(--color-primary-container)" reducirMovimiento={reducirMovimiento} />
             </button>
           )}
 
@@ -320,14 +339,16 @@ export default function ModalEditarRequerimiento({
             <button
               type="button"
               onClick={() => setTabActiva('video')}
-              className={`py-3 px-3.5 text-xs sm:text-sm font-semibold flex items-center gap-2 border-b-2 transition-all ${
+              aria-current={tabActiva === 'video' ? 'page' : undefined}
+              className={`relative py-3 px-3.5 text-xs sm:text-sm font-semibold flex items-center gap-2 transition-colors ${
                 tabActiva === 'video'
-                  ? 'border-tertiary text-tertiary'
-                  : 'border-transparent text-outline hover:text-on-surface'
+                  ? 'text-tertiary'
+                  : 'text-outline hover:text-on-surface'
               }`}
             >
               <span className="material-symbols-outlined text-[18px]">movie</span>
               <span>Producción de Video</span>
+              <SubrayadoTab activo={tabActiva === 'video'} color="var(--color-tertiary)" reducirMovimiento={reducirMovimiento} />
             </button>
           )}
 
@@ -335,14 +356,16 @@ export default function ModalEditarRequerimiento({
             <button
               type="button"
               onClick={() => setTabActiva('pauta')}
-              className={`py-3 px-3.5 text-xs sm:text-sm font-semibold flex items-center gap-2 border-b-2 transition-all ${
+              aria-current={tabActiva === 'pauta' ? 'page' : undefined}
+              className={`relative py-3 px-3.5 text-xs sm:text-sm font-semibold flex items-center gap-2 transition-colors ${
                 tabActiva === 'pauta'
-                  ? 'border-secondary text-secondary'
-                  : 'border-transparent text-outline hover:text-on-surface'
+                  ? 'text-secondary'
+                  : 'text-outline hover:text-on-surface'
               }`}
             >
               <span className="material-symbols-outlined text-[18px]">campaign</span>
               <span>Pauta Digital (CM)</span>
+              <SubrayadoTab activo={tabActiva === 'pauta'} color="var(--color-secondary)" reducirMovimiento={reducirMovimiento} />
             </button>
           )}
 
@@ -351,27 +374,31 @@ export default function ModalEditarRequerimiento({
               <button
                 type="button"
                 onClick={() => setTabActiva('audiovisual')}
-                className={`py-3 px-3.5 text-xs sm:text-sm font-semibold flex items-center gap-2 border-b-2 transition-all ${
+                aria-current={tabActiva === 'audiovisual' ? 'page' : undefined}
+                className={`relative py-3 px-3.5 text-xs sm:text-sm font-semibold flex items-center gap-2 transition-colors ${
                   tabActiva === 'audiovisual'
-                    ? 'border-tertiary text-tertiary'
-                    : 'border-transparent text-outline hover:text-on-surface'
+                    ? 'text-tertiary'
+                    : 'text-outline hover:text-on-surface'
                 }`}
               >
                 <span className="material-symbols-outlined text-[18px]">palette</span>
                 <span>Diseño y Video</span>
+                <SubrayadoTab activo={tabActiva === 'audiovisual'} color="var(--color-tertiary)" reducirMovimiento={reducirMovimiento} />
               </button>
 
               <button
                 type="button"
                 onClick={() => setTabActiva('pauta')}
-                className={`py-3 px-3.5 text-xs sm:text-sm font-semibold flex items-center gap-2 border-b-2 transition-all ${
+                aria-current={tabActiva === 'pauta' ? 'page' : undefined}
+                className={`relative py-3 px-3.5 text-xs sm:text-sm font-semibold flex items-center gap-2 transition-colors ${
                   tabActiva === 'pauta'
-                    ? 'border-secondary text-secondary'
-                    : 'border-transparent text-outline hover:text-on-surface'
+                    ? 'text-secondary'
+                    : 'text-outline hover:text-on-surface'
                 }`}
               >
                 <span className="material-symbols-outlined text-[18px]">campaign</span>
                 <span>Pauta Digital (CM)</span>
+                <SubrayadoTab activo={tabActiva === 'pauta'} color="var(--color-secondary)" reducirMovimiento={reducirMovimiento} />
               </button>
             </>
           )}
@@ -386,7 +413,7 @@ export default function ModalEditarRequerimiento({
         )}
 
         {/* Contenido scrolleable */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+        <div key={tabActiva} className="tab-panel flex-1 overflow-y-auto p-6 space-y-5">
           {/* TAB 1: PROPIEDAD */}
           {tabActiva === 'propiedad' && (
             <div className="space-y-4">

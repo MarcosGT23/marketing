@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { procesarCsvMeta } from '../../utils/parseMetaCsv';
+import { notificarExito, notificarError, notificarAviso } from '../../../../core/ui/notifications';
 
 // Normaliza un anuncio para asegurar propiedades activo, nombre y entrega del anuncio
 const normalizarAnuncio = (a) => {
@@ -146,7 +147,7 @@ export default function ModalNuevoReporteCM({
     if (!file) return;
 
     if (!file.name.endsWith('.csv')) {
-      alert('Por favor selecciona un archivo .csv');
+      notificarAviso('El archivo debe tener extensión .csv.', 'Formato no compatible');
       return;
     }
 
@@ -191,7 +192,7 @@ export default function ModalNuevoReporteCM({
 
         setFiltroEstado(activos.length > 0 ? 'activos' : 'todos');
       } catch (err) {
-        alert('Error al leer el archivo CSV: ' + err.message);
+        notificarError(`No se pudo leer el archivo CSV. ${err.message}`, 'Lectura incompleta');
       } finally {
         setCargandoArchivo(false);
       }
@@ -202,11 +203,11 @@ export default function ModalNuevoReporteCM({
   // Guardar reporte
   const manejarGuardar = async () => {
     if (!solicitante.trim()) {
-      alert('Por favor selecciona o introduce un solicitante.');
+      notificarAviso('Selecciona o escribe quién solicita el reporte.', 'Falta el solicitante');
       return;
     }
     if (!titulo.trim()) {
-      alert('Por favor introduce un título para el reporte.');
+      notificarAviso('Escribe un título para identificar el reporte.', 'Falta el título');
       return;
     }
 
@@ -237,13 +238,13 @@ export default function ModalNuevoReporteCM({
         throw new Error(data.error || 'Error al guardar el reporte');
       }
 
-      alert('¡Reporte guardado y sincronizado con éxito!');
+      notificarExito('El reporte quedó guardado y sincronizado con el panel de CM.', 'Reporte sincronizado');
       if (alGuardarExitoso) {
         alGuardarExitoso(data);
       }
       alCerrar();
     } catch (err) {
-      alert('Error al guardar: ' + err.message);
+      notificarError(`No se pudo guardar el reporte. ${err.message}`, 'Guardado fallido');
     } finally {
       setGuardando(false);
     }

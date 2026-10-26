@@ -2,6 +2,7 @@
 const { title } = Astro.props;
 const pathname = Astro.url.pathname;
 import "../../styles/global.css";
+import ToastHost from "../ui/ToastHost.jsx";
 ---
 
 <html lang="es">
@@ -280,6 +281,8 @@ import "../../styles/global.css";
                 </div>
             </div>
         </footer>
+
+        <ToastHost client:load />
 
     </body>
 </html>

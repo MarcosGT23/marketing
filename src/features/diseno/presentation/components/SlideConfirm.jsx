@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { motion, useMotionValue, useTransform, animate } from "framer-motion";
+import { motion, useMotionValue, useTransform, animate, useReducedMotion } from "framer-motion";
 
 export function SlideConfirm({
   corner = 28,
@@ -17,6 +17,7 @@ export function SlideConfirm({
   const trackRef = useRef(null);
   const [confirmed, setConfirmed] = useState(isConfirmed);
   const [trackWidth, setTrackWidth] = useState(0);
+  const reducirMovimiento = useReducedMotion();
 
   const thumbSize = 42;
   const padding = 4;
@@ -32,8 +33,8 @@ export function SlideConfirm({
   // Opacidad del texto al deslizar
   const textOpacity = useTransform(x, [0, (maxDrag || 1) * 0.6], [1, 0.1]);
 
-  // Fondo que se llena a medida que se desliza
-  const fillWidth = useTransform(x, (val) => val + thumbSize + padding);
+  // Fondo que se llena a medida que se desliza (termina justo en el borde del thumb)
+  const fillWidth = useTransform(x, (val) => val + thumbSize);
 
   useEffect(() => {
     setConfirmed(isConfirmed);
@@ -55,22 +56,26 @@ export function SlideConfirm({
     return () => ro.disconnect();
   }, []);
 
+  const confirmar = () => {
+    if (disabled || confirmed) return;
+
+    if (reducirMovimiento) {
+      x.set(maxDrag);
+    } else {
+      animate(x, maxDrag, { type: "spring", stiffness: 420, damping: 32 });
+    }
+    setConfirmed(true);
+    navigator.vibrate?.(14);
+    if (onConfirm) onConfirm();
+  };
+
   const handleDragEnd = () => {
     if (disabled || confirmed) return;
 
     const currentX = x.get();
     // Umbral de confirmación: 75% del recorrido
     if (currentX >= maxDrag * 0.75) {
-      // Snap to end
-      animate(x, maxDrag, {
-        type: "spring",
-        stiffness: 400,
-        damping: 30,
-      });
-      setConfirmed(true);
-      if (onConfirm) {
-        onConfirm();
-      }
+      confirmar();
     } else {
       // Volver al inicio con rebote elástico
       animate(x, 0, {
@@ -79,6 +84,12 @@ export function SlideConfirm({
         damping: 20,
       });
     }
+  };
+
+  const handleKeyDown = (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    confirmar();
   };
 
   return (
@@ -92,6 +103,11 @@ export function SlideConfirm({
     >
       <div
         ref={trackRef}
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        aria-label={`${text}. También puedes confirmar con Enter.`}
+        aria-disabled={disabled || undefined}
+        onKeyDown={handleKeyDown}
         className={`slide-confirm-track ${confirmed ? "is-confirmed" : ""} ${
           disabled ? "is-disabled" : ""
         }`}
@@ -116,14 +132,14 @@ export function SlideConfirm({
           style={{ opacity: confirmed ? 1 : textOpacity }}
         >
           {confirmed ? (
-            <span className="flex items-center justify-center gap-1.5 font-bold text-emerald-700 dark:text-emerald-300">
+            <span className="slide-confirm-check flex items-center justify-center gap-1.5 font-bold text-emerald-700 dark:text-emerald-300">
               <span className="material-symbols-outlined text-[18px]">{confirmedIcon}</span>
               {confirmedText}
             </span>
           ) : (
             <span className="flex items-center justify-center gap-1.5 text-xs font-semibold tracking-wide text-on-surface-variant">
               <span>{text}</span>
-              <span className="material-symbols-outlined text-[16px] text-primary animate-pulse">
+              <span className="material-symbols-outlined slide-confirm-hint text-[16px] text-primary">
                 double_arrow
               </span>
             </span>

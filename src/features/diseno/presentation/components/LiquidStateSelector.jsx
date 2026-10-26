@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useId, useMemo } from 'react';
-import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
+import { motion, useMotionValue, useTransform, animate, useReducedMotion } from 'framer-motion';
 
 const LIQUID = {
   type: "spring",
@@ -60,6 +60,7 @@ export default function LiquidStateSelector({ estadoActual = 'Por Hacer', alCamb
 
   const [held, setHeld] = useState(false);
   const [hoveredIdx, setHoveredIdx] = useState(null);
+  const reducirMovimiento = useReducedMotion();
 
   const { url: gooUrl, goo } = useGoo(2.5, 26);
 
@@ -80,12 +81,20 @@ export default function LiquidStateSelector({ estadoActual = 'Por Hacer', alCamb
     return { slotW, innerW, pad };
   };
 
+  const moverCapsula = (target) => {
+    if (reducirMovimiento) {
+      x.set(target);
+    } else {
+      animate(x, target, LIQUID);
+    }
+  };
+
   // Posicionar la cápsula cuando cambia activeIndex o se redimensiona
   useEffect(() => {
     if (held) return;
     const { slotW } = getMetrics();
-    animate(x, activeIndex * slotW, LIQUID);
-  }, [activeIndex, held]);
+    moverCapsula(activeIndex * slotW);
+  }, [activeIndex, held, reducirMovimiento]);
 
   // ResizeObserver para mantener simetría matemática ante cualquier cambio de pantalla o grid
   useEffect(() => {
@@ -104,11 +113,12 @@ export default function LiquidStateSelector({ estadoActual = 'Por Hacer', alCamb
 
   const justDraggedRef = useRef(false);
 
-  // Selección directa por clic
+  // Selección directa por clic o teclado
   const handleSelectSlot = (index) => {
     const { slotW } = getMetrics();
-    animate(x, index * slotW, LIQUID);
+    moverCapsula(index * slotW);
     if (alCambiarEstado && ESTADOS[index].id !== estadoActual) {
+      navigator.vibrate?.(10);
       alCambiarEstado(ESTADOS[index].id);
     }
   };
@@ -200,11 +210,26 @@ export default function LiquidStateSelector({ estadoActual = 'Por Hacer', alCamb
       justDraggedRef.current = false;
     }, 150);
 
-    animate(x, targetIndex * slotW, LIQUID);
+    moverCapsula(targetIndex * slotW);
 
     if (alCambiarEstado && ESTADOS[targetIndex].id !== estadoActual) {
+      navigator.vibrate?.(10);
       alCambiarEstado(ESTADOS[targetIndex].id);
     }
+  };
+
+  const handleSlotKeyDown = (event, index) => {
+    const paso = event.key === 'ArrowRight' || event.key === 'ArrowDown'
+      ? 1
+      : event.key === 'ArrowLeft' || event.key === 'ArrowUp'
+        ? -1
+        : 0;
+    if (paso === 0) return;
+
+    event.preventDefault();
+    const siguiente = (index + paso + ESTADOS.length) % ESTADOS.length;
+    containerRef.current?.querySelectorAll('[role="radio"]')[siguiente]?.focus();
+    handleSelectSlot(siguiente);
   };
 
   const activeColor = ESTADOS[activeIndex]?.tint || '#2563eb';
@@ -215,13 +240,18 @@ export default function LiquidStateSelector({ estadoActual = 'Por Hacer', alCamb
 
       <div
         ref={containerRef}
+        role="radiogroup"
+        aria-label="Estado de la tarea de diseño"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        className="relative h-[44px] w-full rounded-xl p-1 overflow-hidden cursor-pointer touch-none select-none transition-all shadow-inner border border-surface-container"
+        onClick={(e) => e.stopPropagation()}
+        className="relative h-[52px] w-full rounded-full p-1 overflow-hidden cursor-pointer touch-none select-none transition-all border"
         style={{
-          background: 'var(--color-surface-container-low)',
+          background: 'linear-gradient(180deg, var(--color-surface-container-low), var(--color-surface-container))',
+          borderColor: 'var(--color-outline-variant)',
+          boxShadow: 'inset 0 1px 2px rgba(15,23,42,0.05), inset 0 -1px 0 rgba(255,255,255,0.55)',
         }}
       >
         {/* Capa 1: Blob metaball líquido perfectamente delimitado por inset-1 */}
@@ -231,11 +261,12 @@ export default function LiquidStateSelector({ estadoActual = 'Por Hacer', alCamb
           style={{ filter: gooUrl }}
         >
           <motion.div
-            className="h-full rounded-lg shadow-sm"
+            className="h-full rounded-full"
             style={{
               x,
               width: `${100 / ESTADOS.length}%`,
-              background: activeColor,
+              backgroundColor: activeColor,
+              backgroundImage: 'linear-gradient(165deg, rgba(255,255,255,0.26), rgba(0,0,0,0.06))',
               scaleX: wide,
               scaleY: squash,
               skewX: tilt,
@@ -258,14 +289,19 @@ export default function LiquidStateSelector({ estadoActual = 'Por Hacer', alCamb
               <button
                 key={est.id}
                 type="button"
+                role="radio"
+                aria-checked={isSelected}
+                aria-label={`${est.label}, ${est.pct}% de avance`}
+                tabIndex={isSelected ? 0 : -1}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (justDraggedRef.current) return;
                   handleSelectSlot(idx);
                 }}
-                className={`relative flex items-center justify-center gap-1.5 px-1.5 h-full w-full rounded-lg cursor-pointer transition-colors duration-200 outline-none select-none ${
+                onKeyDown={(e) => handleSlotKeyDown(e, idx)}
+                className={`liq-slot relative flex items-center justify-center gap-1 px-1 h-full w-full rounded-full cursor-pointer transition-colors duration-200 outline-none select-none ${
                   isSelected || isHovered
-                    ? 'text-white font-bold drop-shadow-xs'
+                    ? 'text-white font-bold'
                     : 'text-on-surface-variant hover:text-on-surface'
                 }`}
                 title={`${est.label} (${est.pct}%)`}
@@ -282,9 +318,12 @@ export default function LiquidStateSelector({ estadoActual = 'Por Hacer', alCamb
                 </span>
 
                 <span
-                  className={`text-[9px] px-1.5 py-0.5 rounded-full font-mono font-bold leading-none pointer-events-none transition-all ${
-                    isSelected ? 'bg-black/25 text-white shadow-xs' : 'opacity-65 text-outline bg-surface-container'
+                  className={`hidden sm:inline-flex items-center justify-center text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold leading-none pointer-events-none transition-all ${
+                    isSelected ? 'text-white' : 'opacity-75 text-on-surface-variant'
                   }`}
+                  style={isSelected
+                    ? { background: 'rgba(15,23,42,0.22)' }
+                    : { background: 'var(--color-surface-container-lowest)' }}
                 >
                   {est.pct}%
                 </span>

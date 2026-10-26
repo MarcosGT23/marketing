@@ -311,3 +311,133 @@
     box-shadow: 0 8px 24px rgba(0,0,0,0.1);
   }
 }
+
+/* ── Motion tokens ── */
+:root {
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-quick: 140ms;
+  --dur-base: 260ms;
+  --dur-slow: 420ms;
+}
+
+/* ── Panel / tab transitions ── */
+@keyframes tabPanelIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.tab-panel {
+  animation: tabPanelIn var(--dur-base) var(--ease-standard) both;
+}
+
+/* ── Chart reveals ── */
+@keyframes chartLineDraw {
+  to { stroke-dashoffset: 0; }
+}
+.chart-line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: chartLineDraw 900ms var(--ease-emphasized) 80ms both;
+}
+
+@keyframes chartFade {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.chart-fade {
+  animation: chartFade 480ms var(--ease-emphasized) both;
+}
+
+@keyframes chartPointIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.chart-point {
+  animation: chartPointIn 420ms var(--ease-standard) both;
+}
+
+@keyframes chartDonutIn {
+  from { opacity: 0; transform: rotate(-24deg) scale(0.92); }
+  to   { opacity: 1; transform: rotate(0deg) scale(1); }
+}
+.chart-donut {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: chartDonutIn 640ms var(--ease-emphasized) both;
+}
+
+@keyframes chartBarGrow {
+  from { transform: scaleY(0); opacity: 0.45; }
+  to   { transform: scaleY(1); opacity: 1; }
+}
+.chart-bar {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: chartBarGrow 620ms var(--ease-emphasized) both;
+}
+
+@keyframes barGrowX {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+.bar-grow {
+  transform-origin: left center;
+  animation: barGrowX 640ms var(--ease-emphasized) both;
+}
+
+/* ── Liquid state selector ── */
+.liq-slot:focus-visible {
+  box-shadow: inset 0 0 0 2px rgba(37, 99, 235, 0.55);
+}
+
+/* ── Notification surface ── */
+.toast-surface {
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+}
+
+@keyframes toastProgress {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+.toast-progress {
+  transform-origin: left center;
+  animation-name: toastProgress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+.group:hover .toast-progress,
+.group:focus-within .toast-progress {
+  animation-play-state: paused;
+}
+
+/* ── Accessibility preferences ── */
+@media (prefers-reduced-motion: reduce) {
+  .tab-panel,
+  .chart-line,
+  .chart-fade,
+  .chart-point,
+  .chart-donut,
+  .chart-bar,
+  .bar-grow,
+  .toast-progress {
+    animation: none !important;
+  }
+  .chart-line {
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .toast-surface {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--color-surface-container-lowest) !important;
+  }
+  .glass-panel {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--color-surface-container-lowest);
+  }
+}

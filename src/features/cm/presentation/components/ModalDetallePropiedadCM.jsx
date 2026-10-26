@@ -1,6 +1,7 @@
 // src/features/cm/presentation/components/ModalDetallePropiedadCM.jsx
 import { useState, useEffect } from 'react';
 import { procesarCsvMeta } from '../../utils/parseMetaCsv';
+import { notificarError, notificarAviso } from '../../../../core/ui/notifications';
 
 // Normaliza un anuncio para asegurar propiedades activo, nombre y entrega del anuncio
 const normalizarAnuncio = (a) => {
@@ -107,7 +108,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
     if (!file) return;
 
     if (!file.name.endsWith('.csv')) {
-      alert('Por favor selecciona un archivo .csv');
+      notificarAviso('El archivo debe tener extensión .csv.', 'Formato no compatible');
       return;
     }
 
@@ -149,7 +150,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
         // Si hay anuncios activos mostrar la pestaña de activos; si no, mostrar todos
         setFiltroEstado(activos.length > 0 ? 'activos' : 'todos');
       } catch (err) {
-        alert('Error al leer el archivo CSV: ' + err.message);
+        notificarError(`No se pudo leer el archivo CSV. ${err.message}`, 'Lectura incompleta');
       } finally {
         setCargandoArchivo(false);
       }
@@ -183,7 +184,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
       });
       alCerrar();
     } catch (err) {
-      alert('Error al sincronizar datos: ' + err.message);
+      notificarError(`No se pudieron sincronizar los datos. ${err.message}`, 'Sincronización fallida');
     } finally {
       setGuardando(false);
     }
