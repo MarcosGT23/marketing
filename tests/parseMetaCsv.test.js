@@ -35,6 +35,8 @@ test('detecta informe español, separador ";" y decimales latinos', () => {
   assert.equal(anuncios[0].estado_texto, 'En circulación');
   assert.equal(anuncios[1].activo, false);
   assert.equal(anuncios[1].estado_texto, 'Pausado');
+  assert.equal(anuncios.moneda.codigo, 'BOB');
+  assert.equal(anuncios.moneda.simbolo, 'Bs');
 });
 
 test('detecta informe inglés y clasifica estados', () => {
@@ -92,6 +94,7 @@ test('acepta informes agrupados por campaña y usa el nombre de la campaña', ()
   assert.equal(anuncios[0].alcance, 1013);
   assert.equal(anuncios[0].activo, true);
   assert.equal(anuncios.meta.columnas.campaign_name, 'Nombre de la campaña');
+  assert.equal(anuncios.moneda.codigo, 'USD');
 });
 
 test('acepta informes agrupados por conjunto de anuncios', () => {
@@ -105,6 +108,56 @@ test('acepta informes agrupados por conjunto de anuncios', () => {
   assert.equal(anuncios.nivel, 'conjunto');
   assert.equal(anuncios[0].nombre_anuncio, 'Conjunto A');
   assert.equal(anuncios[0].leads, 5);
+});
+
+test('detecta la moneda USD desde la cabecera del gasto', () => {
+  const csv = [
+    'Nombre de la campaña,Entrega de la campaña,Resultados,Monto gastado (USD),Alcance',
+    'Campaña A,active,4,4.41,1013'
+  ].join('\n');
+
+  const anuncios = procesarCsvMeta(csv);
+
+  assert.equal(anuncios.moneda.codigo, 'USD');
+  assert.equal(anuncios.moneda.simbolo, '$');
+  assert.equal(anuncios.moneda.origen, 'cabecera');
+  assert.equal(anuncios.meta.moneda.codigo, 'USD');
+});
+
+test('detecta moneda BRL y su símbolo', () => {
+  const csv = [
+    'Nome do anúncio,Veiculação do anúncio,Resultados,Valor gasto (BRL)',
+    'Anúncio A,Em veiculação,2,"R$ 100"'
+  ].join('\n');
+
+  const anuncios = procesarCsvMeta(csv);
+
+  assert.equal(anuncios.moneda.codigo, 'BRL');
+  assert.equal(anuncios.moneda.simbolo, 'R$');
+});
+
+test('detecta moneda desde una columna dedicada', () => {
+  const csv = [
+    'Nombre del anuncio,Entrega del anuncio,Resultados,Importe gastado,Moneda',
+    'Anuncio A,Activo,2,200,BOB'
+  ].join('\n');
+
+  const anuncios = procesarCsvMeta(csv);
+
+  assert.equal(anuncios.moneda.codigo, 'BOB');
+  assert.equal(anuncios.moneda.origen, 'columna');
+});
+
+test('sin pistas de moneda devuelve null y avisa en las advertencias', () => {
+  const csv = [
+    'Nombre del anuncio,Entrega del anuncio,Resultados,Importe gastado',
+    'Anuncio A,Activo,2,200'
+  ].join('\n');
+
+  const anuncios = procesarCsvMeta(csv);
+
+  assert.equal(anuncios.moneda, null);
+  assert.ok(anuncios.meta.advertencias.some((a) => a.includes('moneda')));
 });
 
 test('rechaza CSV sin ninguna columna de nombre', () => {

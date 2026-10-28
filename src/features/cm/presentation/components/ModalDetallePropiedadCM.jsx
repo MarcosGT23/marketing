@@ -1,6 +1,6 @@
 // src/features/cm/presentation/components/ModalDetallePropiedadCM.jsx
 import { useState, useEffect, useRef } from 'react';
-import { procesarCsvMeta } from '../../utils/parseMetaCsv.js';
+import { procesarCsvMeta, obtenerInfoMoneda } from '../../utils/parseMetaCsv.js';
 import { leerArchivoCsv } from '../../utils/leerCsv.js';
 import { notificarError, notificarAviso } from '../../../../core/ui/notifications';
 
@@ -50,6 +50,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
   const [estadoCm, setEstadoCm] = useState('Por Hacer');
   const [plataforma, setPlataforma] = useState('Facebook / Instagram');
   const [presupuesto, setPresupuesto] = useState('');
+  const [monedaCm, setMonedaCm] = useState('USD');
   const [cargandoArchivo, setCargandoArchivo] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [nombreArchivo, setNombreArchivo] = useState('');
@@ -120,6 +121,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
     setEstadoCm(tcm.estado || 'Por Hacer');
     setPlataforma(tcm.plataforma || 'Facebook / Instagram');
     setPresupuesto(tcm.presupuesto || '');
+    setMonedaCm(tcm.moneda || 'USD');
     setNombreArchivo('');
     setIdiomaCsv(null);
     setMetaCsv(null);
@@ -215,7 +217,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
         estado: estadoCm,
         plataforma,
         presupuesto,
-        moneda: tcm.moneda || 'USD',
+        moneda: metaCsv?.moneda?.codigo || monedaCm || 'USD',
         periodo_pauta: tcm.periodo_pauta,
         descripcion_pauta: tcm.descripcion_pauta,
         metricas: {
@@ -244,6 +246,9 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
   const etiquetaNivel = nivelCsv === 'campana' ? 'Por campaña' : nivelCsv === 'conjunto' ? 'Por conjunto' : 'Por anuncio';
   const tituloLista = nivelCsv === 'campana' ? 'Campañas Detectadas' : nivelCsv === 'conjunto' ? 'Conjuntos Detectados' : 'Anuncios Detectados';
   const encabezadoNombre = nivelCsv === 'campana' ? 'Campaña' : nivelCsv === 'conjunto' ? 'Conjunto' : 'Anuncio';
+  const monedaCsv = metaCsv?.moneda || obtenerInfoMoneda(monedaCm);
+  const sufijoMoneda = monedaCsv?.codigo ? ` (${monedaCsv.codigo})` : ' ($)';
+  const simboloMoneda = monedaCsv?.simbolo || '$';
 
   // Filtrado de anuncios para la vista
   const anunciosActivos = listaAnuncios.filter(a => a.activo);
@@ -390,6 +395,14 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                     <span>{etiquetaNivel}</span>
                   </span>
                 )}
+                {!errorCsv && metaCsv?.moneda?.codigo && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold shadow-xs"
+                    style={{ background: 'var(--color-secondary-container)', color: 'var(--color-on-secondary-container)' }}
+                    title={`Moneda detectada: ${metaCsv.moneda.nombre || metaCsv.moneda.codigo}`}>
+                    <span className="material-symbols-outlined text-[14px]">payments</span>
+                    <span>Moneda: {metaCsv.moneda.codigo} ({metaCsv.moneda.simbolo})</span>
+                  </span>
+                )}
               </div>
             )}
           </div>
@@ -439,8 +452,8 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
               {[
                 { label: 'Leads (Lids)', key: 'leads', type: 'number', step: '1', placeholder: '0' },
-                { label: 'Cost. por Lids ($)', key: 'costo_por_lead', type: 'number', step: '1', placeholder: '0' },
-                { label: 'Inversión ($)', key: 'inversion', type: 'number', step: '1', placeholder: '0' },
+                { label: `Cost. por Lids${sufijoMoneda}`, key: 'costo_por_lead', type: 'number', step: '1', placeholder: '0' },
+                { label: `Inversión${sufijoMoneda}`, key: 'inversion', type: 'number', step: '1', placeholder: '0' },
                 { label: 'Alcance', key: 'alcance', type: 'number', step: '1', placeholder: '0' },
                 { label: 'CTR - Clic', key: 'ctr_clics', type: 'number', step: '1', placeholder: '0' },
               ].map(field => (
@@ -626,8 +639,8 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                             {a.nombre_anuncio}
                           </td>
                           <td className="px-3.5 py-2.5 text-right text-primary-container font-bold">{a.leads}</td>
-                          <td className="px-3.5 py-2.5 text-right text-on-surface font-medium">${a.costo_por_lead}</td>
-                          <td className="px-3.5 py-2.5 text-right text-on-surface font-medium">${a.inversion}</td>
+                          <td className="px-3.5 py-2.5 text-right text-on-surface font-medium">{simboloMoneda} {a.costo_por_lead}</td>
+                          <td className="px-3.5 py-2.5 text-right text-on-surface font-medium">{simboloMoneda} {a.inversion}</td>
                           <td className="px-3.5 py-2.5 text-right text-on-surface font-medium">{a.alcance?.toLocaleString()}</td>
                           <td className="px-3.5 py-2.5 text-right text-on-surface font-medium">{a.ctr_clics}</td>
                         </tr>
@@ -644,8 +657,8 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                           Subtotales ({anunciosAMostrar.length} {filtroEstado})
                         </td>
                         <td className="px-3.5 py-2.5 text-right text-primary-container font-extrabold text-xs">{subtotalesVista.leads}</td>
-                        <td className="px-3.5 py-2.5 text-right text-on-surface font-bold text-xs">${subtotalesVista.costo_por_lead}</td>
-                        <td className="px-3.5 py-2.5 text-right text-on-surface font-bold text-xs">${subtotalesVista.inversion}</td>
+                        <td className="px-3.5 py-2.5 text-right text-on-surface font-bold text-xs">{simboloMoneda} {subtotalesVista.costo_por_lead}</td>
+                        <td className="px-3.5 py-2.5 text-right text-on-surface font-bold text-xs">{simboloMoneda} {subtotalesVista.inversion}</td>
                         <td className="px-3.5 py-2.5 text-right text-on-surface font-bold text-xs">{subtotalesVista.alcance?.toLocaleString()}</td>
                         <td className="px-3.5 py-2.5 text-right text-on-surface font-bold text-xs">{subtotalesVista.ctr_clics}</td>
                       </tr>

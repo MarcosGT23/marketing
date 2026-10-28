@@ -6,6 +6,60 @@ const IDIOMAS = {
   pt: { codigo: 'pt', nombre: 'Portugués (Português)', icono: '🇧🇷' }
 };
 
+// Monedas habituales en cuentas de Meta. El código ISO aparece en la cabecera
+// del gasto ("Importe gastado (USD)") o en una columna de moneda.
+export const MONEDAS = {
+  USD: { codigo: 'USD', nombre: 'Dólar estadounidense', simbolo: '$' },
+  BOB: { codigo: 'BOB', nombre: 'Boliviano', simbolo: 'Bs' },
+  BRL: { codigo: 'BRL', nombre: 'Real brasileño', simbolo: 'R$' },
+  EUR: { codigo: 'EUR', nombre: 'Euro', simbolo: '€' },
+  ARS: { codigo: 'ARS', nombre: 'Peso argentino', simbolo: '$' },
+  CLP: { codigo: 'CLP', nombre: 'Peso chileno', simbolo: '$' },
+  COP: { codigo: 'COP', nombre: 'Peso colombiano', simbolo: '$' },
+  MXN: { codigo: 'MXN', nombre: 'Peso mexicano', simbolo: '$' },
+  PEN: { codigo: 'PEN', nombre: 'Sol peruano', simbolo: 'S/' },
+  PYG: { codigo: 'PYG', nombre: 'Guaraní paraguayo', simbolo: '₲' },
+  UYU: { codigo: 'UYU', nombre: 'Peso uruguayo', simbolo: '$U' },
+  DOP: { codigo: 'DOP', nombre: 'Peso dominicano', simbolo: 'RD$' },
+  GTQ: { codigo: 'GTQ', nombre: 'Quetzal guatemalteco', simbolo: 'Q' },
+  CRC: { codigo: 'CRC', nombre: 'Colón costarricense', simbolo: '₡' },
+  HNL: { codigo: 'HNL', nombre: 'Lempira hondureño', simbolo: 'L' },
+  NIO: { codigo: 'NIO', nombre: 'Córdoba nicaragüense', simbolo: 'C$' },
+  PAB: { codigo: 'PAB', nombre: 'Balboa panameño', simbolo: 'B/.' },
+  VES: { codigo: 'VES', nombre: 'Bolívar venezolano', simbolo: 'Bs.S' },
+  CAD: { codigo: 'CAD', nombre: 'Dólar canadiense', simbolo: 'CA$' }
+};
+
+const ALIAS_MONEDA = {
+  $: 'USD', 'us$': 'USD', '$us': 'USD', usd: 'USD', dolar: 'USD', dólar: 'USD', dolares: 'USD', dólares: 'USD', dollar: 'USD', dollars: 'USD',
+  bs: 'BOB', 'bs.': 'BOB', bob: 'BOB', boliviano: 'BOB', bolivianos: 'BOB',
+  'r$': 'BRL', brl: 'BRL', real: 'BRL', reais: 'BRL',
+  '€': 'EUR', eur: 'EUR', euro: 'EUR', euros: 'EUR',
+  's/': 'PEN', 's/.': 'PEN', pen: 'PEN', sol: 'PEN', soles: 'PEN',
+  'bs.s': 'VES', 'bs.s.': 'VES', bss: 'VES', ves: 'VES', bolivar: 'VES', bolívar: 'VES',
+  ars: 'ARS', clp: 'CLP', cop: 'COP', mxn: 'MXN',
+  '₲': 'PYG', pyg: 'PYG', guarani: 'PYG', guaraní: 'PYG',
+  uyu: 'UYU', '$u': 'UYU', dop: 'DOP', 'rd$': 'DOP',
+  gtq: 'GTQ', crc: 'CRC', '₡': 'CRC', hnl: 'HNL', nio: 'NIO', 'c$': 'NIO',
+  pab: 'PAB', 'b/.': 'PAB', cad: 'CAD', 'ca$': 'CAD'
+};
+
+const SIMBOLOS_MONEDA = [
+  [/RD\$/i, 'DOP'],
+  [/CA\$/i, 'CAD'],
+  [/C\$/i, 'NIO'],
+  [/\$U/i, 'UYU'],
+  [/R\$/i, 'BRL'],
+  [/S\/\.?/i, 'PEN'],
+  [/Bs\.?\s?S/i, 'VES'],
+  [/Bs\.?/i, 'BOB'],
+  [/B\/\./i, 'PAB'],
+  [/₡/, 'CRC'],
+  [/₲/, 'PYG'],
+  [/€/, 'EUR'],
+  [/\$/, 'USD']
+];
+
 // Diccionario de columnas de Meta Ads. `peso` indica cuánto aporta al idioma
 // y `comunes` agrupa alias que no distinguen idioma (no votan).
 const COLUMNAS = {
@@ -231,6 +285,73 @@ export function detectarIdiomaCsv(encabezados = [], lineasMuestra = []) {
 }
 
 /**
+ * Resuelve un código ISO de moneda desde un texto: código, nombre o símbolo.
+ */
+function resolverMoneda(valor) {
+  const texto = String(valor ?? '').trim();
+  if (!texto) return null;
+
+  const alias = ALIAS_MONEDA[texto.toLowerCase().replace(/\s+/g, '')];
+  if (alias) return alias;
+
+  const iso = texto.toUpperCase().match(/\b([A-Z]{3})\b/);
+  if (iso && MONEDAS[iso[1]]) return iso[1];
+
+  for (const [patron, codigo] of SIMBOLOS_MONEDA) {
+    if (patron.test(texto)) return codigo;
+  }
+  return null;
+}
+
+/**
+ * Devuelve la info de una moneda por código, con respaldo genérico.
+ */
+export function obtenerInfoMoneda(codigo) {
+  const clave = String(codigo || '').trim().toUpperCase();
+  if (MONEDAS[clave]) return { ...MONEDAS[clave] };
+  if (!clave) return null;
+  return { codigo: clave, nombre: clave, simbolo: clave };
+}
+
+/**
+ * Detecta la moneda del informe: columna de moneda, sufijo del gasto/costo
+ * ("Importe gastado (BOB)") o símbolos en los importes.
+ */
+export function detectarMonedaCsv(encabezadosCrudos = [], filas = [], columnas = {}) {
+  const indiceMoneda = encabezadosCrudos.findIndex((cabecera) =>
+    /^(moneda|divisa|currency|moeda)$/.test(normalizarCabecera(cabecera))
+  );
+  if (indiceMoneda >= 0) {
+    for (let i = 1; i < filas.length; i++) {
+      const codigo = resolverMoneda(filas[i]?.[indiceMoneda]);
+      if (codigo) return { ...MONEDAS[codigo], origen: 'columna' };
+    }
+  }
+
+  const indicesMonetarios = ['spend', 'cost']
+    .map((clave) => columnas[clave]?.indice)
+    .filter((indice) => indice != null);
+
+  for (const indice of indicesMonetarios) {
+    const cabecera = String(encabezadosCrudos[indice] || '');
+    const grupos = cabecera.match(/[（(][^)）]+[)）]/g) || [];
+    for (const grupo of grupos) {
+      const codigo = resolverMoneda(grupo.slice(1, -1));
+      if (codigo) return { ...MONEDAS[codigo], origen: 'cabecera' };
+    }
+  }
+
+  for (const indice of indicesMonetarios) {
+    for (let i = 1; i < filas.length && i <= 10; i++) {
+      const codigo = resolverMoneda(filas[i]?.[indice]);
+      if (codigo) return { ...MONEDAS[codigo], origen: 'valor' };
+    }
+  }
+
+  return null;
+}
+
+/**
  * Traduce y normaliza el estado de entrega del anuncio a los términos del sistema.
  */
 export function traducirEstadoTexto(rawEstado, activo) {
@@ -337,6 +458,7 @@ export function procesarCsvMeta(textoCsv) {
   const lineasMuestra = filas.slice(1, 6).map((fila) => fila.join(' '));
   const analisis = analizarCabeceras(encabezadosCrudos, lineasMuestra);
   const { columnas, nivel, idiomaInfo, votosTotales } = analisis;
+  const monedaInfo = detectarMonedaCsv(encabezadosCrudos, filas, columnas);
 
   // El nombre puede venir por anuncio, conjunto de anuncios o campaña.
   const columnaNombre = columnas.ad_name || columnas.adset_name || columnas.campaign_name;
@@ -475,16 +597,21 @@ export function procesarCsvMeta(textoCsv) {
   } else if (idiomaInfo.confianza < 0.5) {
     advertencias.push('Idioma detectado con baja confianza; revisa que las columnas sean correctas.');
   }
+  if (!monedaInfo && columnas.spend) {
+    advertencias.push('No se pudo detectar la moneda del informe; los importes se mostrarán en USD ($).');
+  }
 
   anuncios.idiomaInfo = idiomaInfo;
   anuncios.idioma = idiomaInfo.codigo;
   anuncios.idiomaNombre = idiomaInfo.nombre;
   anuncios.nivel = nivel;
+  anuncios.moneda = monedaInfo;
   anuncios.meta = {
     nivel,
     idioma: idiomaInfo.codigo,
     idiomaNombre: idiomaInfo.nombre,
     confianzaIdioma: idiomaInfo.confianza,
+    moneda: monedaInfo,
     encodingReparado: reparado,
     columnas: Object.fromEntries(
       Object.entries(columnas).map(([clave, columna]) => [clave, String(encabezadosCrudos[columna.indice] || '').trim()])
@@ -495,7 +622,7 @@ export function procesarCsvMeta(textoCsv) {
   };
 
   console.log(
-    `[parseMetaCsv] Idioma: ${idiomaInfo.nombre} (${idiomaInfo.codigo}, ${Math.round(idiomaInfo.confianza * 100)}%) | Nivel: ${nivel} | Total: ${anuncios.length} | Activos: ${anuncios.filter((a) => a.activo).length} | Inactivos: ${anuncios.filter((a) => !a.activo).length}`
+    `[parseMetaCsv] Idioma: ${idiomaInfo.nombre} (${idiomaInfo.codigo}, ${Math.round(idiomaInfo.confianza * 100)}%) | Moneda: ${monedaInfo?.codigo || 'sin detectar'} | Nivel: ${nivel} | Total: ${anuncios.length} | Activos: ${anuncios.filter((a) => a.activo).length} | Inactivos: ${anuncios.filter((a) => !a.activo).length}`
   );
 
   return anuncios;

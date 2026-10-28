@@ -118,6 +118,9 @@ export default function ModalNuevoReporteCM({
   const etiquetaNivel = nivelCsv === 'campana' ? 'Por campaña' : nivelCsv === 'conjunto' ? 'Por conjunto' : 'Por anuncio';
   const tituloLista = nivelCsv === 'campana' ? 'Campañas Detectadas' : nivelCsv === 'conjunto' ? 'Conjuntos Detectados' : 'Anuncios Detectados';
   const encabezadoNombre = nivelCsv === 'campana' ? 'Campaña' : nivelCsv === 'conjunto' ? 'Conjunto' : 'Nombre del Anuncio';
+  const monedaCsv = metaCsv?.moneda || null;
+  const sufijoMoneda = monedaCsv?.codigo ? ` (${monedaCsv.codigo})` : ' ($)';
+  const simboloMoneda = monedaCsv?.simbolo || '$';
 
   // Filtrado de anuncios
   const anunciosActivos = listaAnuncios.filter(a => a.activo);
@@ -257,6 +260,7 @@ export default function ModalNuevoReporteCM({
         estado: estadoCm,
         plataforma: plataforma.trim(),
         presupuesto: presupuesto.trim(),
+        moneda: monedaCsv?.codigo || null,
         metricas: totales,
         anuncios: listaAnuncios,
         nivel_csv: metaCsv?.nivel || null
@@ -541,6 +545,14 @@ export default function ModalNuevoReporteCM({
                     <span>{etiquetaNivel}</span>
                   </span>
                 )}
+                {!errorCsv && monedaCsv?.codigo && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold shadow-xs"
+                    style={{ background: 'var(--color-secondary-container)', color: 'var(--color-on-secondary-container)' }}
+                    title={`Moneda detectada: ${monedaCsv.nombre || monedaCsv.codigo}`}>
+                    <span className="material-symbols-outlined text-[14px]">payments</span>
+                    <span>Moneda: {monedaCsv.codigo} ({monedaCsv.simbolo})</span>
+                  </span>
+                )}
               </div>
             )}
           </div>
@@ -590,8 +602,8 @@ export default function ModalNuevoReporteCM({
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
               {[
                 { label: 'Leads (Lids)', key: 'leads', type: 'number', step: '1', placeholder: '0' },
-                { label: 'Cost. por Lids ($)', key: 'costo_por_lead', type: 'number', step: '1', placeholder: '0' },
-                { label: 'Inversión ($)', key: 'inversion', type: 'number', step: '1', placeholder: '0' },
+                { label: `Cost. por Lids${sufijoMoneda}`, key: 'costo_por_lead', type: 'number', step: '1', placeholder: '0' },
+                { label: `Inversión${sufijoMoneda}`, key: 'inversion', type: 'number', step: '1', placeholder: '0' },
                 { label: 'Alcance', key: 'alcance', type: 'number', step: '1', placeholder: '0' },
                 { label: 'CTR - Clic', key: 'ctr_clics', type: 'number', step: '1', placeholder: '0' },
               ].map(field => (
@@ -757,8 +769,8 @@ export default function ModalNuevoReporteCM({
                           {anuncio.nombre_anuncio}
                         </td>
                         <td className="p-3 text-right font-bold text-primary-container">{anuncio.leads}</td>
-                        <td className="p-3 text-right font-semibold">${anuncio.costo_por_lead}</td>
-                        <td className="p-3 text-right font-semibold">${anuncio.inversion}</td>
+                        <td className="p-3 text-right font-semibold">{simboloMoneda} {anuncio.costo_por_lead}</td>
+                        <td className="p-3 text-right font-semibold">{simboloMoneda} {anuncio.inversion}</td>
                         <td className="p-3 text-right font-medium">{anuncio.alcance?.toLocaleString()}</td>
                         <td className="p-3 text-right font-medium">{anuncio.ctr_clics}%</td>
                       </tr>

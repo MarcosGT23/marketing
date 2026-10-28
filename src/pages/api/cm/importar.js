@@ -25,6 +25,7 @@ export async function POST({ request }) {
       estado,
       plataforma,
       presupuesto,
+      moneda,
       id_agente,
       nivel_csv
     } = body;
@@ -99,11 +100,15 @@ export async function POST({ request }) {
     }
 
     // Actualizar tarea de CM si existen datos operativos
-    if (estado || plataforma || presupuesto || descripcion) {
+    const monedaNormalizada = typeof moneda === 'string' && moneda.trim()
+      ? moneda.trim().toUpperCase().slice(0, 10)
+      : null;
+    if (estado || plataforma || presupuesto || descripcion || monedaNormalizada) {
       await supabaseServer.from('tareas_cm').update({
         ...(estado ? { estado } : {}),
         ...(plataforma ? { plataforma } : {}),
         ...(presupuesto ? { presupuesto } : {}),
+        ...(monedaNormalizada ? { moneda: monedaNormalizada } : {}),
         ...(descripcion ? { descripcion_pauta: descripcion } : {}),
       }).eq('id_requerimiento', finalIdRequerimiento);
     }
