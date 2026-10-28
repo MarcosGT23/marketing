@@ -1,13 +1,12 @@
 import React from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, FileText, Camera, Video, Film, Mic } from "lucide-react";
 
 export interface ItemChecklist {
   id: string;
   label: string;
   desc: string;
   porcentaje: number;
-  icon: React.ComponentType<{ size?: number; className?: string; strokeWidth?: number; color?: string }>;
+  iconName: string;
   color: string;
   bgLight: string;
   borderLight: string;
@@ -19,7 +18,7 @@ export const ITEMS_DEFECTO: ItemChecklist[] = [
     label: "Guion",
     desc: "Narrativa y estructura",
     porcentaje: 20,
-    icon: FileText,
+    iconName: "description",
     color: "#2563eb",
     bgLight: "rgba(37, 99, 235, 0.1)",
     borderLight: "rgba(37, 99, 235, 0.35)",
@@ -29,7 +28,7 @@ export const ITEMS_DEFECTO: ItemChecklist[] = [
     label: "Fotos",
     desc: "Tomas fijas de calidad",
     porcentaje: 20,
-    icon: Camera,
+    iconName: "photo_camera",
     color: "#059669",
     bgLight: "rgba(16, 185, 129, 0.1)",
     borderLight: "rgba(16, 185, 129, 0.35)",
@@ -39,7 +38,7 @@ export const ITEMS_DEFECTO: ItemChecklist[] = [
     label: "Grabación",
     desc: "Rodaje audiovisual",
     porcentaje: 20,
-    icon: Video,
+    iconName: "videocam",
     color: "#9333ea",
     bgLight: "rgba(147, 51, 234, 0.1)",
     borderLight: "rgba(147, 51, 234, 0.35)",
@@ -49,7 +48,7 @@ export const ITEMS_DEFECTO: ItemChecklist[] = [
     label: "Edición",
     desc: "Montaje, ritmo y color",
     porcentaje: 20,
-    icon: Film,
+    iconName: "movie",
     color: "#4f46e5",
     bgLight: "rgba(79, 70, 229, 0.1)",
     borderLight: "rgba(79, 70, 229, 0.35)",
@@ -59,7 +58,7 @@ export const ITEMS_DEFECTO: ItemChecklist[] = [
     label: "Voz en Off",
     desc: "Locución y audio",
     porcentaje: 20,
-    icon: Mic,
+    iconName: "mic",
     color: "#ea580c",
     bgLight: "rgba(234, 88, 12, 0.1)",
     borderLight: "rgba(234, 88, 12, 0.35)",
@@ -98,16 +97,32 @@ export function ChecklistRequerimientos({
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             Actividades Realizadas ({completados.length}/{items.length} · {porcentajeTotal}%)
           </span>
-          {completados.length > 0 && !deshabilitado && (
-            <span className="text-[10px]" style={{ color: 'var(--color-outline)' }}>Clic en burbuja para desmarcar</span>
-          )}
+          <span className="text-xs font-bold"
+            style={{ color: porcentajeTotal === 100 ? '#059669' : 'var(--color-tertiary)' }}>
+            {porcentajeTotal}%
+          </span>
         </div>
 
-        {/* Bandeja de burbujas flotantes con iconos */}
-        <div className="flex flex-wrap items-center gap-2 min-h-[38px]">
+        {/* Barra de progreso visual */}
+        <div className="w-full h-1.5 rounded-full overflow-hidden mb-3"
+          style={{ background: 'var(--color-surface-container-high)' }}>
+          <motion.div
+            className="h-full rounded-full"
+            style={{
+              background: porcentajeTotal === 100 
+                ? 'linear-gradient(90deg, #10b981, #059669)' 
+                : 'linear-gradient(90deg, var(--color-tertiary), #9333ea)'
+            }}
+            initial={{ width: 0 }}
+            animate={{ width: `${porcentajeTotal}%` }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+          />
+        </div>
+
+        {/* Contenedor de burbujas dinámicas */}
+        <div className="flex flex-wrap gap-2 min-h-[36px] items-center">
           <AnimatePresence mode="popLayout">
             {completados.map((item) => {
-              const Icono = item.icon;
               return (
                 <motion.button
                   key={item.id}
@@ -115,7 +130,7 @@ export function ChecklistRequerimientos({
                   type="button"
                   disabled={deshabilitado}
                   onClick={() => alCambiar(item.id, false)}
-                  initial={{ scale: 0.3, opacity: 0, y: 15 }}
+                  initial={{ scale: 0.3, opacity: 0, y: -10 }}
                   animate={{ scale: 1, opacity: 1, y: 0 }}
                   exit={{ scale: 0.2, opacity: 0, y: 15 }}
                   whileHover={deshabilitado ? undefined : { scale: 1.05, y: -2 }}
@@ -136,7 +151,7 @@ export function ChecklistRequerimientos({
                     className="w-6 h-6 rounded-full flex items-center justify-center text-white shrink-0 shadow-xs"
                     style={{ background: item.color }}
                   >
-                    <Icono size={13} strokeWidth={2.6} />
+                    <span className="material-symbols-outlined text-[13px]">{item.iconName}</span>
                   </span>
 
                   <span className="font-semibold text-[12px]">{item.label}</span>
@@ -149,7 +164,9 @@ export function ChecklistRequerimientos({
                     {item.porcentaje}%
                   </span>
 
-                  <Check size={13} strokeWidth={3} className="text-emerald-600 dark:text-emerald-400 ml-0.5" />
+                  <span className="material-symbols-outlined text-[14px] text-emerald-600 dark:text-emerald-400 font-bold ml-0.5">
+                    check
+                  </span>
 
                   {!deshabilitado && (
                     <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[11px] text-slate-400 hover:text-slate-600 font-bold ml-0.5">
@@ -188,7 +205,6 @@ export function ChecklistRequerimientos({
         <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <AnimatePresence mode="popLayout">
             {pendientes.map((item) => {
-              const Icono = item.icon;
               return (
                 <motion.button
                   key={item.id}
@@ -215,7 +231,9 @@ export function ChecklistRequerimientos({
                       className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 shadow-xs"
                       style={{ background: item.bgLight }}
                     >
-                      <Icono size={16} strokeWidth={2.2} color={item.color} />
+                      <span className="material-symbols-outlined text-[16px]" style={{ color: item.color }}>
+                        {item.iconName}
+                      </span>
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
