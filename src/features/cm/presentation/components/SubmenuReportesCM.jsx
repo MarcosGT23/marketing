@@ -244,7 +244,7 @@ export default function SubmenuReportesCM({ reportes = [], cargando = false, bus
           }}>
           {[
             { label: 'Leads (Lids)', valor: formatearNumero(resumen.leads) },
-            { label: 'Cost. por Lids', valor: formatearDinero(cplPromedio) },
+            { label: 'Coste por resultados', valor: formatearDinero(cplPromedio) },
             { label: 'Inversión', valor: formatearDinero(resumen.inversion) },
             { label: 'Alcance', valor: formatearNumero(resumen.alcance) },
             { label: 'CTR - Clic', valor: formatearNumero(ctrPromedio) }
@@ -302,7 +302,7 @@ export default function SubmenuReportesCM({ reportes = [], cargando = false, bus
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
                   {[
                     { label: 'Leads (Lids)', valor: formatearNumero(reporte.leads) },
-                    { label: 'Cost. por Lids', valor: formatearDinero(reporte.costo_por_lead) },
+                    { label: 'Coste por resultados', valor: formatearDinero(reporte.costo_por_lead) },
                     { label: 'Inversión', valor: formatearDinero(reporte.inversion) },
                     { label: 'Alcance', valor: formatearNumero(reporte.alcance) },
                     { label: 'CTR - Clic', valor: formatearNumero(reporte.ctr_clics) }
@@ -371,7 +371,7 @@ export default function SubmenuReportesCM({ reportes = [], cargando = false, bus
                               <th className="text-left px-3 py-2 font-bold uppercase text-[10px] tracking-wider">Anuncio</th>
                               <th className="text-left px-3 py-2 font-bold uppercase text-[10px] tracking-wider">Estado</th>
                               <th className="text-right px-3 py-2 font-bold uppercase text-[10px] tracking-wider">Lids</th>
-                              <th className="text-right px-3 py-2 font-bold uppercase text-[10px] tracking-wider">CPL</th>
+                              <th className="text-right px-3 py-2 font-bold uppercase text-[10px] tracking-wider">Coste/Resultado</th>
                               <th className="text-right px-3 py-2 font-bold uppercase text-[10px] tracking-wider">Inversión</th>
                               <th className="text-right px-3 py-2 font-bold uppercase text-[10px] tracking-wider">Alcance</th>
                               <th className="text-right px-3 py-2 font-bold uppercase text-[10px] tracking-wider">CTR</th>

@@ -630,7 +630,7 @@ export function procesarCsvMeta(textoCsv) {
     advertencias.push('El CSV no traía CTR; se calculó como clics en el enlace ÷ impresiones.');
   }
   if (costoDerivado) {
-    advertencias.push('El CSV no traía costo por resultado; se calculó como inversión ÷ leads.');
+    advertencias.push('El CSV no traía coste por resultados; se calculó como inversión ÷ resultados.');
   }
 
   anuncios.idiomaInfo = idiomaInfo;

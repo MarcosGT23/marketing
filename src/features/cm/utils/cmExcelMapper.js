@@ -89,7 +89,7 @@ export async function exportarReportesCmExcel(reportes = [], contexto = {}) {
           { header: 'Período', key: 'periodo', width: 16, align: 'center' },
           { header: 'Fecha Reporte', key: 'fecha', width: 15, align: 'center' },
           { header: 'Leads (Lids)', key: 'leads', width: 12, align: 'right', numFmt: '#,##0' },
-          { header: 'Cost. por Lids ($)', key: 'costo_por_lead', width: 16, align: 'right', numFmt: '"$"#,##0' },
+          { header: 'Coste por resultados ($)', key: 'costo_por_lead', width: 19, align: 'right', numFmt: '"$"#,##0' },
           { header: 'Inversión ($)', key: 'inversion', width: 14, align: 'right', numFmt: '"$"#,##0' },
           { header: 'Alcance', key: 'alcance', width: 12, align: 'right', numFmt: '#,##0' },
           { header: 'CTR - Clic', key: 'ctr_clics', width: 11, align: 'right', numFmt: '#,##0' },
@@ -121,7 +121,7 @@ export async function exportarReportesCmExcel(reportes = [], contexto = {}) {
           { header: 'Anuncio', key: 'anuncio', width: 34 },
           { header: 'Estado', key: 'estado', width: 16, align: 'center' },
           { header: 'Leads (Lids)', key: 'leads', width: 12, align: 'right', numFmt: '#,##0' },
-          { header: 'Cost. por Lids ($)', key: 'costo_por_lead', width: 16, align: 'right', numFmt: '"$"#,##0' },
+          { header: 'Coste por resultados ($)', key: 'costo_por_lead', width: 19, align: 'right', numFmt: '"$"#,##0' },
           { header: 'Inversión ($)', key: 'inversion', width: 14, align: 'right', numFmt: '"$"#,##0' },
           { header: 'Alcance', key: 'alcance', width: 12, align: 'right', numFmt: '#,##0' },
           { header: 'CTR - Clic', key: 'ctr_clics', width: 11, align: 'right', numFmt: '#,##0' }

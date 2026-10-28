@@ -452,7 +452,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
               {[
                 { label: 'Leads (Lids)', key: 'leads', type: 'number', step: '1', placeholder: '0' },
-                { label: `Cost. por Lids${sufijoMoneda}`, key: 'costo_por_lead', type: 'number', step: '1', placeholder: '0' },
+                { label: `Coste por resultados${sufijoMoneda}`, key: 'costo_por_lead', type: 'number', step: '1', placeholder: '0' },
                 { label: `Inversión${sufijoMoneda}`, key: 'inversion', type: 'number', step: '1', placeholder: '0' },
                 { label: 'Alcance', key: 'alcance', type: 'number', step: '1', placeholder: '0' },
                 { label: 'CTR - Clic', key: 'ctr_clics', type: 'number', step: '1', placeholder: '0' },
@@ -603,7 +603,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                       <th className="text-left px-3.5 py-2.5 text-on-surface-variant font-semibold">Entrega</th>
                       <th className="text-left px-3.5 py-2.5 text-on-surface-variant font-semibold">{encabezadoNombre}</th>
                       <th className="text-right px-3.5 py-2.5 text-on-surface-variant font-semibold">Leads</th>
-                      <th className="text-right px-3.5 py-2.5 text-on-surface-variant font-semibold">Costo/Lead</th>
+                      <th className="text-right px-3.5 py-2.5 text-on-surface-variant font-semibold">Coste/Resultado</th>
                       <th className="text-right px-3.5 py-2.5 text-on-surface-variant font-semibold">Inversión</th>
                       <th className="text-right px-3.5 py-2.5 text-on-surface-variant font-semibold">Alcance</th>
                       <th className="text-right px-3.5 py-2.5 text-on-surface-variant font-semibold">CTR</th>

@@ -202,7 +202,7 @@ test('calcula costo por lead cuando la columna viene vacía', () => {
   const anuncios = procesarCsvMeta(csv);
   assert.equal(anuncios[0].costo_por_lead, 20);
   assert.equal(anuncios.meta.metricasCalculadas.costo_por_resultado, true);
-  assert.ok(anuncios.meta.advertencias.some((a) => a.includes('costo por resultado')));
+  assert.ok(anuncios.meta.advertencias.some((a) => a.includes('coste por resultados')));
 });
 
 test('calcula el CTR con clics en el enlace e impresiones cuando falta la columna', () => {

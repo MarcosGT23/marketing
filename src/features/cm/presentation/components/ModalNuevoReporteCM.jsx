@@ -602,7 +602,7 @@ export default function ModalNuevoReporteCM({
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
               {[
                 { label: 'Leads (Lids)', key: 'leads', type: 'number', step: '1', placeholder: '0' },
-                { label: `Cost. por Lids${sufijoMoneda}`, key: 'costo_por_lead', type: 'number', step: '1', placeholder: '0' },
+                { label: `Coste por resultados${sufijoMoneda}`, key: 'costo_por_lead', type: 'number', step: '1', placeholder: '0' },
                 { label: `Inversión${sufijoMoneda}`, key: 'inversion', type: 'number', step: '1', placeholder: '0' },
                 { label: 'Alcance', key: 'alcance', type: 'number', step: '1', placeholder: '0' },
                 { label: 'CTR - Clic', key: 'ctr_clics', type: 'number', step: '1', placeholder: '0' },
@@ -740,7 +740,7 @@ export default function ModalNuevoReporteCM({
                       <th className="p-3 font-bold uppercase text-[10px] text-outline">Estado</th>
                       <th className="p-3 font-bold uppercase text-[10px] text-outline">{encabezadoNombre}</th>
                       <th className="p-3 font-bold uppercase text-[10px] text-outline text-right">Leads</th>
-                      <th className="p-3 font-bold uppercase text-[10px] text-outline text-right">Costo / Lead</th>
+                      <th className="p-3 font-bold uppercase text-[10px] text-outline text-right">Coste / Resultado</th>
                       <th className="p-3 font-bold uppercase text-[10px] text-outline text-right">Inversión</th>
                       <th className="p-3 font-bold uppercase text-[10px] text-outline text-right">Alcance</th>
                       <th className="p-3 font-bold uppercase text-[10px] text-outline text-right">CTR</th>
