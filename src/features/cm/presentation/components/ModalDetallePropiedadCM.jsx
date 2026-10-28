@@ -1,5 +1,5 @@
 // src/features/cm/presentation/components/ModalDetallePropiedadCM.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { procesarCsvMeta } from '../../utils/parseMetaCsv';
 import { notificarError, notificarAviso } from '../../../../core/ui/notifications';
 
@@ -54,12 +54,34 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
   const [nombreArchivo, setNombreArchivo] = useState('');
   const [idiomaCsv, setIdiomaCsv] = useState(null);
 
+  const idInicializadoRef = useRef(null);
+  const cambiosLocalesRef = useRef(false);
+  const marcarCambioLocal = () => { cambiosLocalesRef.current = true; };
+
   // Sincronizar estado cuando cambia la propiedad o llega el reporte del servidor
   useEffect(() => {
-    if (!item) return;
+    if (!abierto || !item) {
+      idInicializadoRef.current = null;
+      cambiosLocalesRef.current = false;
+      return;
+    }
+
+    const idActual = item.id_requerimiento;
+    const esNuevaPropiedad = idInicializadoRef.current !== idActual;
+
+    // El polling/realtime del contenedor refresca 'reporte' cada pocos segundos:
+    // si el usuario ya cargó un CSV o editó campos, no pisar su trabajo.
+    if (!esNuevaPropiedad && cambiosLocalesRef.current) return;
+
+    idInicializadoRef.current = idActual;
+    if (esNuevaPropiedad) cambiosLocalesRef.current = false;
 
     // Reporte padre (puede venir en prop 'reporte' o en 'item.reportes_meta_cm')
-    const rep = reporte || (Array.isArray(item.reportes_meta_cm) ? item.reportes_meta_cm[0] : item.reportes_meta_cm);
+    const repRaw = reporte || (Array.isArray(item.reportes_meta_cm) ? item.reportes_meta_cm[0] : item.reportes_meta_cm);
+    // Descartar el reporte de otra propiedad que aún no se refresca al abrir el modal
+    const rep = repRaw && repRaw.id_requerimiento != null && String(repRaw.id_requerimiento) !== String(idActual)
+      ? null
+      : repRaw;
 
     // Lista de anuncios asociados al reporte normalizados
     const listaRaw = rep?.reportes_meta_anuncios || (Array.isArray(anuncios) && anuncios.length > 0 ? anuncios : []);
@@ -100,7 +122,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
     const hayActivos = lista.some(a => a.activo);
     const hayInactivos = lista.some(a => !a.activo);
     setFiltroEstado(hayActivos ? 'activos' : (hayInactivos ? 'inactivos' : 'todos'));
-  }, [item, reporte, anuncios]);
+  }, [abierto, item, reporte, anuncios]);
 
   // Manejador del archivo CSV con filtrado de activos/inactivos
   const manejarSubidaCsv = (e) => {
@@ -112,6 +134,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
       return;
     }
 
+    marcarCambioLocal();
     setNombreArchivo(file.name);
     setCargandoArchivo(true);
 
@@ -350,6 +373,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                     step={field.step}
                     value={totales[field.key]} 
                     onChange={(e) => {
+                      marcarCambioLocal();
                       const val = e.target.value;
                       setTotales({
                         ...totales,
@@ -566,7 +590,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
               <div className="relative">
                 <select
                   value={estadoCm}
-                  onChange={(e) => setEstadoCm(e.target.value)}
+                  onChange={(e) => { marcarCambioLocal(); setEstadoCm(e.target.value); }}
                   className="w-full h-[42px] px-3.5 pr-8 bg-surface-container-lowest rounded-xl text-xs text-on-surface font-semibold appearance-none cursor-pointer transition-all"
                   style={{ 
                     border: '1px solid var(--color-outline-variant)',
@@ -598,7 +622,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
               <input 
                 type="text" 
                 value={plataforma} 
-                onChange={(e) => setPlataforma(e.target.value)}
+                onChange={(e) => { marcarCambioLocal(); setPlataforma(e.target.value); }}
                 placeholder="Ej: Meta Ads / Instagram"
                 className="w-full h-[42px] px-3.5 bg-surface-container-lowest rounded-xl text-xs text-on-surface font-medium transition-all"
                 style={{ 
@@ -622,7 +646,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
               <input 
                 type="text" 
                 value={presupuesto} 
-                onChange={(e) => setPresupuesto(e.target.value)}
+                onChange={(e) => { marcarCambioLocal(); setPresupuesto(e.target.value); }}
                 placeholder="Ej: $150 USD"
                 className="w-full h-[42px] px-3.5 bg-surface-container-lowest rounded-xl text-xs text-on-surface font-medium transition-all"
                 style={{ 
