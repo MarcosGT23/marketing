@@ -238,6 +238,13 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
 
   if (!abierto || !item) return null;
 
+  const nivelCsv = metaCsv?.nivel || 'anuncio';
+  const entidadNivel = nivelCsv === 'campana' ? 'campaña' : nivelCsv === 'conjunto' ? 'conjunto de anuncios' : 'anuncio';
+  const entidadPlural = nivelCsv === 'campana' ? 'campañas' : nivelCsv === 'conjunto' ? 'conjuntos' : 'anuncios';
+  const etiquetaNivel = nivelCsv === 'campana' ? 'Por campaña' : nivelCsv === 'conjunto' ? 'Por conjunto' : 'Por anuncio';
+  const tituloLista = nivelCsv === 'campana' ? 'Campañas Detectadas' : nivelCsv === 'conjunto' ? 'Conjuntos Detectados' : 'Anuncios Detectados';
+  const encabezadoNombre = nivelCsv === 'campana' ? 'Campaña' : nivelCsv === 'conjunto' ? 'Conjunto' : 'Anuncio';
+
   // Filtrado de anuncios para la vista
   const anunciosActivos = listaAnuncios.filter(a => a.activo);
   const anunciosInactivos = listaAnuncios.filter(a => !a.activo);
@@ -376,6 +383,13 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                     <span>{metaCsv.encoding}{metaCsv.encodingReparado ? ' · reparado' : ''}</span>
                   </span>
                 )}
+                {!errorCsv && metaCsv?.nivel && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold shadow-xs"
+                    style={{ background: 'var(--color-tertiary-container)', color: 'var(--color-on-tertiary-container)' }}>
+                    <span className="material-symbols-outlined text-[14px]">layers</span>
+                    <span>{etiquetaNivel}</span>
+                  </span>
+                )}
               </div>
             )}
           </div>
@@ -398,6 +412,15 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                   <li key={i}>{aviso}</li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {!errorCsv && metaCsv?.nivel && metaCsv.nivel !== 'anuncio' && (
+            <div className="px-3.5 py-3 rounded-xl bg-sky-500/10 border border-sky-500/30 flex items-start gap-2.5 text-xs text-sky-800 dark:text-sky-200">
+              <span className="material-symbols-outlined text-[18px] shrink-0">info</span>
+              <p>
+                Este informe está agrupado por <strong>{entidadNivel}</strong>. Cada fila muestra los totales de {nivelCsv === 'campana' ? 'la campaña' : 'el conjunto'}, no el detalle de cada anuncio.
+              </p>
             </div>
           )}
 
@@ -469,7 +492,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
               <div className="flex flex-wrap items-center justify-between gap-2.5">
                 <h3 className="text-xs font-bold text-on-surface uppercase tracking-wider flex items-center gap-2">
                   <span className="material-symbols-outlined text-[17px] text-primary-container">table_chart</span>
-                  <span>Anuncios Detectados</span>
+                  <span>{tituloLista}</span>
                   <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-surface-container-high text-on-surface-variant border border-outline-variant">
                     {listaAnuncios.length}
                   </span>
@@ -525,7 +548,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                 >
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-[17px] text-amber-600 dark:text-amber-400 shrink-0">info</span>
-                    <span>Se filtraron <strong>{anunciosInactivos.length} anuncio(s) pausados/inactivos</strong> de las métricas de circulación.</span>
+                    <span>Se filtraron <strong>{anunciosInactivos.length} {entidadPlural} pausados/inactivos</strong> de las métricas de circulación.</span>
                   </div>
                   <button 
                     type="button" 
@@ -544,7 +567,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                 >
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-[17px] text-outline shrink-0">pause_circle</span>
-                    <span>Mostrando <strong>{anunciosInactivos.length} anuncio(s) pausados o desactivados</strong> en Meta Ads.</span>
+                    <span>Mostrando <strong>{anunciosInactivos.length} {entidadPlural} pausados o desactivados</strong> en Meta Ads.</span>
                   </div>
                   <button 
                     type="button" 
@@ -564,8 +587,8 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                 <table className="w-full text-xs min-w-[560px]">
                   <thead className="bg-surface-container-low" style={{ borderBottom: '1px solid var(--color-outline-variant)' }}>
                     <tr>
-                      <th className="text-left px-3.5 py-2.5 text-on-surface-variant font-semibold">Entrega del anuncio</th>
-                      <th className="text-left px-3.5 py-2.5 text-on-surface-variant font-semibold">Anuncio</th>
+                      <th className="text-left px-3.5 py-2.5 text-on-surface-variant font-semibold">Entrega</th>
+                      <th className="text-left px-3.5 py-2.5 text-on-surface-variant font-semibold">{encabezadoNombre}</th>
                       <th className="text-right px-3.5 py-2.5 text-on-surface-variant font-semibold">Leads</th>
                       <th className="text-right px-3.5 py-2.5 text-on-surface-variant font-semibold">Costo/Lead</th>
                       <th className="text-right px-3.5 py-2.5 text-on-surface-variant font-semibold">Inversión</th>
@@ -577,7 +600,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                     {anunciosAMostrar.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="px-4 py-8 text-center text-outline italic">
-                          No hay anuncios en esta sección ({filtroEstado}).
+                          No hay {entidadPlural} en esta sección ({filtroEstado}).
                         </td>
                       </tr>
                     ) : (

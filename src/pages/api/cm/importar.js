@@ -29,11 +29,12 @@ export async function POST({ request }) {
       nivel_csv
     } = body;
 
-    // Solo se aceptan informes a nivel de anuncio. Un CSV de campaña o de
-    // conjunto se guardaría con métricas agregadas y nombres incorrectos.
-    if (nivel_csv && nivel_csv !== 'anuncio') {
+    // Se aceptan informes por anuncio, conjunto de anuncios o campaña.
+    // Cualquier otro valor indica un CSV mal interpretado.
+    const NIVELES_VALIDOS = ['anuncio', 'conjunto', 'campana'];
+    if (nivel_csv && !NIVELES_VALIDOS.includes(nivel_csv)) {
       return new Response(JSON.stringify({
-        error: 'El informe debe estar desglosado por anuncio. Exporta el CSV desde Meta Ads con "Desglosar por → Anuncio" y vuelve a cargarlo.'
+        error: 'No se pudo validar el nivel del informe. Vuelve a cargar el CSV desde Meta Ads.'
       }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 

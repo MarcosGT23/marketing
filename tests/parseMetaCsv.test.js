@@ -75,31 +75,45 @@ test('repara mojibake en cabeceras, nombres y estados', () => {
   assert.ok(anuncios.meta.advertencias.some(a => a.includes('codificación')));
 });
 
-test('rechaza informes a nivel de campaña con instrucciones claras', () => {
+test('acepta informes agrupados por campaña y usa el nombre de la campaña', () => {
   const csv = [
-    'Nombre de la campaña,Entrega de la campaña,Resultados,Importe gastado',
-    'Campaña X,Activa,10,100'
+    '"Inicio del informe","Fin del informe","Nombre de la campaña","Entrega de la campaña","Configuración de atribución",Resultados,"Indicador de resultado","Costo por resultados","Presupuesto del conjunto de anuncios","Tipo de presupuesto del conjunto de anuncios","Monto gastado (USD)",Impresiones,Alcance,Finalización,"Resultados (iniciales)","Indicador de resultados (iniciales)"',
+    '2026-09-28,2026-10-28,"Casa en venta, Hacienda del Urubo 750.000",active,"7 días tras clic o 1 día tras visualización",4,actions:onsite_conversion.messaging_conversation_started_7d,1.1025,2,Diario,4.41,1427,1013,"En curso",,'
   ].join('\n');
 
-  assert.throws(() => procesarCsvMeta(csv), /nivel de campaña/i);
+  const anuncios = procesarCsvMeta(csv);
+
+  assert.equal(anuncios.nivel, 'campana');
+  assert.equal(anuncios.length, 1);
+  assert.equal(anuncios[0].nombre_anuncio, 'Casa en venta, Hacienda del Urubo 750.000');
+  assert.equal(anuncios[0].leads, 4);
+  assert.equal(anuncios[0].costo_por_lead, 1);
+  assert.equal(anuncios[0].inversion, 4);
+  assert.equal(anuncios[0].alcance, 1013);
+  assert.equal(anuncios[0].activo, true);
+  assert.equal(anuncios.meta.columnas.campaign_name, 'Nombre de la campaña');
 });
 
-test('rechaza informes a nivel de conjunto de anuncios', () => {
+test('acepta informes agrupados por conjunto de anuncios', () => {
   const csv = [
-    'Nombre del conjunto de anuncios,Entrega del conjunto de anuncios,Resultados',
-    'Conjunto A,Activo,5'
+    'Nombre del conjunto de anuncios,Entrega del conjunto de anuncios,Resultados,Importe gastado',
+    'Conjunto A,Activo,5,100'
   ].join('\n');
 
-  assert.throws(() => procesarCsvMeta(csv), /conjunto de anuncios/i);
+  const anuncios = procesarCsvMeta(csv);
+
+  assert.equal(anuncios.nivel, 'conjunto');
+  assert.equal(anuncios[0].nombre_anuncio, 'Conjunto A');
+  assert.equal(anuncios[0].leads, 5);
 });
 
-test('rechaza CSV sin columna de nombre de anuncio', () => {
+test('rechaza CSV sin ninguna columna de nombre', () => {
   const csv = [
     'Inicio del informe,Entrega del anuncio,Resultados',
     '01/10/2026,Activo,5'
   ].join('\n');
 
-  assert.throws(() => procesarCsvMeta(csv), /Nombre del anuncio/);
+  assert.throws(() => procesarCsvMeta(csv), /columna de nombre/i);
 });
 
 test('rechaza CSV sin columnas de métricas reconocibles', () => {

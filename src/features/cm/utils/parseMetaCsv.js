@@ -17,9 +17,9 @@ const COLUMNAS = {
   },
   delivery: {
     peso: 3,
-    es: ['entrega del anuncio', 'estado de la entrega', 'estado del anuncio', 'entrega de anuncios', 'entrega'],
-    en: ['ad delivery', 'delivery status', 'ad status', 'delivery'],
-    pt: ['veiculacao do anuncio', 'status da veiculacao', 'entrega do anuncio', 'status do anuncio', 'veiculacao']
+    es: ['entrega del anuncio', 'estado de la entrega', 'estado del anuncio', 'entrega de anuncios', 'entrega de la campana', 'estado de la campana', 'entrega del conjunto de anuncios', 'estado del conjunto de anuncios', 'entrega'],
+    en: ['ad delivery', 'delivery status', 'ad status', 'campaign delivery', 'campaign status', 'ad set delivery', 'ad set status', 'delivery'],
+    pt: ['veiculacao do anuncio', 'status da veiculacao', 'entrega do anuncio', 'status do anuncio', 'entrega da campanha', 'status da campanha', 'entrega do conjunto de anuncios', 'status do conjunto de anuncios', 'veiculacao']
   },
   leads: {
     peso: 2,
@@ -36,9 +36,9 @@ const COLUMNAS = {
   },
   spend: {
     peso: 2,
-    es: ['importe gastado', 'inversion', 'gasto total', 'gastos'],
+    es: ['importe gastado', 'monto gastado', 'inversion', 'gasto total', 'gastos'],
     en: ['amount spent', 'total spent', 'spend'],
-    pt: ['valor gasto', 'investimento', 'gasto total']
+    pt: ['valor gasto', 'montante gasto', 'investimento', 'gasto total']
   },
   reach: {
     peso: 2,
@@ -67,12 +67,15 @@ const COLUMNAS = {
 
 const COLUMNAS_METRICA = ['leads', 'cost', 'spend', 'reach', 'ctr'];
 const CLAVES_DE_NIVEL = new Set(['campaign_name', 'adset_name']);
+const CLAVES_NOMBRE = new Set(['ad_name', 'campaign_name', 'adset_name']);
+// Columnas que mencionan "conjunto de anuncios" o "campaña" pero no son nombres.
+const PATRON_NO_NOMBRE = /presupuesto|orcamento|budget|tipo de|type of|entrega|delivery|veiculacao|status|estado/;
 // Cabeceras de campaña/conjunto: nunca deben usarse como columna de anuncio,
 // p. ej. "Entrega de la campaña" no es la entrega del anuncio.
 const PATRON_NIVEL_SUPERIOR = /campan|campaign|campanha|conjunto de anuncios|ad ?set|grupo de anuncios/;
 
-const ERROR_NIVEL_CAMPANA = 'Este CSV es un informe a nivel de campaña. En Meta Ads, exporta el informe con el desglose por "Anuncio" (Informes → Desglosar por → Anuncio) y vuelve a cargarlo.';
-const ERROR_NIVEL_CONJUNTO = 'Este CSV es un informe a nivel de conjunto de anuncios. En Meta Ads, exporta el informe con el desglose por "Anuncio" y vuelve a cargarlo.';
+// Los informes pueden venir por anuncio, conjunto de anuncios o campaña.
+// El nivel se informa en los metadatos para que la UI etiquete la tabla.
 
 /**
  * Normaliza una cabecera: repara mojibake, quita BOM/comillas, tildes y espacios extra.
@@ -105,12 +108,19 @@ function buscarColumna(encabezados, clave) {
 
   encabezados.forEach((cabecera, indice) => {
     if (!cabecera) return;
-    if (PATRON_NIVEL_SUPERIOR.test(cabecera) && !CLAVES_DE_NIVEL.has(clave)) return;
+    if (CLAVES_NOMBRE.has(clave) && PATRON_NO_NOMBRE.test(cabecera)) return;
+    const cabeceraDeNivel = PATRON_NIVEL_SUPERIOR.test(cabecera);
 
     for (const [idioma, aliasLista] of Object.entries(aliasDeIdioma(definicion))) {
       for (const aliasCrudo of aliasLista) {
         const alias = normalizarCabecera(aliasCrudo);
         if (!alias) continue;
+
+        // "Entrega de la campaña" solo vale como entrega si el alias también
+        // es de nivel campaña/conjunto; el alias genérico "entrega" no.
+        if (cabeceraDeNivel && !CLAVES_DE_NIVEL.has(clave) && !PATRON_NIVEL_SUPERIOR.test(alias)) {
+          continue;
+        }
 
         const exacto = cabecera === alias;
         if (!exacto) {
@@ -123,6 +133,7 @@ function buscarColumna(encabezados, clave) {
           alias,
           idioma: idioma === 'comunes' ? null : idioma,
           exacto,
+          deNivelSuperior: cabeceraDeNivel,
           largo: alias.length
         });
       }
@@ -133,6 +144,8 @@ function buscarColumna(encabezados, clave) {
 
   candidatos.sort((a, b) => {
     if (a.exacto !== b.exacto) return a.exacto ? -1 : 1;
+    // Si existen ambas columnas, preferir la del nivel más bajo (anuncio).
+    if (a.deNivelSuperior !== b.deNivelSuperior) return a.deNivelSuperior ? 1 : -1;
     return b.largo - a.largo;
   });
 
@@ -325,15 +338,11 @@ export function procesarCsvMeta(textoCsv) {
   const analisis = analizarCabeceras(encabezadosCrudos, lineasMuestra);
   const { columnas, nivel, idiomaInfo, votosTotales } = analisis;
 
-  if (nivel === 'campana') {
-    throw new Error(ERROR_NIVEL_CAMPANA);
-  }
-  if (nivel === 'conjunto') {
-    throw new Error(ERROR_NIVEL_CONJUNTO);
-  }
-  if (!columnas.ad_name) {
+  // El nombre puede venir por anuncio, conjunto de anuncios o campaña.
+  const columnaNombre = columnas.ad_name || columnas.adset_name || columnas.campaign_name;
+  if (!columnaNombre) {
     throw new Error(
-      `No se encontró la columna "Nombre del anuncio" (Ad name / Nome do anúncio). Columnas encontradas: ${listarColumnas(encabezadosCrudos)}`
+      `No se encontró una columna de nombre (anuncio, conjunto de anuncios o campaña). Columnas encontradas: ${listarColumnas(encabezadosCrudos)}`
     );
   }
   if (!COLUMNAS_METRICA.some((clave) => columnas[clave])) {
@@ -358,7 +367,7 @@ export function procesarCsvMeta(textoCsv) {
       continue;
     }
 
-    const nombreCrudo = String(valores(fila, 'ad_name') || '').trim();
+    const nombreCrudo = String(fila[columnaNombre.indice] ?? '').trim();
     if (!nombreCrudo || esFilaDeTotales(nombreCrudo)) {
       filasDescartadas++;
       continue;
