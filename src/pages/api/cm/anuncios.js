@@ -1,6 +1,7 @@
 // src/pages/api/cm/anuncios.js
 // GET: Consulta el reporte de Meta Ads y sus anuncios para una propiedad específica
 import { supabaseServer } from '../../../core/lib/supabaseServer';
+import { normalizarAnunciosMeta } from '../../../features/cm/utils/anunciosMeta';
 
 export const prerender = false;
 
@@ -31,16 +32,8 @@ export async function GET({ url }) {
 
     const reporteActual = data && data.length > 0 ? data[0] : null;
 
-    if (reporteActual && Array.isArray(reporteActual.reportes_meta_anuncios)) {
-      reporteActual.reportes_meta_anuncios = reporteActual.reportes_meta_anuncios.map(a => {
-        const match = (a.nombre_anuncio || '').match(/^\[([^\]]+)\]\s*(.*)$/);
-        return {
-          ...a,
-          nombre_anuncio: match ? match[2].trim() : (a.nombre_anuncio || '').trim(),
-          activo: !match,
-          estado_texto: match ? match[1].trim() : 'En circulación'
-        };
-      });
+    if (reporteActual) {
+      reporteActual.reportes_meta_anuncios = normalizarAnunciosMeta(reporteActual.reportes_meta_anuncios);
     }
 
     return new Response(JSON.stringify(reporteActual), {

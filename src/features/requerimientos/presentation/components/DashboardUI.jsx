@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import ModalEditarRequerimiento from './ModalEditarRequerimiento';
 import VolumenDemandaUI from './VolumenDemandaUI';
+import BotonExportarExcel from '../../../../core/ui/BotonExportarExcel';
+import { exportarDashboardExcel } from '../../utils/dashboardExcelMapper';
 import {
     ESTADO_ENTREGADO,
     ESTADO_EN_PROCESO,
@@ -391,6 +393,14 @@ export default function DashboardUI({
         document.getElementById('tabla-propiedades')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
 
+    const handleExportarExcel = async () => {
+        await exportarDashboardExcel({
+            metricas,
+            requerimientos: requerimientosPeriodo,
+            periodo: periodoSeleccionado
+        });
+    };
+
     const kpis = [
         {
             key: 'total',
@@ -525,6 +535,12 @@ export default function DashboardUI({
                             ))}
                         </SelectField>
                     )}
+
+                    <BotonExportarExcel
+                        alExportar={handleExportarExcel}
+                        etiqueta="Exportar Resumen"
+                        colorTema="neutral"
+                    />
 
                     <button
                         className="w-full sm:w-auto flex items-center justify-center gap-2 font-label-md transition-all active:scale-95"

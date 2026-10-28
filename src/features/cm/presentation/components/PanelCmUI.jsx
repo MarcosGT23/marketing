@@ -1,6 +1,8 @@
 // src/features/cm/presentation/components/PanelCmUI.jsx
 import { useState, useMemo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
+import SubmenuReportesCM from './SubmenuReportesCM';
+import MenuExportarReportesCM from './MenuExportarReportesCM';
 import ModalEditarRequerimiento from '../../../requerimientos/presentation/components/ModalEditarRequerimiento';
 import { eliminarRequerimiento } from '../../../requerimientos/infrastructure/requerimiento.api';
 import { quitarPautaCm } from '../../infrastructure/cm.api';
@@ -23,9 +25,9 @@ function obtenerIniciales(nombre) {
   return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
 }
 
-export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropiedad, alAbrirNuevoReporte, alRecargar }) {
+export default function PanelCmUI({ tareas = [], reportes = [], cargando, cargandoReportes, alSeleccionarPropiedad, alAbrirNuevoReporte, alRecargar }) {
   const [agenteSeleccionadoId, setAgenteSeleccionadoId] = useState(null);
-  const [vistaModo, setVistaModo] = useState('agentes'); // 'agentes' | 'todos'
+  const [vistaModo, setVistaModo] = useState('agentes'); // 'agentes' | 'todos' | 'reportes'
   const [busqueda, setBusqueda] = useState('');
   const [tarjetasExpandidas, setTarjetasExpandidas] = useState({});
   const [menuOpcionesId, setMenuOpcionesId] = useState(null);
@@ -181,6 +183,7 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
 
         {/* Resumen Global y Acciones */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 relative z-10">
+          <MenuExportarReportesCM reportes={reportes} />
           <div className="px-3 py-1.5 sm:py-2 rounded-xl text-xs flex items-center gap-2 font-medium"
             style={{
               background: 'var(--color-surface-container-low)',
@@ -213,7 +216,7 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
       </section>
 
       {/* ── Barra de Navegación / Menú de Agentes ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-2.5 sm:p-3 rounded-2xl"
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-3 p-2.5 sm:p-3 rounded-2xl"
         style={{
           background: 'var(--color-surface-container-lowest)',
           border: '1px solid var(--color-outline-variant)',
@@ -267,7 +270,7 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
                 type="button"
                 onClick={() => { setVistaModo('agentes'); setAgenteSeleccionadoId(null); }}
                 aria-pressed={vistaModo === 'agentes'}
-                className="relative flex-1 sm:flex-initial flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors active:scale-95"
+                className="relative flex-1 sm:flex-initial flex items-center justify-center px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors active:scale-95"
                 style={{ color: vistaModo === 'agentes' ? 'white' : 'var(--color-on-surface-variant)' }}
               >
                 {vistaModo === 'agentes' && (
@@ -281,14 +284,15 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
                 )}
                 <span className="relative z-10 flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-[16px]">group</span>
-                  <span>Por Agentes ({agentes.length})</span>
+                  <span className="hidden sm:inline">Por Agentes ({agentes.length})</span>
+                  <span className="sm:hidden">Agentes</span>
                 </span>
               </button>
               <button
                 type="button"
                 onClick={() => { setVistaModo('todos'); setAgenteSeleccionadoId(null); }}
                 aria-pressed={vistaModo === 'todos'}
-                className="relative flex-1 sm:flex-initial flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors active:scale-95"
+                className="relative flex-1 sm:flex-initial flex items-center justify-center px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors active:scale-95"
                 style={{ color: vistaModo === 'todos' ? 'white' : 'var(--color-on-surface-variant)' }}
               >
                 {vistaModo === 'todos' && (
@@ -302,7 +306,30 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
                 )}
                 <span className="relative z-10 flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-[16px]">view_agenda</span>
-                  <span>Propiedades ({tareas.length})</span>
+                  <span className="hidden sm:inline">Propiedades ({tareas.length})</span>
+                  <span className="sm:hidden">Props.</span>
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setVistaModo('reportes'); setAgenteSeleccionadoId(null); }}
+                aria-pressed={vistaModo === 'reportes'}
+                className="relative flex-1 sm:flex-initial flex items-center justify-center px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors active:scale-95"
+                style={{ color: vistaModo === 'reportes' ? 'white' : 'var(--color-on-surface-variant)' }}
+              >
+                {vistaModo === 'reportes' && (
+                  <motion.span
+                    layoutId="cm-vista-pill"
+                    aria-hidden="true"
+                    className="absolute inset-0 rounded-lg"
+                    transition={reducirMovimiento ? { duration: 0 } : { type: 'spring', stiffness: 480, damping: 38, mass: 0.7 }}
+                    style={{ background: 'var(--color-primary-container)', boxShadow: '0 2px 6px rgba(37,99,235,0.25)' }}
+                  />
+                )}
+                <span className="relative z-10 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[16px]">table_chart</span>
+                  <span className="hidden sm:inline">Reportes CSV ({reportes.length})</span>
+                  <span className="sm:hidden">Reportes</span>
                 </span>
               </button>
             </div>
@@ -547,6 +574,15 @@ export default function PanelCmUI({ tareas = [], cargando, alSeleccionarPropieda
             )}
           </div>
         </div>
+      )}
+
+      {/* ── VISTA 4: Reportes CSV por Campaña / Agente ── */}
+      {!agenteActivo && vistaModo === 'reportes' && (
+        <SubmenuReportesCM
+          reportes={reportes}
+          cargando={cargandoReportes}
+          busqueda={busqueda}
+        />
       )}
 
       {/* Modal para Modificar Requerimiento de CM */}

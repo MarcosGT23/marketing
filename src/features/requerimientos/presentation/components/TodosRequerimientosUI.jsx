@@ -3,6 +3,8 @@ import ModalEditarRequerimiento from './ModalEditarRequerimiento';
 import { eliminarRequerimiento } from '../../infrastructure/requerimiento.api';
 import { notificarExito, notificarError } from '../../../../core/ui/notifications';
 import { normalizarPeriodo, periodoAFecha } from '../../../../core/utils/dateUtils';
+import BotonExportarExcel from '../../../../core/ui/BotonExportarExcel';
+import { exportarRequerimientosExcel } from '../../utils/requerimientosExcelMapper';
 
 const COLORES_AVATAR = [
   'from-blue-600 to-indigo-600',
@@ -146,6 +148,13 @@ export default function TodosRequerimientosUI({
     );
   }
 
+  const handleExportarExcel = async () => {
+    await exportarRequerimientosExcel(requerimientosAMostrar, {
+      agenteNombre: agenteActivo?.nombre || null,
+      periodo: periodoFiltro || null
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header Banner */}
@@ -172,10 +181,15 @@ export default function TodosRequerimientosUI({
           </p>
         </div>
 
-        <div className="flex items-center gap-3 z-10">
+        <div className="flex flex-wrap items-center gap-3 z-10">
+          <BotonExportarExcel
+            alExportar={handleExportarExcel}
+            etiqueta="Exportar Excel"
+            colorTema="primary"
+          />
           <a
             href="/agente/nuevo"
-            className="px-5 py-3 rounded-2xl font-semibold text-xs sm:text-sm bg-primary-container text-white shadow-md hover:bg-primary transition-all active:scale-95 flex items-center gap-2"
+            className="px-5 py-2.5 sm:py-3 rounded-2xl font-semibold text-xs sm:text-sm bg-primary-container text-white shadow-md hover:bg-primary transition-all active:scale-95 flex items-center gap-2"
           >
             <span className="material-symbols-outlined text-[18px]">add_circle</span>
             <span>Nuevo Requerimiento</span>

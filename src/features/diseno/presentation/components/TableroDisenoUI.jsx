@@ -6,6 +6,8 @@ import "./SlideConfirm.css";
 import ModalEditarRequerimiento from '../../../requerimientos/presentation/components/ModalEditarRequerimiento';
 import { eliminarRequerimiento } from '../../../requerimientos/infrastructure/requerimiento.api';
 import { notificarExito, notificarError } from '../../../../core/ui/notifications';
+import BotonExportarExcel from '../../../../core/ui/BotonExportarExcel';
+import { exportarDisenoExcel } from '../../utils/disenoExcelMapper';
 
 function StyledInput({ icon, ...rest }) {
     const [focused, setFocused] = useState(false);
@@ -250,6 +252,12 @@ export default function TableroDisenoUI({
         );
     }
 
+    const handleExportarExcel = async () => {
+        await exportarDisenoExcel(requerimientosAMostrar, {
+            agenteNombre: agenteActivo?.nombre || null
+        });
+    };
+
     return (
         <div className="flex flex-col gap-6">
 
@@ -282,6 +290,11 @@ export default function TableroDisenoUI({
                     </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3 relative z-10">
+                    <BotonExportarExcel
+                        alExportar={handleExportarExcel}
+                        etiqueta="Exportar Excel"
+                        colorTema="secondary"
+                    />
                     <button 
                         type="button"
                         onClick={() => setModalAbierto(true)}

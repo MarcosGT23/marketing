@@ -6,6 +6,8 @@ import { ChecklistRequerimientos } from './ChecklistRequerimientos';
 import ModalEditarRequerimiento from '../../../requerimientos/presentation/components/ModalEditarRequerimiento';
 import { eliminarRequerimiento } from '../../../requerimientos/infrastructure/requerimiento.api';
 import { notificarExito, notificarError } from '../../../../core/ui/notifications';
+import BotonExportarExcel from '../../../../core/ui/BotonExportarExcel';
+import { exportarVideoExcel } from '../../utils/videoExcelMapper';
 
 function StyledSelect({ children, ...rest }) {
     const [focused, setFocused] = useState(false);
@@ -255,6 +257,12 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
         );
     }, [agentes, busqueda]);
 
+    const handleExportarExcel = async () => {
+        await exportarVideoExcel(requerimientosAMostrar, {
+            agenteNombre: agenteActivo?.nombre || null
+        });
+    };
+
     if (cargando) {
         return (
             <div className="flex flex-col items-center justify-center py-24 gap-3">
@@ -297,6 +305,11 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                     </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3 relative z-10">
+                    <BotonExportarExcel
+                        alExportar={handleExportarExcel}
+                        etiqueta="Exportar Excel"
+                        colorTema="tertiary"
+                    />
                     <div className="px-3 py-1.5 sm:py-2 rounded-xl text-xs flex items-center gap-2 font-medium"
                         style={{
                             background: 'var(--color-surface-container-low)',

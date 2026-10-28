@@ -8,7 +8,9 @@ import { notificarError } from '../../../core/ui/notifications';
 
 export default function PanelCmContainer() {
   const [datos, setDatos] = useState([]);
+  const [reportes, setReportes] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [cargandoReportes, setCargandoReportes] = useState(true);
   const [propiedadSeleccionada, setPropiedadSeleccionada] = useState(null);
   const [reporteExistente, setReporteExistente] = useState(null);
   const [modalAbierto, setModalAbierto] = useState(false);
@@ -64,6 +66,30 @@ export default function PanelCmContainer() {
     cargarRequerimientos(false);
   }, [cargarRequerimientos]);
 
+  // Carga todos los reportes CSV con sus anuncios para el submenú de reportes
+  const cargarReportes = useCallback(async (silent = false) => {
+    if (!silent) setCargandoReportes(true);
+    try {
+      const res = await fetch('/api/cm/reportes?t=' + Date.now(), { cache: 'no-store' });
+      const json = await res.json();
+      if (!res.ok || json?.error) {
+        console.error('Error API reportes CM:', json);
+        if (!silent) notificarError(json?.error || 'No se pudieron cargar los reportes de CM.');
+        return;
+      }
+      setReportes(Array.isArray(json) ? json : []);
+    } catch (err) {
+      console.error('[PanelCmContainer] Error reportes:', err);
+      if (!silent) notificarError('No se pudieron cargar los reportes de CM. Intenta de nuevo.');
+    } finally {
+      if (!silent) setCargandoReportes(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    cargarReportes(false);
+  }, [cargarReportes]);
+
   // Consulta el reporte guardado para una propiedad específica
   const consultarReporte = useCallback(async (id_requerimiento) => {
     try {
@@ -79,6 +105,7 @@ export default function PanelCmContainer() {
   // Sincronización en tiempo real desde Supabase para tareas CM, requerimientos y reportes
   useRealtimeSync(() => {
     cargarRequerimientos(true);
+    cargarReportes(true);
     if (modalAbierto && propiedadSeleccionada?.id_requerimiento) {
       consultarReporte(propiedadSeleccionada.id_requerimiento);
     }
@@ -188,6 +215,7 @@ export default function PanelCmContainer() {
 
     // 3. Refrescar en segundo plano sin demorar el cierre del modal
     cargarRequerimientos(true);
+    cargarReportes(true);
     if (id_requerimiento) consultarReporte(id_requerimiento);
   };
 
@@ -195,7 +223,9 @@ export default function PanelCmContainer() {
     <>
       <PanelCmUI
         tareas={datos}
+        reportes={reportes}
         cargando={cargando}
+        cargandoReportes={cargandoReportes}
         alSeleccionarPropiedad={abrirDetalle}
         alAbrirNuevoReporte={() => setModalNuevoReporteAbierto(true)}
         alRecargar={() => cargarRequerimientos(false)}
@@ -216,6 +246,7 @@ export default function PanelCmContainer() {
         propiedades={datos}
         alGuardarExitoso={async () => {
           await cargarRequerimientos(false);
+          await cargarReportes(false);
         }}
       />
     </>

@@ -5,6 +5,7 @@
 import { supabaseServer } from '../../../core/lib/supabaseServer';
 import { normalizarPeriodo, variantesPeriodo, obtenerPeriodoActual } from '../../../core/utils/dateUtils';
 import { ESTADO_CAMPANA_ACTIVO } from '../../../core/utils/campanaUtils';
+import { normalizarAnunciosMeta } from '../../../features/cm/utils/anunciosMeta';
 
 export const prerender = false;
 
@@ -142,15 +143,7 @@ export async function POST({ request }) {
         return new Response(JSON.stringify({ error: errorAnuncios.message }), { status: 500 });
       }
 
-      anunciosGuardados = (dataAnuncios || []).map(a => {
-        const match = (a.nombre_anuncio || '').match(/^\[([^\]]+)\]\s*(.*)$/);
-        return {
-          ...a,
-          nombre_anuncio: match ? match[2].trim() : a.nombre_anuncio,
-          activo: !match,
-          estado_texto: match ? match[1].trim() : 'En circulación'
-        };
-      });
+      anunciosGuardados = normalizarAnunciosMeta(dataAnuncios);
     }
 
     return new Response(JSON.stringify({
