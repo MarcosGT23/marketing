@@ -100,10 +100,22 @@ const COLUMNAS = {
   },
   ctr: {
     peso: 1,
-    es: ['porcentaje de clics en el enlace', 'clics en el enlace'],
-    en: ['link click-through rate', 'click-through rate', 'link clicks'],
-    pt: ['taxa de cliques no link', 'cliques no link'],
+    es: ['porcentaje de clics en el enlace'],
+    en: ['link click-through rate', 'click-through rate'],
+    pt: ['taxa de cliques no link'],
     comunes: ['ctr']
+  },
+  impressions: {
+    peso: 1,
+    es: ['impresiones'],
+    en: ['impressions'],
+    pt: ['impressoes']
+  },
+  clicks: {
+    peso: 1,
+    es: ['clics en el enlace', 'clics en el enlace unico'],
+    en: ['link clicks'],
+    pt: ['cliques no link']
   },
   campaign_name: {
     peso: 4,
@@ -119,7 +131,7 @@ const COLUMNAS = {
   }
 };
 
-const COLUMNAS_METRICA = ['leads', 'cost', 'spend', 'reach', 'ctr'];
+const COLUMNAS_METRICA = ['leads', 'cost', 'spend', 'reach', 'ctr', 'impressions', 'clicks'];
 const CLAVES_DE_NIVEL = new Set(['campaign_name', 'adset_name']);
 const CLAVES_NOMBRE = new Set(['ad_name', 'campaign_name', 'adset_name']);
 // Columnas que mencionan "conjunto de anuncios" o "campaña" pero no son nombres.
@@ -127,6 +139,9 @@ const PATRON_NO_NOMBRE = /presupuesto|orcamento|budget|tipo de|type of|entrega|d
 // Cabeceras de campaña/conjunto: nunca deben usarse como columna de anuncio,
 // p. ej. "Entrega de la campaña" no es la entrega del anuncio.
 const PATRON_NIVEL_SUPERIOR = /campan|campaign|campanha|conjunto de anuncios|ad ?set|grupo de anuncios/;
+// "CTR (porcentaje de clics en el enlace)" contiene "clics en el enlace":
+// no debe confundirse con la columna de clics (unidades).
+const PATRON_NO_CLICS = /ctr|porcentaje|click-?through|taxa|rate/;
 
 // Los informes pueden venir por anuncio, conjunto de anuncios o campaña.
 // El nivel se informa en los metadatos para que la UI etiquete la tabla.
@@ -163,6 +178,7 @@ function buscarColumna(encabezados, clave) {
   encabezados.forEach((cabecera, indice) => {
     if (!cabecera) return;
     if (CLAVES_NOMBRE.has(clave) && PATRON_NO_NOMBRE.test(cabecera)) return;
+    if (clave === 'clicks' && PATRON_NO_CLICS.test(cabecera)) return;
     const cabeceraDeNivel = PATRON_NIVEL_SUPERIOR.test(cabecera);
 
     for (const [idioma, aliasLista] of Object.entries(aliasDeIdioma(definicion))) {
@@ -481,6 +497,8 @@ export function procesarCsvMeta(textoCsv) {
 
   const anuncios = [];
   let filasDescartadas = 0;
+  let ctrDerivado = false;
+  let costoDerivado = false;
 
   for (let i = 1; i < filas.length; i++) {
     const fila = filas[i];
@@ -564,11 +582,19 @@ export function procesarCsvMeta(textoCsv) {
     const leads = columnas.leads ? limpiarNumero(valores(fila, 'leads')) : 0;
     const inversion = columnas.spend ? limpiarNumero(valores(fila, 'spend')) : 0;
     const alcance = columnas.reach ? limpiarNumero(valores(fila, 'reach')) : 0;
-    const ctr_clics = columnas.ctr ? limpiarNumero(valores(fila, 'ctr'), true) : 0;
+    const impresiones = columnas.impressions ? limpiarNumero(valores(fila, 'impressions')) : 0;
+    const clics = columnas.clicks ? limpiarNumero(valores(fila, 'clicks')) : 0;
+
+    let ctr_clics = columnas.ctr ? limpiarNumero(valores(fila, 'ctr'), true) : 0;
+    if (ctr_clics === 0 && clics > 0 && impresiones > 0) {
+      ctr_clics = Math.round((clics / impresiones) * 100);
+      ctrDerivado = true;
+    }
 
     let costo_por_lead = columnas.cost ? limpiarNumero(valores(fila, 'cost')) : 0;
     if (costo_por_lead === 0 && leads > 0 && inversion > 0) {
       costo_por_lead = Math.round(inversion / leads);
+      costoDerivado = true;
     }
 
     anuncios.push({
@@ -600,6 +626,12 @@ export function procesarCsvMeta(textoCsv) {
   if (!monedaInfo && columnas.spend) {
     advertencias.push('No se pudo detectar la moneda del informe; los importes se mostrarán en USD ($).');
   }
+  if (ctrDerivado) {
+    advertencias.push('El CSV no traía CTR; se calculó como clics en el enlace ÷ impresiones.');
+  }
+  if (costoDerivado) {
+    advertencias.push('El CSV no traía costo por resultado; se calculó como inversión ÷ leads.');
+  }
 
   anuncios.idiomaInfo = idiomaInfo;
   anuncios.idioma = idiomaInfo.codigo;
@@ -618,11 +650,12 @@ export function procesarCsvMeta(textoCsv) {
     ),
     ignoradas: analisis.ignoradas,
     filasDescartadas,
+    metricasCalculadas: { ctr: ctrDerivado, costo_por_resultado: costoDerivado },
     advertencias
   };
 
   console.log(
-    `[parseMetaCsv] Idioma: ${idiomaInfo.nombre} (${idiomaInfo.codigo}, ${Math.round(idiomaInfo.confianza * 100)}%) | Moneda: ${monedaInfo?.codigo || 'sin detectar'} | Nivel: ${nivel} | Total: ${anuncios.length} | Activos: ${anuncios.filter((a) => a.activo).length} | Inactivos: ${anuncios.filter((a) => !a.activo).length}`
+    `[parseMetaCsv] Idioma: ${idiomaInfo.nombre} (${idiomaInfo.codigo}, ${Math.round(idiomaInfo.confianza * 100)}%) | Moneda: ${monedaInfo?.codigo || 'sin detectar'} | Nivel: ${nivel} | Total: ${anuncios.length} | Activos: ${anuncios.filter((a) => a.activo).length} | Inactivos: ${anuncios.filter((a) => !a.activo).length}${ctrDerivado ? ' | CTR calculado' : ''}${costoDerivado ? ' | CPL calculado' : ''}`
   );
 
   return anuncios;

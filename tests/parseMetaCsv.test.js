@@ -201,6 +201,51 @@ test('calcula costo por lead cuando la columna viene vacía', () => {
 
   const anuncios = procesarCsvMeta(csv);
   assert.equal(anuncios[0].costo_por_lead, 20);
+  assert.equal(anuncios.meta.metricasCalculadas.costo_por_resultado, true);
+  assert.ok(anuncios.meta.advertencias.some((a) => a.includes('costo por resultado')));
+});
+
+test('calcula el CTR con clics en el enlace e impresiones cuando falta la columna', () => {
+  const csv = [
+    'Nombre del anuncio,Entrega del anuncio,Resultados,Importe gastado,Impresiones,Clics en el enlace',
+    'Anuncio A,Activo,10,200,2000,100',
+    'Anuncio B,Pausado,5,100,1000,0'
+  ].join('\n');
+
+  const anuncios = procesarCsvMeta(csv);
+
+  assert.equal(anuncios[0].ctr_clics, 5);
+  assert.equal(anuncios[1].ctr_clics, 0);
+  assert.equal(anuncios.meta.columnas.clicks, 'Clics en el enlace');
+  assert.equal(anuncios.meta.columnas.impressions, 'Impresiones');
+  assert.equal(anuncios.meta.metricasCalculadas.ctr, true);
+  assert.ok(anuncios.meta.advertencias.some((a) => a.includes('CTR')));
+});
+
+test('no confunde la cabecera de CTR con la columna de clics', () => {
+  const csv = [
+    'Nombre del anuncio,Entrega del anuncio,Resultados,Importe gastado,CTR (porcentaje de clics en el enlace)',
+    'Anuncio A,Activo,10,200,5%'
+  ].join('\n');
+
+  const anuncios = procesarCsvMeta(csv);
+
+  assert.equal(anuncios.meta.columnas.ctr, 'CTR (porcentaje de clics en el enlace)');
+  assert.equal(anuncios.meta.columnas.clicks, undefined);
+  assert.equal(anuncios[0].ctr_clics, 5);
+  assert.equal(anuncios.meta.metricasCalculadas.ctr, false);
+});
+
+test('prefiere el CTR del CSV en lugar de calcularlo con clics', () => {
+  const csv = [
+    'Nombre del anuncio,Entrega del anuncio,Resultados,Importe gastado,Impresiones,Clics en el enlace,CTR (porcentaje de clics en el enlace)',
+    'Anuncio A,Activo,10,200,2000,100,7%'
+  ].join('\n');
+
+  const anuncios = procesarCsvMeta(csv);
+
+  assert.equal(anuncios[0].ctr_clics, 7);
+  assert.equal(anuncios.meta.metricasCalculadas.ctr, false);
 });
 
 test('detectarIdiomaCsv tolera cabeceras con mojibake', () => {
