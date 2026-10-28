@@ -580,7 +580,7 @@ export function procesarCsvMeta(textoCsv) {
     const estado_texto = traducirEstadoTexto(rawEstado, activo);
 
     const leads = columnas.leads ? limpiarNumero(valores(fila, 'leads')) : 0;
-    const inversion = columnas.spend ? limpiarNumero(valores(fila, 'spend')) : 0;
+    const inversion = columnas.spend ? limpiarNumero(valores(fila, 'spend'), false, 2) : 0;
     const alcance = columnas.reach ? limpiarNumero(valores(fila, 'reach')) : 0;
     const impresiones = columnas.impressions ? limpiarNumero(valores(fila, 'impressions')) : 0;
     const clics = columnas.clicks ? limpiarNumero(valores(fila, 'clicks')) : 0;
@@ -591,9 +591,9 @@ export function procesarCsvMeta(textoCsv) {
       ctrDerivado = true;
     }
 
-    let costo_por_lead = columnas.cost ? limpiarNumero(valores(fila, 'cost')) : 0;
+    let costo_por_lead = columnas.cost ? limpiarNumero(valores(fila, 'cost'), false, 2) : 0;
     if (costo_por_lead === 0 && leads > 0 && inversion > 0) {
-      costo_por_lead = Math.round(inversion / leads);
+      costo_por_lead = redondearA(inversion / leads, 2);
       costoDerivado = true;
     }
 
@@ -732,7 +732,12 @@ function parsearCsv(texto, delimitador) {
   return filas.filter((f) => f.some((valor) => valor !== ''));
 }
 
-export function limpiarNumero(val, esCtr = false) {
+export function redondearA(valor, decimales = 0) {
+  const factor = 10 ** decimales;
+  return Math.round((Number(valor) || 0) * factor) / factor;
+}
+
+export function limpiarNumero(val, esCtr = false, decimales = 0) {
   if (val == null || val === '') return 0;
 
   let limpio = String(val)
@@ -749,9 +754,12 @@ export function limpiarNumero(val, esCtr = false) {
     } else {
       limpio = limpio.replace(/,/g, '');
     }
-  } else if (!esCtr && /^\d+\.\d{3}$/.test(limpio)) {
+  } else if (!esCtr && /^\d{1,3}(\.\d{3}){2,}$/.test(limpio)) {
+    // Varios grupos de miles ("1.234.567"): nunca puede ser un decimal.
+    limpio = limpio.replace(/\./g, '');
+  } else if (!esCtr && decimales === 0 && /^\d+\.\d{3}$/.test(limpio)) {
     // "8.000" en métricas enteras es separador de miles, no decimal.
-    limpio = limpio.replace('.', '');
+    limpio = limpio.replace(/\./g, '');
   }
 
   const num = parseFloat(limpio);
@@ -762,5 +770,5 @@ export function limpiarNumero(val, esCtr = false) {
     return Math.round(num * 100);
   }
 
-  return Math.round(num);
+  return redondearA(num, decimales);
 }

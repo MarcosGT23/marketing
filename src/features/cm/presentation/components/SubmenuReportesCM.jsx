@@ -3,13 +3,17 @@ import { useMemo, useState } from 'react';
 import { idAgenteDeReporte, nombreAgenteDeReporte } from '../../utils/reportesMeta';
 
 const formateadorNumero = new Intl.NumberFormat('es-BO');
+const formateadorDinero = new Intl.NumberFormat('es-BO', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+});
 
 function formatearNumero(valor) {
   return formateadorNumero.format(Math.round(Number(valor) || 0));
 }
 
 function formatearDinero(valor) {
-  return `$${formatearNumero(valor)}`;
+  return `$${formateadorDinero.format(Number(valor) || 0)}`;
 }
 
 function formatearFecha(fecha) {

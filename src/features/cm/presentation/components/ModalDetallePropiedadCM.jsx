@@ -4,6 +4,13 @@ import { procesarCsvMeta, obtenerInfoMoneda } from '../../utils/parseMetaCsv.js'
 import { leerArchivoCsv } from '../../utils/leerCsv.js';
 import { notificarError, notificarAviso } from '../../../../core/ui/notifications';
 
+// Los importes conservan dos decimales; el resto de métricas se muestra entero.
+const redondearMonto = (valor) => Math.round((Number(valor) || 0) * 100) / 100;
+const formatearMonto = (valor) => (Number(valor) || 0).toLocaleString('es-BO', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+});
+
 // Normaliza un anuncio para asegurar propiedades activo, nombre y entrega del anuncio
 const normalizarAnuncio = (a) => {
   const nombreRaw = a.nombre_anuncio || '';
@@ -28,8 +35,8 @@ const normalizarAnuncio = (a) => {
     ...a,
     nombre_anuncio: nombreLimpio || 'Sin nombre',
     leads: Math.round(Number(a.leads) || 0),
-    costo_por_lead: Math.round(Number(a.costo_por_lead) || 0),
-    inversion: Math.round(Number(a.inversion) || 0),
+    costo_por_lead: redondearMonto(a.costo_por_lead),
+    inversion: redondearMonto(a.inversion),
     alcance: Math.round(Number(a.alcance) || 0),
     ctr_clics: Math.round(Number(a.ctr_clics) || 0),
     activo: !esInactivo,
@@ -96,8 +103,8 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
     if (rep && (rep.leads != null || rep.inversion != null)) {
       setTotales({
         leads: Math.round(Number(rep.leads) || 0),
-        costo_por_lead: Math.round(Number(rep.costo_por_lead) || 0),
-        inversion: Math.round(Number(rep.inversion) || 0),
+        costo_por_lead: redondearMonto(rep.costo_por_lead),
+        inversion: redondearMonto(rep.inversion),
         alcance: Math.round(Number(rep.alcance) || 0),
         ctr_clics: Math.round(Number(rep.ctr_clics) || 0)
       });
@@ -105,11 +112,11 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
       const activos = lista.filter(a => a.activo);
       const base = activos.length > 0 ? activos : lista;
       const leads = Math.round(base.reduce((s, a) => s + (a.leads || 0), 0));
-      const inversion = Math.round(base.reduce((s, a) => s + (a.inversion || 0), 0));
+      const inversion = redondearMonto(base.reduce((s, a) => s + (a.inversion || 0), 0));
       const alcance = Math.round(base.reduce((s, a) => s + (a.alcance || 0), 0));
       const costo_por_lead = leads > 0 
-        ? Math.round(inversion / leads) 
-        : Math.round(base.reduce((s, a) => s + (a.costo_por_lead || 0), 0) / (base.length || 1));
+        ? redondearMonto(inversion / leads) 
+        : redondearMonto(base.reduce((s, a) => s + (a.costo_por_lead || 0), 0) / (base.length || 1));
       const ctr_clics = Math.round(base.reduce((s, a) => s + (a.ctr_clics || 0), 0) / (base.length || 1));
       setTotales({ leads, costo_por_lead, inversion, alcance, ctr_clics });
     } else {
@@ -171,11 +178,11 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
 
       if (base.length > 0) {
         const leads = Math.round(base.reduce((s, a) => s + (a.leads || 0), 0));
-        const inversion = Math.round(base.reduce((s, a) => s + (a.inversion || 0), 0));
+        const inversion = redondearMonto(base.reduce((s, a) => s + (a.inversion || 0), 0));
         const alcance = Math.round(base.reduce((s, a) => s + (a.alcance || 0), 0));
         const costo_por_lead = leads > 0
-          ? Math.round(inversion / leads)
-          : Math.round(base.reduce((s, a) => s + (a.costo_por_lead || 0), 0) / base.length);
+          ? redondearMonto(inversion / leads)
+          : redondearMonto(base.reduce((s, a) => s + (a.costo_por_lead || 0), 0) / base.length);
         const ctr_clics = Math.round(base.reduce((s, a) => s + (a.ctr_clics || 0), 0) / base.length);
         setTotales({ leads, costo_por_lead, inversion, alcance, ctr_clics });
 
@@ -222,8 +229,8 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
         descripcion_pauta: tcm.descripcion_pauta,
         metricas: {
           leads: Math.round(Number(totales.leads) || 0),
-          costo_por_lead: Math.round(Number(totales.costo_por_lead) || 0),
-          inversion: Math.round(Number(totales.inversion) || 0),
+          costo_por_lead: redondearMonto(totales.costo_por_lead),
+          inversion: redondearMonto(totales.inversion),
           alcance: Math.round(Number(totales.alcance) || 0),
           ctr_clics: Math.round(Number(totales.ctr_clics) || 0)
         },
@@ -266,12 +273,12 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
     costo_por_lead: (() => {
       const totLeads = anunciosAMostrar.reduce((s, a) => s + (a.leads || 0), 0);
       const totInv = anunciosAMostrar.reduce((s, a) => s + (a.inversion || 0), 0);
-      if (totLeads > 0) return Math.round(totInv / totLeads);
+      if (totLeads > 0) return redondearMonto(totInv / totLeads);
       return anunciosAMostrar.length > 0
-        ? Math.round(anunciosAMostrar.reduce((s, a) => s + (a.costo_por_lead || 0), 0) / anunciosAMostrar.length)
+        ? redondearMonto(anunciosAMostrar.reduce((s, a) => s + (a.costo_por_lead || 0), 0) / anunciosAMostrar.length)
         : 0;
     })(),
-    inversion: Math.round(anunciosAMostrar.reduce((s, a) => s + (a.inversion || 0), 0)),
+    inversion: redondearMonto(anunciosAMostrar.reduce((s, a) => s + (a.inversion || 0), 0)),
     alcance: Math.round(anunciosAMostrar.reduce((s, a) => s + (a.alcance || 0), 0)),
     ctr_clics: anunciosAMostrar.length > 0
       ? Math.round(anunciosAMostrar.reduce((s, a) => s + (a.ctr_clics || 0), 0) / anunciosAMostrar.length)
@@ -452,8 +459,8 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
               {[
                 { label: 'Leads (Lids)', key: 'leads', type: 'number', step: '1', placeholder: '0' },
-                { label: `Coste por resultados${sufijoMoneda}`, key: 'costo_por_lead', type: 'number', step: '1', placeholder: '0' },
-                { label: `Inversión${sufijoMoneda}`, key: 'inversion', type: 'number', step: '1', placeholder: '0' },
+                { label: `Coste por resultados${sufijoMoneda}`, key: 'costo_por_lead', type: 'number', step: '0.01', placeholder: '0', decimal: true },
+                { label: `Inversión${sufijoMoneda}`, key: 'inversion', type: 'number', step: '0.01', placeholder: '0', decimal: true },
                 { label: 'Alcance', key: 'alcance', type: 'number', step: '1', placeholder: '0' },
                 { label: 'CTR - Clic', key: 'ctr_clics', type: 'number', step: '1', placeholder: '0' },
               ].map(field => (
@@ -468,7 +475,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                       const val = e.target.value;
                       setTotales({
                         ...totales,
-                        [field.key]: val === '' ? '' : (parseInt(val, 10) || 0)
+                        [field.key]: val === '' ? '' : (field.decimal ? (parseFloat(val) || 0) : (parseInt(val, 10) || 0))
                       });
                     }}
                     placeholder={field.placeholder}
@@ -489,7 +496,8 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                       e.currentTarget.style.background = 'var(--color-surface-container-low)';
                       const curVal = totales[field.key];
                       if (curVal !== '' && curVal != null) {
-                        setTotales(prev => ({ ...prev, [field.key]: Math.round(Number(curVal) || 0) }));
+                        const limpio = field.decimal ? redondearMonto(curVal) : Math.round(Number(curVal) || 0);
+                        setTotales(prev => ({ ...prev, [field.key]: limpio }));
                       }
                     }}
                   />
@@ -639,8 +647,8 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                             {a.nombre_anuncio}
                           </td>
                           <td className="px-3.5 py-2.5 text-right text-primary-container font-bold">{a.leads}</td>
-                          <td className="px-3.5 py-2.5 text-right text-on-surface font-medium">{simboloMoneda} {a.costo_por_lead}</td>
-                          <td className="px-3.5 py-2.5 text-right text-on-surface font-medium">{simboloMoneda} {a.inversion}</td>
+                          <td className="px-3.5 py-2.5 text-right text-on-surface font-medium">{simboloMoneda} {formatearMonto(a.costo_por_lead)}</td>
+                          <td className="px-3.5 py-2.5 text-right text-on-surface font-medium">{simboloMoneda} {formatearMonto(a.inversion)}</td>
                           <td className="px-3.5 py-2.5 text-right text-on-surface font-medium">{a.alcance?.toLocaleString()}</td>
                           <td className="px-3.5 py-2.5 text-right text-on-surface font-medium">{a.ctr_clics}</td>
                         </tr>
@@ -657,8 +665,8 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
                           Subtotales ({anunciosAMostrar.length} {filtroEstado})
                         </td>
                         <td className="px-3.5 py-2.5 text-right text-primary-container font-extrabold text-xs">{subtotalesVista.leads}</td>
-                        <td className="px-3.5 py-2.5 text-right text-on-surface font-bold text-xs">{simboloMoneda} {subtotalesVista.costo_por_lead}</td>
-                        <td className="px-3.5 py-2.5 text-right text-on-surface font-bold text-xs">{simboloMoneda} {subtotalesVista.inversion}</td>
+                        <td className="px-3.5 py-2.5 text-right text-on-surface font-bold text-xs">{simboloMoneda} {formatearMonto(subtotalesVista.costo_por_lead)}</td>
+                        <td className="px-3.5 py-2.5 text-right text-on-surface font-bold text-xs">{simboloMoneda} {formatearMonto(subtotalesVista.inversion)}</td>
                         <td className="px-3.5 py-2.5 text-right text-on-surface font-bold text-xs">{subtotalesVista.alcance?.toLocaleString()}</td>
                         <td className="px-3.5 py-2.5 text-right text-on-surface font-bold text-xs">{subtotalesVista.ctr_clics}</td>
                       </tr>

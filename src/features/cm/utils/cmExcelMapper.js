@@ -3,6 +3,7 @@ import { exportarExcel } from '../../../core/utils/excelExporter';
 import { nombreAgenteDeReporte } from './reportesMeta';
 
 const aNumero = (valor) => Number(valor) || 0;
+const redondearMonto = (valor) => Math.round((Number(valor) || 0) * 100) / 100;
 
 function formatearFecha(fecha) {
   if (!fecha) return 'Sin fecha';
@@ -89,8 +90,8 @@ export async function exportarReportesCmExcel(reportes = [], contexto = {}) {
           { header: 'Período', key: 'periodo', width: 16, align: 'center' },
           { header: 'Fecha Reporte', key: 'fecha', width: 15, align: 'center' },
           { header: 'Leads (Lids)', key: 'leads', width: 12, align: 'right', numFmt: '#,##0' },
-          { header: 'Coste por resultados ($)', key: 'costo_por_lead', width: 19, align: 'right', numFmt: '"$"#,##0' },
-          { header: 'Inversión ($)', key: 'inversion', width: 14, align: 'right', numFmt: '"$"#,##0' },
+          { header: 'Coste por resultados ($)', key: 'costo_por_lead', width: 19, align: 'right', numFmt: '"$"#,##0.00' },
+          { header: 'Inversión ($)', key: 'inversion', width: 14, align: 'right', numFmt: '"$"#,##0.00' },
           { header: 'Alcance', key: 'alcance', width: 12, align: 'right', numFmt: '#,##0' },
           { header: 'CTR - Clic', key: 'ctr_clics', width: 11, align: 'right', numFmt: '#,##0' },
           { header: 'Anuncios', key: 'anuncios', width: 10, align: 'center', numFmt: '#,##0' }
@@ -100,7 +101,7 @@ export async function exportarReportesCmExcel(reportes = [], contexto = {}) {
           propiedad: `${filasReportes.length} reporte(s)`,
           leads: totalesReportes.leads,
           costo_por_lead: totalesReportes.leads > 0
-            ? Math.round(totalesReportes.inversion / totalesReportes.leads)
+            ? redondearMonto(totalesReportes.inversion / totalesReportes.leads)
             : 0,
           inversion: totalesReportes.inversion,
           alcance: totalesReportes.alcance,
@@ -121,8 +122,8 @@ export async function exportarReportesCmExcel(reportes = [], contexto = {}) {
           { header: 'Anuncio', key: 'anuncio', width: 34 },
           { header: 'Estado', key: 'estado', width: 16, align: 'center' },
           { header: 'Leads (Lids)', key: 'leads', width: 12, align: 'right', numFmt: '#,##0' },
-          { header: 'Coste por resultados ($)', key: 'costo_por_lead', width: 19, align: 'right', numFmt: '"$"#,##0' },
-          { header: 'Inversión ($)', key: 'inversion', width: 14, align: 'right', numFmt: '"$"#,##0' },
+          { header: 'Coste por resultados ($)', key: 'costo_por_lead', width: 19, align: 'right', numFmt: '"$"#,##0.00' },
+          { header: 'Inversión ($)', key: 'inversion', width: 14, align: 'right', numFmt: '"$"#,##0.00' },
           { header: 'Alcance', key: 'alcance', width: 12, align: 'right', numFmt: '#,##0' },
           { header: 'CTR - Clic', key: 'ctr_clics', width: 11, align: 'right', numFmt: '#,##0' }
         ],
@@ -131,7 +132,7 @@ export async function exportarReportesCmExcel(reportes = [], contexto = {}) {
           propiedad: `${filasAnuncios.length} anuncio(s)`,
           leads: totalesAnuncios.leads,
           costo_por_lead: totalesAnuncios.leads > 0
-            ? Math.round(totalesAnuncios.inversion / totalesAnuncios.leads)
+            ? redondearMonto(totalesAnuncios.inversion / totalesAnuncios.leads)
             : 0,
           inversion: totalesAnuncios.inversion,
           alcance: totalesAnuncios.alcance,

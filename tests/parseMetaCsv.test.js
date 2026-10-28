@@ -29,7 +29,7 @@ test('detecta informe español, separador ";" y decimales latinos', () => {
   assert.equal(anuncios.length, 2);
   assert.equal(anuncios.meta.filasDescartadas, 1);
   assert.equal(anuncios[0].nombre_anuncio, 'Oferta Ñandú');
-  assert.equal(anuncios[0].inversion, 1235);
+  assert.equal(anuncios[0].inversion, 1234.5);
   assert.equal(anuncios[0].alcance, 8000);
   assert.equal(anuncios[0].activo, true);
   assert.equal(anuncios[0].estado_texto, 'En circulación');
@@ -47,7 +47,7 @@ test('detecta informe inglés y clasifica estados', () => {
   assert.equal(anuncios[0].activo, true);
   assert.equal(anuncios[1].activo, false);
   assert.equal(anuncios[1].estado_texto, 'Pausado');
-  assert.equal(anuncios[0].costo_por_lead, 10);
+  assert.equal(anuncios[0].costo_por_lead, 10.05);
 });
 
 test('detecta informe portugués de Brasil', () => {
@@ -89,8 +89,8 @@ test('acepta informes agrupados por campaña y usa el nombre de la campaña', ()
   assert.equal(anuncios.length, 1);
   assert.equal(anuncios[0].nombre_anuncio, 'Casa en venta, Hacienda del Urubo 750.000');
   assert.equal(anuncios[0].leads, 4);
-  assert.equal(anuncios[0].costo_por_lead, 1);
-  assert.equal(anuncios[0].inversion, 4);
+  assert.equal(anuncios[0].costo_por_lead, 1.1);
+  assert.equal(anuncios[0].inversion, 4.41);
   assert.equal(anuncios[0].alcance, 1013);
   assert.equal(anuncios[0].activo, true);
   assert.equal(anuncios.meta.columnas.campaign_name, 'Nombre de la campaña');
@@ -259,4 +259,15 @@ test('limpiarNumero interpreta formatos de moneda y CTR', () => {
   assert.equal(limpiarNumero('3,5%', true), 4);
   assert.equal(limpiarNumero('0.035', true), 4);
   assert.equal(limpiarNumero(''), 0);
+});
+
+test('conserva dos decimales en métricas monetarias', () => {
+  assert.equal(limpiarNumero('1.1025', false, 2), 1.1);
+  assert.equal(limpiarNumero('20.80043478', false, 2), 20.8);
+  assert.equal(limpiarNumero('4.41', false, 2), 4.41);
+  assert.equal(limpiarNumero('1.234,50', false, 2), 1234.5);
+  assert.equal(limpiarNumero('478,41', false, 2), 478.41);
+  assert.equal(limpiarNumero('8.000', false, 2), 8);
+  assert.equal(limpiarNumero('1.234.567', false, 2), 1234567);
+  assert.equal(limpiarNumero('8.000'), 8000);
 });

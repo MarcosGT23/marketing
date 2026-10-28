@@ -10,6 +10,8 @@ import { tieneMojibake } from '../../../features/cm/utils/mojibake.js';
 
 export const prerender = false;
 
+const redondearMoneda = (valor) => Math.round((Number(valor) || 0) * 100) / 100;
+
 export async function POST({ request }) {
   try {
     const body = await request.json();
@@ -130,8 +132,8 @@ export async function POST({ request }) {
         periodo_mensual: periodo,
         fecha_reporte: fecha,
         leads: Math.round(Number(metricas.leads) || 0),
-        costo_por_lead: Math.round(Number(metricas.costo_por_lead) || 0),
-        inversion: Math.round(Number(metricas.inversion) || 0),
+        costo_por_lead: redondearMoneda(metricas.costo_por_lead),
+        inversion: redondearMoneda(metricas.inversion),
         alcance: Math.round(Number(metricas.alcance) || 0),
         ctr_clics: Math.round(Number(metricas.ctr_clics) || 0)
       }])
@@ -155,8 +157,8 @@ export async function POST({ request }) {
           id_reporte: reportePadre.id_reporte,
           nombre_anuncio: nombreFinal,
           leads: Math.round(Number(a.leads) || 0),
-          costo_por_lead: Math.round(Number(a.costo_por_lead) || 0),
-          inversion: Math.round(Number(a.inversion) || 0),
+          costo_por_lead: redondearMoneda(a.costo_por_lead),
+          inversion: redondearMoneda(a.inversion),
           alcance: Math.round(Number(a.alcance) || 0),
           ctr_clics: Math.round(Number(a.ctr_clics) || 0)
         };
