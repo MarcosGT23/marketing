@@ -6,6 +6,7 @@ import { supabaseServer } from '../../../core/lib/supabaseServer';
 import { normalizarPeriodo, variantesPeriodo, obtenerPeriodoActual } from '../../../core/utils/dateUtils';
 import { ESTADO_CAMPANA_ACTIVO } from '../../../core/utils/campanaUtils';
 import { normalizarAnunciosMeta } from '../../../features/cm/utils/anunciosMeta';
+import { tieneMojibake } from '../../../features/cm/utils/mojibake.js';
 
 export const prerender = false;
 
@@ -24,8 +25,29 @@ export async function POST({ request }) {
       estado,
       plataforma,
       presupuesto,
-      id_agente
+      id_agente,
+      nivel_csv
     } = body;
+
+    // Solo se aceptan informes a nivel de anuncio. Un CSV de campaña o de
+    // conjunto se guardaría con métricas agregadas y nombres incorrectos.
+    if (nivel_csv && nivel_csv !== 'anuncio') {
+      return new Response(JSON.stringify({
+        error: 'El informe debe estar desglosado por anuncio. Exporta el CSV desde Meta Ads con "Desglosar por → Anuncio" y vuelve a cargarlo.'
+      }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    if (Array.isArray(anuncios) && anuncios.length > 0) {
+      const invalido = anuncios.find(a => {
+        const nombre = String(a?.nombre_anuncio || '').replace(/^\[[^\]]+\]\s*/, '').trim();
+        return !nombre || tieneMojibake(nombre);
+      });
+      if (invalido) {
+        return new Response(JSON.stringify({
+          error: 'Hay anuncios sin nombre válido o con caracteres dañados por codificación. Vuelve a exportar el CSV en UTF-8 y cárgalo de nuevo.'
+        }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+      }
+    }
 
     const fecha = fechaCustom || new Date().toISOString().split('T')[0];
     const periodo = normalizarPeriodo(periodo_mensual) || obtenerPeriodoActual();

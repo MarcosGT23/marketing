@@ -1,6 +1,7 @@
 // src/features/cm/presentation/components/ModalDetallePropiedadCM.jsx
 import { useState, useEffect, useRef } from 'react';
-import { procesarCsvMeta } from '../../utils/parseMetaCsv';
+import { procesarCsvMeta } from '../../utils/parseMetaCsv.js';
+import { leerArchivoCsv } from '../../utils/leerCsv.js';
 import { notificarError, notificarAviso } from '../../../../core/ui/notifications';
 
 // Normaliza un anuncio para asegurar propiedades activo, nombre y entrega del anuncio
@@ -53,6 +54,8 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
   const [guardando, setGuardando] = useState(false);
   const [nombreArchivo, setNombreArchivo] = useState('');
   const [idiomaCsv, setIdiomaCsv] = useState(null);
+  const [metaCsv, setMetaCsv] = useState(null);
+  const [errorCsv, setErrorCsv] = useState('');
 
   const idInicializadoRef = useRef(null);
   const cambiosLocalesRef = useRef(false);
@@ -119,13 +122,15 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
     setPresupuesto(tcm.presupuesto || '');
     setNombreArchivo('');
     setIdiomaCsv(null);
+    setMetaCsv(null);
+    setErrorCsv('');
     const hayActivos = lista.some(a => a.activo);
     const hayInactivos = lista.some(a => !a.activo);
     setFiltroEstado(hayActivos ? 'activos' : (hayInactivos ? 'inactivos' : 'todos'));
   }, [abierto, item, reporte, anuncios]);
 
   // Manejador del archivo CSV con filtrado de activos/inactivos
-  const manejarSubidaCsv = (e) => {
+  const manejarSubidaCsv = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -138,50 +143,67 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
     setNombreArchivo(file.name);
     setCargandoArchivo(true);
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const texto = event.target?.result;
-        const rawResultado = procesarCsvMeta(texto);
-        if (rawResultado.idiomaInfo) {
-          setIdiomaCsv(rawResultado.idiomaInfo);
-        }
-        const resultado = rawResultado.map(normalizarAnuncio);
-        setListaAnuncios(resultado);
+    try {
+      const lectura = await leerArchivoCsv(file);
+      const rawResultado = procesarCsvMeta(lectura.texto);
+      const resultado = rawResultado.map(normalizarAnuncio);
 
-        // Separar activos para el cálculo de totales principales
-        const activos = resultado.filter(a => a.activo);
-        const inactivos = resultado.filter(a => !a.activo);
-        const base = activos.length > 0 ? activos : resultado;
-
-        if (base.length > 0) {
-          const leads = Math.round(base.reduce((s, a) => s + (a.leads || 0), 0));
-          const inversion = Math.round(base.reduce((s, a) => s + (a.inversion || 0), 0));
-          const alcance = Math.round(base.reduce((s, a) => s + (a.alcance || 0), 0));
-          const costo_por_lead = leads > 0 
-            ? Math.round(inversion / leads) 
-            : Math.round(base.reduce((s, a) => s + (a.costo_por_lead || 0), 0) / base.length);
-          const ctr_clics = Math.round(base.reduce((s, a) => s + (a.ctr_clics || 0), 0) / base.length);
-          setTotales({ leads, costo_por_lead, inversion, alcance, ctr_clics });
-
-          // Si la campaña estaba 'Por Hacer' o 'Configurando', actualizar a 'Campaña Activa'
-          if (estadoCm === 'Por Hacer' || estadoCm === 'Configurando') {
-            setEstadoCm('Campaña Activa');
-          }
-        }
-
-        // Si hay anuncios activos mostrar la pestaña de activos; si no, mostrar todos
-        setFiltroEstado(activos.length > 0 ? 'activos' : 'todos');
-      } catch (err) {
-        notificarError(`No se pudo leer el archivo CSV. ${err.message}`, 'Lectura incompleta');
-      } finally {
-        setCargandoArchivo(false);
+      setErrorCsv('');
+      setIdiomaCsv(rawResultado.idiomaInfo || null);
+      const encodingReparado = Boolean(rawResultado.meta?.encodingReparado || lectura.reparado);
+      const advertencias = [...(rawResultado.meta?.advertencias || [])];
+      if (lectura.reparado && !advertencias.some(a => a.includes('codificación'))) {
+        advertencias.unshift('Se corrigieron caracteres dañados por codificación (UTF-8 leído como Windows-1252).');
       }
-    };
-    reader.readAsText(file);
+      setMetaCsv({
+        ...(rawResultado.meta || {}),
+        encoding: lectura.encoding,
+        encodingReparado,
+        advertencias
+      });
+      setListaAnuncios(resultado);
+
+      // Separar activos para el cálculo de totales principales
+      const activos = resultado.filter(a => a.activo);
+      const base = activos.length > 0 ? activos : resultado;
+
+      if (base.length > 0) {
+        const leads = Math.round(base.reduce((s, a) => s + (a.leads || 0), 0));
+        const inversion = Math.round(base.reduce((s, a) => s + (a.inversion || 0), 0));
+        const alcance = Math.round(base.reduce((s, a) => s + (a.alcance || 0), 0));
+        const costo_por_lead = leads > 0
+          ? Math.round(inversion / leads)
+          : Math.round(base.reduce((s, a) => s + (a.costo_por_lead || 0), 0) / base.length);
+        const ctr_clics = Math.round(base.reduce((s, a) => s + (a.ctr_clics || 0), 0) / base.length);
+        setTotales({ leads, costo_por_lead, inversion, alcance, ctr_clics });
+
+        // Si la campaña estaba 'Por Hacer' o 'Configurando', actualizar a 'Campaña Activa'
+        if (estadoCm === 'Por Hacer' || estadoCm === 'Configurando') {
+          setEstadoCm('Campaña Activa');
+        }
+      }
+
+      // Si hay anuncios activos mostrar la pestaña de activos; si no, mostrar todos
+      setFiltroEstado(activos.length > 0 ? 'activos' : 'todos');
+    } catch (err) {
+      setErrorCsv(err.message);
+      setIdiomaCsv(null);
+      setMetaCsv(null);
+      setListaAnuncios([]);
+      setTotales({ leads: 0, costo_por_lead: 0, inversion: 0, alcance: 0, ctr_clics: 0 });
+      setFiltroEstado('activos');
+      notificarError(err.message, 'No se pudo cargar el CSV');
+    } finally {
+      setCargandoArchivo(false);
+      e.target.value = '';
+    }
   };
 
   const manejarGuardar = async () => {
+    if (errorCsv) {
+      notificarAviso('El CSV cargado tiene errores. Corrígelo y vuelve a subirlo antes de guardar.', 'Reporte no guardado');
+      return;
+    }
     setGuardando(true);
     const tcm = (Array.isArray(item.tareas_cm) ? item.tareas_cm[0] : item.tareas_cm) || {};
     try {
@@ -203,7 +225,8 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
           alcance: Math.round(Number(totales.alcance) || 0),
           ctr_clics: Math.round(Number(totales.ctr_clics) || 0)
         },
-        anuncios: listaAnuncios  // array completo con propiedad 'activo'
+        anuncios: listaAnuncios,  // array completo con propiedad 'activo'
+        nivel_csv: metaCsv?.nivel || null
       });
       alCerrar();
     } catch (err) {
@@ -332,19 +355,51 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
             {nombreArchivo && (
               <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold max-w-full truncate shadow-xs"
-                  style={{ background: 'var(--color-secondary-container)', color: 'var(--color-on-secondary-container)' }}>
-                  <span className="material-symbols-outlined text-[14px]">check</span> <span className="truncate">{nombreArchivo}</span>
+                  style={errorCsv
+                    ? { background: 'rgba(244, 63, 94, 0.12)', color: '#be123c' }
+                    : { background: 'var(--color-secondary-container)', color: 'var(--color-on-secondary-container)' }}>
+                  <span className="material-symbols-outlined text-[14px]">{errorCsv ? 'error' : 'check'}</span>
+                  <span className="truncate">{nombreArchivo}</span>
                 </span>
                 {idiomaCsv && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold shadow-xs"
                     style={{ background: 'var(--color-primary-fixed)', color: 'var(--color-on-primary-fixed-variant)' }}>
                     <span>{idiomaCsv.icono}</span>
                     <span>Idioma detectado: <strong>{idiomaCsv.nombre}</strong></span>
+                    <span className="opacity-70">({Math.round((idiomaCsv.confianza || 0) * 100)}%)</span>
+                  </span>
+                )}
+                {metaCsv?.encoding && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold shadow-xs"
+                    style={{ background: 'var(--color-surface-container-high)', color: 'var(--color-on-surface-variant)' }}>
+                    <span className="material-symbols-outlined text-[14px]">text_snippet</span>
+                    <span>{metaCsv.encoding}{metaCsv.encodingReparado ? ' · reparado' : ''}</span>
                   </span>
                 )}
               </div>
             )}
           </div>
+
+          {errorCsv && (
+            <div className="px-3.5 py-3 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-start gap-2.5 text-xs text-rose-800 dark:text-rose-200">
+              <span className="material-symbols-outlined text-[18px] shrink-0">error</span>
+              <div>
+                <p className="font-bold">No se cargó el archivo</p>
+                <p className="mt-0.5 leading-relaxed">{errorCsv}</p>
+              </div>
+            </div>
+          )}
+
+          {!errorCsv && metaCsv?.advertencias?.length > 0 && (
+            <div className="px-3.5 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5 text-xs text-amber-800 dark:text-amber-200">
+              <span className="material-symbols-outlined text-[18px] shrink-0">warning</span>
+              <ul className="space-y-0.5">
+                {metaCsv.advertencias.map((aviso, i) => (
+                  <li key={i}>{aviso}</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Métricas consolidadas (Campaña Activa) */}
           <div>
@@ -682,9 +737,10 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
           </button>
           <button 
             type="button" 
-            disabled={guardando}
+            disabled={guardando || Boolean(errorCsv)}
             onClick={manejarGuardar}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-primary-container hover:bg-primary text-on-primary text-xs font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50 cursor-pointer"
+            title={errorCsv ? 'Corrige el CSV antes de guardar' : undefined}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-primary-container hover:bg-primary text-on-primary text-xs font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             style={{ boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)' }}
           >
             <span className="material-symbols-outlined text-[17px]">save</span>

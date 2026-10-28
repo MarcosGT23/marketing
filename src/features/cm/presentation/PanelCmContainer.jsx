@@ -138,7 +138,8 @@ export default function PanelCmContainer() {
       anuncios,
       moneda,
       periodo_pauta,
-      descripcion_pauta
+      descripcion_pauta,
+      nivel_csv
     } = payload;
 
     // Actualización optimista inmediata en memoria y en la referencia
@@ -194,7 +195,8 @@ export default function PanelCmContainer() {
             id_agente,
             periodo_mensual,
             metricas,
-            anuncios: anuncios || []
+            anuncios: anuncios || [],
+            nivel_csv: nivel_csv || null
           })
         : Promise.resolve(null)
     ]);
