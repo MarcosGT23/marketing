@@ -7,6 +7,8 @@ import ModalEditarRequerimiento from '../../../requerimientos/presentation/compo
 import { eliminarRequerimiento } from '../../../requerimientos/infrastructure/requerimiento.api';
 import { quitarPautaCm } from '../../infrastructure/cm.api';
 import { notificarExito, notificarError } from '../../../../core/ui/notifications';
+import SubmenuPeriodos from '../../../../core/ui/SubmenuPeriodos';
+import { useFiltroPeriodos, filtrarPorPeriodo } from '../../../../core/hooks/useFiltroPeriodos';
 
 // Paleta de gradientes para avatares de agentes
 const COLORES_AVATAR = [
@@ -33,6 +35,25 @@ export default function PanelCmUI({ tareas = [], reportes = [], cargando, cargan
   const [menuOpcionesId, setMenuOpcionesId] = useState(null);
   const [requerimientoAEditar, setRequerimientoAEditar] = useState(null);
   const reducirMovimiento = useReducedMotion();
+
+  // Submenú de períodos: deriva de pautas y reportes; por defecto el mes en curso
+  const itemsPeriodo = useMemo(() => [...tareas, ...reportes], [tareas, reportes]);
+  const {
+    periodos: periodosDisponibles,
+    conteos: conteosPeriodos,
+    sinPeriodo: sinPeriodoCount,
+    periodoActivo,
+    setPeriodoSel
+  } = useFiltroPeriodos(itemsPeriodo);
+
+  const tareasFiltradas = useMemo(
+    () => filtrarPorPeriodo(tareas, periodoActivo),
+    [tareas, periodoActivo]
+  );
+  const reportesFiltrados = useMemo(
+    () => filtrarPorPeriodo(reportes, periodoActivo),
+    [reportes, periodoActivo]
+  );
 
   const handleQuitarPauta = async (item) => {
     const nombre = item.nombre_propiedad || `Requerimiento #${item.id_requerimiento}`;
@@ -77,7 +98,7 @@ export default function PanelCmUI({ tareas = [], reportes = [], cargando, cargan
   const agentes = useMemo(() => {
     const mapa = {};
 
-    tareas.forEach((item) => {
+    tareasFiltradas.forEach((item) => {
       const id = String(item.usuarios?.id_usuario || item.id_agente || 'sin-asignar');
       const nombre = item.usuarios?.nombre || (item.id_agente ? `Agente #${item.id_agente}` : 'General / Sin Agente');
 
@@ -107,7 +128,7 @@ export default function PanelCmUI({ tareas = [], reportes = [], cargando, cargan
     });
 
     return Object.values(mapa).sort((a, b) => a.nombre.localeCompare(b.nombre));
-  }, [tareas]);
+  }, [tareasFiltradas]);
 
   // Agente actualmente activo (si hay uno seleccionado)
   const agenteActivo = useMemo(() => {
@@ -122,12 +143,12 @@ export default function PanelCmUI({ tareas = [], reportes = [], cargando, cargan
         item.nombre_propiedad?.toLowerCase().includes(busqueda.toLowerCase())
       );
     }
-    return tareas.filter((item) => {
+    return tareasFiltradas.filter((item) => {
       const coincidePropiedad = item.nombre_propiedad?.toLowerCase().includes(busqueda.toLowerCase());
       const coincideAgente = item.usuarios?.nombre?.toLowerCase().includes(busqueda.toLowerCase());
       return coincidePropiedad || coincideAgente;
     });
-  }, [agenteActivo, tareas, busqueda]);
+  }, [agenteActivo, tareasFiltradas, busqueda]);
 
   // Filtrar lista de agentes por búsqueda
   const agentesFiltrados = useMemo(() => {
@@ -306,7 +327,7 @@ export default function PanelCmUI({ tareas = [], reportes = [], cargando, cargan
                 )}
                 <span className="relative z-10 flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-[16px]">view_agenda</span>
-                  <span className="hidden sm:inline">Propiedades ({tareas.length})</span>
+                  <span className="hidden sm:inline">Propiedades ({tareasFiltradas.length})</span>
                   <span className="sm:hidden">Props.</span>
                 </span>
               </button>
@@ -328,7 +349,7 @@ export default function PanelCmUI({ tareas = [], reportes = [], cargando, cargan
                 )}
                 <span className="relative z-10 flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-[16px]">table_chart</span>
-                  <span className="hidden sm:inline">Reportes CSV ({reportes.length})</span>
+                  <span className="hidden sm:inline">Reportes CSV ({reportesFiltrados.length})</span>
                   <span className="sm:hidden">Reportes</span>
                 </span>
               </button>
@@ -366,6 +387,15 @@ export default function PanelCmUI({ tareas = [], reportes = [], cargando, cargan
           />
         </div>
       </div>
+
+      {/* ── Submenú de Períodos ── */}
+      <SubmenuPeriodos
+        periodos={periodosDisponibles}
+        conteos={conteosPeriodos}
+        sinPeriodo={sinPeriodoCount}
+        periodoActivo={periodoActivo}
+        alSeleccionar={setPeriodoSel}
+      />
 
       {/* ── VISTA 1: Directorio / Menú de Agentes ── */}
       {!agenteActivo && vistaModo === 'agentes' && (
@@ -579,7 +609,7 @@ export default function PanelCmUI({ tareas = [], reportes = [], cargando, cargan
       {/* ── VISTA 4: Reportes CSV por Campaña / Agente ── */}
       {!agenteActivo && vistaModo === 'reportes' && (
         <SubmenuReportesCM
-          reportes={reportes}
+          reportes={reportesFiltrados}
           cargando={cargandoReportes}
           busqueda={busqueda}
         />

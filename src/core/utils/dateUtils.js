@@ -73,10 +73,36 @@ export function periodoAFecha(valor) {
 }
 
 /**
+ * Resume los períodos presentes en una lista de ítems: los períodos
+ * normalizados ordenados del más reciente al más antiguo, cuántos ítems
+ * tiene cada uno y cuántos están sin período.
+ */
+export function resumirPeriodos(items = [], campo = 'periodo_mensual') {
+  const conteos = new Map();
+  let sinPeriodo = 0;
+
+  (items || []).forEach((item) => {
+    const periodo = normalizarPeriodo(item?.[campo]);
+    if (periodo) {
+      conteos.set(periodo, (conteos.get(periodo) || 0) + 1);
+    } else {
+      sinPeriodo += 1;
+    }
+  });
+
+  const periodos = [...conteos.keys()].sort((a, b) => {
+    const fechaA = periodoAFecha(a)?.getTime() ?? 0;
+    const fechaB = periodoAFecha(b)?.getTime() ?? 0;
+    return fechaB - fechaA;
+  });
+
+  return { periodos, conteos, sinPeriodo };
+}
+
+/**
  * Genera una lista de próximos períodos a partir del mes en curso
  */
-export function generarProximosPeriodos(cantidad = 8, fechaInicio = new Date()) {
-  const lista = [];
+export function generarProximosPeriodos(cantidad = 8, fechaInicio = new Date()) {  const lista = [];
   for (let i = 0; i < cantidad; i++) {
     const d = new Date(fechaInicio.getFullYear(), fechaInicio.getMonth() + i, 1);
     const mes = MESES_ES[d.getMonth()];

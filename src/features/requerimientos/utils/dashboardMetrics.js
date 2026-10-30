@@ -1,4 +1,4 @@
-import { normalizarPeriodo, periodoAFecha } from '../../../core/utils/dateUtils';
+import { normalizarPeriodo, periodoAFecha, resumirPeriodos } from '../../../core/utils/dateUtils';
 
 export const ESTADO_SIN_INICIAR = 'Sin iniciar';
 export const ESTADO_EN_PROCESO = 'En proceso';
@@ -250,17 +250,7 @@ export function calcularMetricas(requerimientos) {
 }
 
 export function obtenerPeriodos(requerimientos) {
-  const periodos = new Set(
-    (requerimientos || [])
-      .map((requerimiento) => normalizarPeriodo(requerimiento.periodo_mensual))
-      .filter(Boolean)
-  );
-
-  return Array.from(periodos).sort((a, b) => {
-    const fechaA = periodoAFecha(a)?.getTime() ?? 0;
-    const fechaB = periodoAFecha(b)?.getTime() ?? 0;
-    return fechaB - fechaA;
-  });
+  return resumirPeriodos(requerimientos).periodos;
 }
 
 export function obtenerOpcionesAgentes(requerimientos) {

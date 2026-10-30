@@ -7,6 +7,8 @@ import ModalEditarRequerimiento from '../../../requerimientos/presentation/compo
 import { eliminarRequerimiento } from '../../../requerimientos/infrastructure/requerimiento.api';
 import { notificarExito, notificarError } from '../../../../core/ui/notifications';
 import BotonExportarExcel from '../../../../core/ui/BotonExportarExcel';
+import SubmenuPeriodos from '../../../../core/ui/SubmenuPeriodos';
+import { useFiltroPeriodos } from '../../../../core/hooks/useFiltroPeriodos';
 import { exportarVideoExcel } from '../../utils/videoExcelMapper';
 
 function StyledSelect({ children, ...rest }) {
@@ -145,6 +147,16 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
     const [requerimientoAEditar, setRequerimientoAEditar] = useState(null);
     const reducirMovimiento = useReducedMotion();
 
+    // Submenú de períodos: por defecto el mes en curso; no se mezclan períodos
+    const {
+        periodos: periodosDisponibles,
+        conteos: conteosPeriodos,
+        sinPeriodo: sinPeriodoCount,
+        periodoActivo,
+        setPeriodoSel,
+        tareasFiltradas
+    } = useFiltroPeriodos(tareas);
+
     const handleEliminarRequerimiento = async (item) => {
         const nombre = item.nombre_propiedad || `Requerimiento #${item.id_requerimiento}`;
         const confirmar = window.confirm(
@@ -196,7 +208,7 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
     const agentes = useMemo(() => {
         const mapa = {};
 
-        tareas.forEach((item) => {
+        tareasFiltradas.forEach((item) => {
             const id = String(item.usuarios?.id_usuario || item.id_agente || 'sin-asignar');
             const nombre = item.usuarios?.nombre || (item.id_agente ? `Agente #${item.id_agente}` : 'General / Sin Agente');
 
@@ -227,7 +239,7 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
         });
 
         return Object.values(mapa).sort((a, b) => a.nombre.localeCompare(b.nombre));
-    }, [tareas]);
+    }, [tareasFiltradas]);
 
     const agenteActivo = useMemo(() => {
         if (!agenteSeleccionadoId) return null;
@@ -240,12 +252,12 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                 item.nombre_propiedad?.toLowerCase().includes(busqueda.toLowerCase())
             );
         }
-        return tareas.filter((item) => {
+        return tareasFiltradas.filter((item) => {
             const coincidePropiedad = item.nombre_propiedad?.toLowerCase().includes(busqueda.toLowerCase());
             const coincideAgente = item.usuarios?.nombre?.toLowerCase().includes(busqueda.toLowerCase());
             return coincidePropiedad || coincideAgente;
         });
-    }, [agenteActivo, tareas, busqueda]);
+    }, [agenteActivo, tareasFiltradas, busqueda]);
 
     const agentesFiltrados = useMemo(() => {
         if (!busqueda) return agentes;
@@ -415,7 +427,7 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                                 )}
                                 <span className="relative z-10 flex items-center gap-1.5">
                                     <span className="material-symbols-outlined text-[16px]">view_agenda</span>
-                                    <span>Producciones ({tareas.length})</span>
+                                    <span>Producciones ({tareasFiltradas.length})</span>
                                 </span>
                             </button>
                         </div>
@@ -452,6 +464,15 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                     />
                 </div>
             </div>
+
+            {/* ── Submenú de Períodos ── */}
+            <SubmenuPeriodos
+                periodos={periodosDisponibles}
+                conteos={conteosPeriodos}
+                sinPeriodo={sinPeriodoCount}
+                periodoActivo={periodoActivo}
+                alSeleccionar={setPeriodoSel}
+            />
 
             {/* ── VISTA 1: Directorio / Menú de Agentes ── */}
             {!agenteActivo && vistaModo === 'agentes' && (
