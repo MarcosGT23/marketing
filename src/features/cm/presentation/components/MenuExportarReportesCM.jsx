@@ -68,7 +68,11 @@ export default function MenuExportarReportesCM({ reportes = [] }) {
     const alTeclear = (event) => {
       if (event.key === 'Escape') cerrar(true);
     };
-    const alDesplazar = () => setAbierto(false);
+    const alDesplazar = (event) => {
+      // No cerrar cuando el scroll ocurre dentro del propio menú (lista de agentes).
+      if (event.target && menuRef.current?.contains(event.target)) return;
+      setAbierto(false);
+    };
 
     document.addEventListener('pointerdown', alPulsarFuera);
     document.addEventListener('keydown', alTeclear);
