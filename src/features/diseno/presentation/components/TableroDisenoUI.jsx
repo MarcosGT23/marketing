@@ -1,5 +1,5 @@
+import TarjetaTrabajo, { CabeceraTarjeta, ResumenTarjeta } from '../../../../core/ui/TarjetaTrabajo';
 import InformacionRequerimiento from '../../../requerimientos/presentation/components/InformacionRequerimiento';
-import TextoExpandible from '../../../../core/ui/TextoExpandible';
 import { useState, useMemo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import LiquidStateSelector from './LiquidStateSelector';
@@ -491,8 +491,10 @@ export default function TableroDisenoUI({
                         {agentesFiltrados.map((agente) => (
                             <div
                                 key={agente.id}
-                                onClick={() => setAgenteSeleccionadoId(agente.id)}
-                                className="rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between cursor-pointer group hover:-translate-y-0.5"
+                                role="button" tabIndex={0} aria-label={`Ver requerimientos de ${agente.nombre}`}
+                onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setAgenteSeleccionadoId(agente.id); } }}
+                onClick={() => setAgenteSeleccionadoId(agente.id)}
+                                className="agent-card rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between cursor-pointer group hover:-translate-y-0.5"
                                 style={{
                                     background: 'var(--color-surface-container-lowest)',
                                     border: '1px solid var(--color-outline-variant)',
@@ -955,91 +957,11 @@ export default function TableroDisenoUI({
         const esDisenoInterno = item.categoria === 'Diseño Interno';
 
         return (
-            <div key={tarea.id_tarea || item.id_requerimiento}
-                className={`rounded-2xl flex flex-col justify-between overflow-hidden transition-all duration-300 hover:shadow-md ${
-                    item.prioridad === 'Alta' 
-                        ? 'border-l-[4px] border-l-error' 
-                        : (item.prioridad === 'Media' ? 'border-l-[4px] border-l-amber-500' : '')
-                }`}
-                style={{ 
-                    background: estaBloqueada ? 'rgba(16, 185, 129, 0.04)' : 'var(--color-surface-container-lowest)', 
-                    border: estaBloqueada ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid var(--color-outline-variant)',
-                    boxShadow: estaBloqueada ? '0 4px 20px -2px rgba(16, 185, 129, 0.12)' : '0 1px 4px rgba(0,0,0,0.05)'
-                }}>
-
-                <div>
+            <TarjetaTrabajo key={tarea.id_tarea || item.id_requerimiento} tema="diseno" prioridad={item.prioridad} titulo={item.nombre_propiedad} completada={estaBloqueada}>
+                  <div className="work-card__main">
                     {/* Card header */}
-                    <div className="px-4 sm:px-5 py-3.5 sm:py-4 flex items-start justify-between gap-3 border-b"
-                        style={{ 
-                            background: estaBloqueada ? 'rgba(16, 185, 129, 0.08)' : 'var(--color-surface-container-low)', 
-                            borderColor: estaBloqueada ? 'rgba(16, 185, 129, 0.2)' : 'var(--color-outline-variant)' 
-                        }}>
-                        <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                                <h3 className="font-title-md break-words font-semibold" style={{ color: 'var(--color-on-surface)', fontSize: '15px' }}>
-                                    {item.nombre_propiedad}
-                                </h3>
-                                {item.prioridad === 'Alta' && (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">
-                                        <span className="material-symbols-outlined text-[11px] text-rose-700">priority_high</span>
-                                        Urgente
-                                    </span>
-                                )}
-                                {item.prioridad === 'Media' && (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
-                                        <span className="material-symbols-outlined text-[11px] text-amber-700">schedule</span>
-                                        Media
-                                    </span>
-                                )}
-                            </div>
-
-                            {/* Tags de tipo de entregable con color distintivo y alto contraste */}
-                            <div className="flex items-center gap-1.5 flex-wrap mt-2">
-                                {tieneArte && (
-                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-900 border border-sky-300 shadow-2xs">
-                                        <span className="material-symbols-outlined text-[12px] text-sky-700">image</span>
-                                        Arte Estático
-                                    </span>
-                                )}
-                                {tieneCarrusel && (
-                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-900 border border-purple-300 shadow-2xs">
-                                        <span className="material-symbols-outlined text-[12px] text-purple-700">view_carousel</span>
-                                        Carrusel
-                                    </span>
-                                )}
-                                {esDisenoInterno && item.categoria_diseno && (
-                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs">
-                                        <span className="material-symbols-outlined text-[12px] text-amber-700">brush</span>
-                                        {item.categoria_diseno}
-                                    </span>
-                                )}
-                                {!tieneArte && !tieneCarrusel && (!esDisenoInterno || !item.categoria_diseno) && (
-                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-2xs">
-                                        <span className="material-symbols-outlined text-[12px] text-emerald-700">palette</span>
-                                        Diseño Gráfico
-                                    </span>
-                                )}
-                                <span className="text-[11px] text-outline ml-1">
-                                    • Agente: <strong className="text-on-surface">{agente}</strong>
-                                </span>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                            {estaBloqueada && (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
-                                    <span className="material-symbols-outlined text-[12px] text-emerald-700">lock</span>
-                                    Bloqueada
-                                </span>
-                            )}
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-label-sm text-[11px] flex-shrink-0 font-medium"
-                                style={{ background: s.bg, color: s.color }}>
-                                <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>{s.icon}</span>
-                                {tarea.estado || 'Por Hacer'}
-                            </span>
-
-                            {/* Botón de 3 puntitos con menú contextual */}
-                            <div className="relative">
+                    <CabeceraTarjeta tema="diseno" item={item} agente={agente} estado={tarea.estado || 'Por Hacer'} bloqueada={estaBloqueada}>
+                      <div className="relative">
                                 <button
                                     type="button"
                                     onClick={(e) => {
@@ -1084,41 +1006,13 @@ export default function TableroDisenoUI({
                                     </div>
                                 )}
                             </div>
-                        </div>
-                    </div>
+                    </CabeceraTarjeta>
 
-                    {/* Ficha técnica estructurada de la propiedad */}
-                    <div className="px-4 sm:px-5 py-3 space-y-2.5 font-body-sm border-b text-xs"
-                        style={{ borderColor: 'var(--color-outline-variant)', background: 'var(--color-surface-container-low)' }}>
-                        
-                        {/* Grid de especificaciones: Ubicación, Habitaciones, Superficie, Categoría, Tipo de operación */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs p-2.5 rounded-xl bg-surface-container-lowest border border-surface-container">
-                            <div>
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-outline block mb-0.5">Categoría</span>
-                                <span className="font-semibold text-on-surface break-words block">{item.categoria || 'Propiedad'}</span>
-                            </div>
-                            <div>
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-outline block mb-0.5">Operación</span>
-                                <span className="font-semibold text-primary-container break-words block">{item.tipo || 'Venta'}</span>
-                            </div>
-                            <div>
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-outline block mb-0.5">Habitaciones</span>
-                                <span className="font-semibold text-on-surface block">{item.habitaciones ? `${item.habitaciones} hab.` : '—'}</span>
-                            </div>
-                            <div>
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-outline block mb-0.5">Superficie</span>
-                                <span className="font-semibold text-on-surface block">{item.superficie || '—'}</span>
-                            </div>
-                        </div>
-
-                        {/* Ubicación */}
-                        <div className="flex items-center gap-1.5 text-on-surface-variant">
-                            <span className="material-symbols-outlined text-[15px] text-outline shrink-0">location_on</span>
-                            <TextoExpandible texto={item.ubicacion || 'Ubicación no especificada'} limite={45} />
-                        </div>
-
-                        <InformacionRequerimiento requerimiento={item} />
-                    </div>
+                    <ResumenTarjeta ubicacion={item.ubicacion} campos={[
+                        ['Categoría', item.categoria], ['Operación', item.tipo],
+                        ['Habitaciones', item.habitaciones ? `${item.habitaciones} hab.` : '—'], ['Superficie', item.superficie],
+                    ]} />
+                    <div className="work-card__content"><InformacionRequerimiento requerimiento={item} /></div>
 
                     {/* Progress Bar vinculada al Estado */}
                     <div className="px-4 sm:px-5 py-3 sm:py-3.5 border-b" style={{ borderColor: 'var(--color-outline-variant)' }}>
@@ -1134,7 +1028,7 @@ export default function TableroDisenoUI({
                 </div>
 
                 {/* Controls: Estado y SlideConfirm / Desbloquear */}
-                <div className="px-4 sm:px-5 py-3 sm:py-4 space-y-3"
+                <div className="work-card__footer space-y-3"
                     style={{ background: estaBloqueada ? 'rgba(16, 185, 129, 0.04)' : 'var(--color-surface-container-low)' }}>
                     <div className="flex flex-col gap-2">
                         <div className="flex items-center justify-between">
@@ -1153,7 +1047,7 @@ export default function TableroDisenoUI({
                                 </span>
                             )}
                         </div>
-                        <div className={estaBloqueada ? 'pointer-events-none opacity-80' : ''}>
+                        <div className={`work-card__workflow ${estaBloqueada ? 'pointer-events-none opacity-80' : ''}`}>
                             <LiquidStateSelector 
                                 estadoActual={tarea.estado || 'Por Hacer'}
                                 alCambiarEstado={(nuevoEstado) => {
@@ -1199,7 +1093,7 @@ export default function TableroDisenoUI({
                         </div>
                     )}
                 </div>
-            </div>
+            </TarjetaTrabajo>
         );
     }
 }

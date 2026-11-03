@@ -1,5 +1,5 @@
+import TarjetaTrabajo, { CabeceraTarjeta, ResumenTarjeta } from '../../../../core/ui/TarjetaTrabajo';
 import InformacionRequerimiento from '../../../requerimientos/presentation/components/InformacionRequerimiento';
-import TextoExpandible from '../../../../core/ui/TextoExpandible';
 // src/features/cm/presentation/components/PanelCmUI.jsx
 import { useState, useMemo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
@@ -410,8 +410,10 @@ export default function PanelCmUI({ tareas = [], reportes = [], cargando, cargan
             {agentesFiltrados.map((agente) => (
               <div
                 key={agente.id}
+                role="button" tabIndex={0} aria-label={`Ver requerimientos de ${agente.nombre}`}
+                onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setAgenteSeleccionadoId(agente.id); } }}
                 onClick={() => setAgenteSeleccionadoId(agente.id)}
-                className="rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between cursor-pointer group hover:-translate-y-0.5"
+                className="agent-card rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between cursor-pointer group hover:-translate-y-0.5"
                 style={{
                   background: 'var(--color-surface-container-lowest)',
                   border: '1px solid var(--color-outline-variant)',
@@ -558,7 +560,7 @@ export default function PanelCmUI({ tareas = [], reportes = [], cargando, cargan
           </div>
 
           {/* Grid de Requerimientos de este Agente */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {requerimientosAMostrar.map((item) => renderTarjetaRequerimiento(item))}
 
             {requerimientosAMostrar.length === 0 && (
@@ -587,7 +589,7 @@ export default function PanelCmUI({ tareas = [], reportes = [], cargando, cargan
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {requerimientosAMostrar.map((item) => renderTarjetaRequerimiento(item))}
 
             {requerimientosAMostrar.length === 0 && (
@@ -637,51 +639,10 @@ export default function PanelCmUI({ tareas = [], reportes = [], cargando, cargan
     const menuAbierto = menuOpcionesId === idTarjeta;
 
     return (
-      <div
-        key={cm.id_tarea || item.id_requerimiento}
-        className="rounded-2xl transition-all duration-300 flex flex-col justify-between overflow-hidden group cursor-pointer hover:-translate-y-0.5"
-        style={{
-          background: 'var(--color-surface-container-lowest)',
-          border: '1px solid var(--color-outline-variant)',
-          boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
-        }}
-        onClick={() => alSeleccionarPropiedad(item)}
-      >
-        <div>
-          <div className="p-5 flex justify-between items-start gap-2"
-            style={{
-              background: 'linear-gradient(to right, rgba(219, 225, 255, 0.2), transparent)',
-              borderBottom: '1px solid var(--color-outline-variant)'
-            }}>
-            <div className="min-w-0 flex-1">
-              <h3 className="font-display font-semibold text-base transition-colors flex items-center gap-1.5"
-                style={{ color: 'var(--color-on-surface)' }}>
-                <span>{item.nombre_propiedad}</span>
-                <span className="material-symbols-outlined text-[16px] opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{ color: 'var(--color-primary-container)' }}>
-                  open_in_new
-                </span>
-              </h3>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--color-outline)' }}>
-                Agente: <strong className="text-on-surface">{agente}</strong> • {item.periodo_mensual}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              <span
-                className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold flex items-center gap-1 shrink-0 ${
-                  cm.estado === 'Finalizado'
-                    ? 'bg-secondary-container text-on-secondary-container'
-                    : cm.estado === 'Campaña Activa'
-                    ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20'
-                    : 'bg-surface-container text-outline'
-                }`}
-              >
-                {cm.estado || 'Por Hacer'}
-              </span>
-
-              {/* Botón de 3 puntitos con modal de edición */}
-              <div className="relative">
+      <TarjetaTrabajo key={cm.id_tarea || item.id_requerimiento} tema="cm" prioridad={item.prioridad} titulo={item.nombre_propiedad} completada={cm.estado === 'Finalizado'}>
+        <div className="work-card__main">
+          <CabeceraTarjeta tema="cm" item={item} agente={agente} estado={cm.estado || 'Por Hacer'}>
+            <div className="relative">
                 <button
                   type="button"
                   onClick={(e) => {
@@ -741,66 +702,28 @@ export default function PanelCmUI({ tareas = [], reportes = [], cargando, cargan
                   </div>
                 )}
               </div>
-            </div>
-          </div>
+          </CabeceraTarjeta>
 
-          <div className="p-5 space-y-3">
-            {/* Grid con Plataforma, Presupuesto y Duración */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs p-3 rounded-xl"
-              style={{
-                background: 'var(--color-surface-container-low)',
-                border: '1px solid var(--color-outline-variant)'
-              }}>
-              <div>
-                <span className="uppercase text-[10px] font-bold block mb-0.5" style={{ color: 'var(--color-outline)' }}>Plataforma</span>
-                <strong style={{ color: 'var(--color-on-surface)' }}>{cm.plataforma?.trim() || 'Sin definir'}</strong>
-              </div>
-              <div>
-                <span className="uppercase text-[10px] font-bold block mb-0.5" style={{ color: 'var(--color-outline)' }}>Presupuesto</span>
-                <strong style={{ color: 'var(--color-primary-container)' }}>
-                  {cm.presupuesto ? `${cm.presupuesto} ${cm.moneda || 'USD'}` : 'Sin definir'}
-                </strong>
-              </div>
-              <div className="col-span-2 sm:col-span-1">
-                <span className="uppercase text-[10px] font-bold block mb-0.5" style={{ color: 'var(--color-outline)' }}>Duración</span>
-                <strong className="text-secondary flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[14px]">schedule</span>
-                  <TextoExpandible texto={cm.periodo_pauta || 'Sin definir'} limite={30} />
-                </strong>
-              </div>
-            </div>
-
-            {/* Descripción y Objetivos de la Pauta */}
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-outline block">
-                Descripción y Objetivos de la Pauta
-              </span>
-              <TextoExpandible
-                texto={cm.descripcion_pauta || item.descripcion_propiedad || 'Sin descripción u objetivos especificados para esta pauta.'}
-                className="text-xs text-on-surface-variant"
-              />
-            </div>
-            <InformacionRequerimiento requerimiento={item} mostrarUbicacion
-              omitirDescripcion={!cm.descripcion_pauta || cm.descripcion_pauta === item.descripcion_propiedad} />
+          <ResumenTarjeta ubicacion={item.ubicacion} campos={[
+            ['Plataforma', cm.plataforma?.trim() || 'Sin definir'],
+            ['Presupuesto', cm.presupuesto !== null && cm.presupuesto !== undefined && cm.presupuesto !== '' ? `${cm.presupuesto} ${cm.moneda || 'USD'}` : 'Sin definir'],
+            ['Duración', cm.periodo_pauta || 'Sin definir'],
+          ]} />
+          <div className="work-card__content">
+            <InformacionRequerimiento requerimiento={item}
+              descripcionPrincipal={cm.descripcion_pauta || item.descripcion_propiedad}
+              etiquetaDescripcion="Objetivos de pauta" />
           </div>
         </div>
 
-        <div className="p-4 flex items-center justify-between"
-          style={{
-            background: 'var(--color-surface-container-low)',
-            borderTop: '1px solid var(--color-outline-variant)'
-          }}>
-          <span className="text-[11px] font-semibold group-hover:underline flex items-center gap-1"
-            style={{ color: 'var(--color-primary-container)' }}>
-            <span className="material-symbols-outlined text-[15px]">upload_file</span>
+        <footer className="work-card__footer flex items-center justify-between gap-3">
+          <span className="text-[10px] text-outline">Gestión de campaña</span>
+          <button type="button" onClick={() => alSeleccionarPropiedad(item)} className="work-card__primary-action">
+            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">upload_file</span>
             Ver detalle y cargar CSV
-          </span>
-          <span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform"
-            style={{ color: 'var(--color-outline)' }}>
-            chevron_right
-          </span>
-        </div>
-      </div>
+          </button>
+        </footer>
+      </TarjetaTrabajo>
     );
   }
 }

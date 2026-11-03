@@ -1,3 +1,4 @@
+import TarjetaTrabajo, { CabeceraTarjeta, ResumenTarjeta } from '../../../../core/ui/TarjetaTrabajo';
 import { useState, useMemo } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { SlideConfirm } from '../../../diseno/presentation/components/SlideConfirm';
@@ -9,7 +10,6 @@ import { notificarExito, notificarError } from '../../../../core/ui/notification
 import MenuExportarExcel from '../../../../core/ui/MenuExportarExcel';
 import { filtrarContextoExportacion } from '../../../../core/utils/exportacion';
 import SubmenuPeriodos from '../../../../core/ui/SubmenuPeriodos';
-import TextoExpandible from '../../../../core/ui/TextoExpandible';
 import InformacionRequerimiento from '../../../requerimientos/presentation/components/InformacionRequerimiento';
 import { useFiltroPeriodos } from '../../../../core/hooks/useFiltroPeriodos';
 import { exportarVideoExcel } from '../../utils/videoExcelMapper';
@@ -494,8 +494,10 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                         {agentesFiltrados.map((agente) => (
                             <div
                                 key={agente.id}
-                                onClick={() => setAgenteSeleccionadoId(agente.id)}
-                                className="rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between cursor-pointer group hover:-translate-y-0.5"
+                                role="button" tabIndex={0} aria-label={`Ver requerimientos de ${agente.nombre}`}
+                onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setAgenteSeleccionadoId(agente.id); } }}
+                onClick={() => setAgenteSeleccionadoId(agente.id)}
+                                className="agent-card rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between cursor-pointer group hover:-translate-y-0.5"
                                 style={{
                                     background: 'var(--color-surface-container-lowest)',
                                     border: '1px solid var(--color-outline-variant)',
@@ -730,51 +732,11 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
         const mostrarFaseYDescripcion = esSoloFotos || (Boolean(video.req_fotos) && Boolean(video.Descripcion));
 
         return (
-            <div key={video.id_tarea || item.id_requerimiento}
-                className={`rounded-xl transition-all flex flex-col justify-between overflow-hidden duration-300 hover:shadow-md ${estaBloqueada ? 'border border-emerald-500/35 bg-emerald-500/5' : obtenerEstiloPrioridad(item.prioridad)}`}
-                style={estaBloqueada ? { boxShadow: '0 4px 16px rgba(16, 185, 129, 0.12)' } : undefined}>
-
-                <div>
+            <TarjetaTrabajo key={video.id_tarea || item.id_requerimiento} tema="video" prioridad={item.prioridad} titulo={item.nombre_propiedad} completada={estaBloqueada}>
+                  <div className="work-card__main">
                     {/* Header */}
-                    <div className="px-5 py-4 flex items-start justify-between gap-3 border-b border-surface-container-low"
-                        style={{
-                            background: estaBloqueada ? 'rgba(16, 185, 129, 0.08)' : undefined
-                        }}>
-                        <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                                <h3 className="font-display font-semibold text-base text-on-surface break-words">
-                                    {item.nombre_propiedad}
-                                </h3>
-                                {item.prioridad === 'Alta' && (
-                                    <span className="px-1.5 py-0.5 bg-error text-on-error text-[9px] font-bold uppercase rounded shrink-0">
-                                        Urgente
-                                    </span>
-                                )}
-                                {item.prioridad === 'Media' && (
-                                    <span className="px-1.5 py-0.5 bg-orange-500 text-white text-[9px] font-bold uppercase rounded shrink-0">
-                                        Media
-                                    </span>
-                                )}
-                            </div>
-                            <p className="text-xs text-outline mt-0.5 truncate">
-                                Agente: <strong className="text-on-surface">{agente}</strong> • {item.categoria || 'Inmueble'}
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                            {estaBloqueada && (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
-                                    <span className="material-symbols-outlined text-[12px] text-emerald-700">lock</span>
-                                    Bloqueada
-                                </span>
-                            )}
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-label-sm text-[11px] font-medium"
-                                style={{ background: s.bg, color: s.color }}>
-                                <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>{s.icon}</span>
-                                {video.estado || 'Por Hacer'}
-                            </span>
-
-                            {/* Botón de 3 puntitos con modal/menú de edición */}
-                            <div className="relative">
+                    <CabeceraTarjeta tema="video" item={item} agente={agente} estado={video.estado || 'Por Hacer'} bloqueada={estaBloqueada}>
+                      <div className="relative">
                                 <button
                                     type="button"
                                     onClick={(e) => {
@@ -819,37 +781,16 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                                     </div>
                                 )}
                             </div>
-                        </div>
-                    </div>
+                    </CabeceraTarjeta>
 
-                    {/* Ficha técnica estructurada: Ubicación, Habitaciones, Superficie, Categoría, Público objetivo, Descripción */}
-                    <div className="px-5 py-3 space-y-2.5 font-body-sm border-b text-xs"
-                        style={{ borderColor: 'var(--color-outline-variant)', background: 'var(--color-surface-container-low)' }}>
-                        
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs p-2.5 rounded-xl bg-surface-container-lowest border border-surface-container">
-                            <div>
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-outline block mb-0.5">Categoría</span>
-                                <span className="font-semibold text-on-surface break-words block">{item.categoria || 'Propiedad'}</span>
-                            </div>
-                            <div>
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-outline block mb-0.5">Ubicación</span>
-                                <TextoExpandible className="font-semibold text-on-surface" texto={item.ubicacion || 'No especificada'} limite={35} />
-                            </div>
-                            <div>
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-outline block mb-0.5">Habitaciones</span>
-                                <span className="font-semibold text-on-surface block">{item.habitaciones ? `${item.habitaciones} hab.` : '—'}</span>
-                            </div>
-                            <div>
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-outline block mb-0.5">Superficie</span>
-                                <span className="font-semibold text-on-surface block">{item.superficie || '—'}</span>
-                            </div>
-                        </div>
-
-                        <InformacionRequerimiento requerimiento={item} />
-                    </div>
+                    <ResumenTarjeta ubicacion={item.ubicacion} campos={[
+                        ['Categoría', item.categoria], ['Operación', item.tipo],
+                        ['Habitaciones', item.habitaciones ? `${item.habitaciones} hab.` : '—'], ['Superficie', item.superficie],
+                    ]} />
+                    <div className="work-card__content"><InformacionRequerimiento requerimiento={item} /></div>
 
                     {/* Checklist & Progress */}
-                    <div className={estaBloqueada ? 'pointer-events-none opacity-80' : ''}>
+                    <div className={`work-card__workflow ${estaBloqueada ? 'pointer-events-none opacity-80' : ''}`}>
                         {/* Checklist */}
                         <div className="p-4 border-b" style={{ borderColor: 'var(--color-outline-variant)' }}>
                             <ChecklistRequerimientos
@@ -874,7 +815,7 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                 </div>
 
                 {/* Controls */}
-                <div className="px-4 sm:px-5 py-3 sm:py-4 space-y-3"
+                <div className="work-card__footer space-y-3"
                     style={{ background: estaBloqueada ? 'rgba(16, 185, 129, 0.04)' : 'var(--color-surface-container-low)' }}>
 
                     {/* Apartado animado: Aparece automáticamente cuando se activa solo Fotos (o tiene notas de foto) */}
@@ -996,7 +937,7 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                         </div>
                     )}
                 </div>
-            </div>
+            </TarjetaTrabajo>
         );
     }
 }
