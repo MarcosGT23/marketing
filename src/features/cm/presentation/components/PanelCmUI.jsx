@@ -1,3 +1,5 @@
+import InformacionRequerimiento from '../../../requerimientos/presentation/components/InformacionRequerimiento';
+import TextoExpandible from '../../../../core/ui/TextoExpandible';
 // src/features/cm/presentation/components/PanelCmUI.jsx
 import { useState, useMemo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
@@ -31,7 +33,7 @@ export default function PanelCmUI({ tareas = [], reportes = [], cargando, cargan
   const [agenteSeleccionadoId, setAgenteSeleccionadoId] = useState(null);
   const [vistaModo, setVistaModo] = useState('agentes'); // 'agentes' | 'todos' | 'reportes'
   const [busqueda, setBusqueda] = useState('');
-  const [tarjetasExpandidas, setTarjetasExpandidas] = useState({});
+
   const [menuOpcionesId, setMenuOpcionesId] = useState(null);
   const [requerimientoAEditar, setRequerimientoAEditar] = useState(null);
   const reducirMovimiento = useReducedMotion();
@@ -88,10 +90,6 @@ export default function PanelCmUI({ tareas = [], reportes = [], cargando, cargan
       console.error('Error al eliminar requerimiento:', err);
       notificarError(err.message || 'No se pudo eliminar el requerimiento.');
     }
-  };
-
-  const toggleExpandir = (id) => {
-    setTarjetasExpandidas(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   // Agrupar requerimientos por agente
@@ -635,7 +633,7 @@ export default function PanelCmUI({ tareas = [], reportes = [], cargando, cargan
     const cm = (Array.isArray(item.tareas_cm) ? item.tareas_cm[0] : item.tareas_cm) || {};
     const agente = item.usuarios?.nombre || 'General';
     const idTarjeta = item.id_requerimiento;
-    const estaExpandida = Boolean(tarjetasExpandidas[idTarjeta]);
+
     const menuAbierto = menuOpcionesId === idTarjeta;
 
     return (
@@ -767,7 +765,7 @@ export default function PanelCmUI({ tareas = [], reportes = [], cargando, cargan
                 <span className="uppercase text-[10px] font-bold block mb-0.5" style={{ color: 'var(--color-outline)' }}>Duración</span>
                 <strong className="text-secondary flex items-center gap-1">
                   <span className="material-symbols-outlined text-[14px]">schedule</span>
-                  <span className="truncate">{cm.periodo_pauta || 'Sin definir'}</span>
+                  <TextoExpandible texto={cm.periodo_pauta || 'Sin definir'} limite={30} />
                 </strong>
               </div>
             </div>
@@ -777,43 +775,13 @@ export default function PanelCmUI({ tareas = [], reportes = [], cargando, cargan
               <span className="text-[10px] font-bold uppercase tracking-wider text-outline block">
                 Descripción y Objetivos de la Pauta
               </span>
-              <p className={`text-xs text-on-surface-variant ${estaExpandida ? '' : 'line-clamp-2'}`}>
-                {cm.descripcion_pauta || item.descripcion_propiedad || 'Sin descripción u objetivos especificados para esta pauta.'}
-              </p>
-              
-              {((cm.descripcion_pauta && cm.descripcion_pauta.length > 80) || (item.descripcion_propiedad && item.descripcion_propiedad.length > 80)) && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleExpandir(idTarjeta);
-                  }}
-                  className="text-[11px] font-semibold text-secondary hover:underline flex items-center gap-1 cursor-pointer pt-0.5"
-                >
-                  <span>{estaExpandida ? 'Ver menos' : 'Ver más objetivos'}</span>
-                  <span className="material-symbols-outlined text-[15px]">
-                    {estaExpandida ? 'expand_less' : 'expand_more'}
-                  </span>
-                </button>
-              )}
+              <TextoExpandible
+                texto={cm.descripcion_pauta || item.descripcion_propiedad || 'Sin descripción u objetivos especificados para esta pauta.'}
+                className="text-xs text-on-surface-variant"
+              />
             </div>
-
-            {/* Información adicional expandida */}
-            {estaExpandida && (
-              <div className="pt-2 border-t border-surface-container/60 space-y-1.5 text-xs animate-fadeIn"
-                onClick={(e) => e.stopPropagation()}>
-                {item.descripcion_propiedad && item.descripcion_propiedad !== cm.descripcion_pauta && (
-                  <p className="text-on-surface-variant">
-                    <strong className="text-outline">Ficha propiedad:</strong> {item.descripcion_propiedad}
-                  </p>
-                )}
-                {item.ubicacion && (
-                  <p className="text-on-surface-variant">
-                    <strong className="text-outline">Ubicación:</strong> {item.ubicacion}
-                  </p>
-                )}
-              </div>
-            )}
+            <InformacionRequerimiento requerimiento={item} mostrarUbicacion
+              omitirDescripcion={!cm.descripcion_pauta || cm.descripcion_pauta === item.descripcion_propiedad} />
           </div>
         </div>
 

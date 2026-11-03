@@ -1,3 +1,5 @@
+import InformacionRequerimiento from './InformacionRequerimiento';
+import TextoExpandible from '../../../../core/ui/TextoExpandible';
 import React, { useState, useMemo } from 'react';
 import ModalEditarRequerimiento from './ModalEditarRequerimiento';
 import { eliminarRequerimiento } from '../../infrastructure/requerimiento.api';
@@ -36,7 +38,7 @@ export default function TodosRequerimientosUI({
   const [categoriaFiltro, setCategoriaFiltro] = useState('');
   const [requerimientoAEditar, setRequerimientoAEditar] = useState(null);
   const [menuOpcionesId, setMenuOpcionesId] = useState(null);
-  const [expandidos, setExpandidos] = useState({});
+
 
   const handleEliminarRequerimiento = async (item) => {
     const nombre = item.nombre_propiedad || `Requerimiento #${item.id_requerimiento}`;
@@ -53,10 +55,6 @@ export default function TodosRequerimientosUI({
       console.error('Error al eliminar requerimiento:', err);
       notificarError(err.message || 'No se pudo eliminar el requerimiento.');
     }
-  };
-
-  const toggleExpandir = (id) => {
-    setExpandidos(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   // Agrupar requerimientos por agente
@@ -340,7 +338,7 @@ export default function TodosRequerimientosUI({
                       {agente.iniciales}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-display font-bold text-base text-on-surface truncate group-hover:text-primary-container transition-colors">
+                      <h3 className="font-display font-bold text-base text-on-surface break-words group-hover:text-primary-container transition-colors">
                         {agente.nombre}
                       </h3>
                       <p className="text-xs text-outline mt-0.5">
@@ -519,7 +517,7 @@ export default function TodosRequerimientosUI({
     const diseno = (Array.isArray(item.tareas_diseno) ? item.tareas_diseno[0] : item.tareas_diseno) || {};
     const video = (Array.isArray(item.tareas_video) ? item.tareas_video[0] : item.tareas_video) || {};
     const cm = (Array.isArray(item.tareas_cm) ? item.tareas_cm[0] : item.tareas_cm) || {};
-    const estaExpandido = Boolean(expandidos[item.id_requerimiento]);
+
 
     return (
       <div
@@ -541,7 +539,7 @@ export default function TodosRequerimientosUI({
           >
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-display font-bold text-base text-on-surface truncate">
+                <h3 className="font-display font-bold text-base text-on-surface break-words">
                   {item.nombre_propiedad}
                 </h3>
                 {item.prioridad === 'Alta' && (
@@ -661,7 +659,7 @@ export default function TodosRequerimientosUI({
             {item.ubicacion && (
               <p className="text-on-surface-variant flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-[16px] text-outline">location_on</span>
-                <span>{item.ubicacion}</span>
+                <TextoExpandible texto={item.ubicacion} limite={65} />
               </p>
             )}
 
@@ -689,48 +687,7 @@ export default function TodosRequerimientosUI({
               </div>
             </div>
 
-            {/* Descripción expandible */}
-            {item.descripcion_propiedad && (
-              <div className="pt-2 border-t border-surface-container space-y-1">
-                <p className={`text-on-surface-variant ${estaExpandido ? '' : 'line-clamp-2'}`}>
-                  <span className="font-bold text-outline">Descripción: </span>
-                  {item.descripcion_propiedad}
-                </p>
-                {item.descripcion_propiedad.length > 80 && (
-                  <button
-                    type="button"
-                    onClick={() => toggleExpandir(item.id_requerimiento)}
-                    className="text-[11px] font-semibold text-primary-container hover:underline flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>{estaExpandido ? 'Ver menos' : 'Ver más detalles'}</span>
-                    <span className="material-symbols-outlined text-[15px]">
-                      {estaExpandido ? 'expand_less' : 'expand_more'}
-                    </span>
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* Detalles completos al expandir */}
-            {estaExpandido && (
-              <div className="pt-2 border-t border-surface-container space-y-2 text-xs animate-fadeIn bg-surface-container-low/40 p-3 rounded-xl">
-                {item.elemento_destacar && (
-                  <p><strong className="text-primary-container">Hook / Gancho:</strong> {item.elemento_destacar}</p>
-                )}
-                {item.publico_objetivo && (
-                  <p><strong className="text-tertiary">Público Objetivo:</strong> {item.publico_objetivo}</p>
-                )}
-                {cm.periodo_pauta && (
-                  <p><strong className="text-secondary">Duración Pauta:</strong> {cm.periodo_pauta}</p>
-                )}
-                {cm.descripcion_pauta && (
-                  <p><strong className="text-secondary">Objetivos de Pauta:</strong> {cm.descripcion_pauta}</p>
-                )}
-                {item.notas_produccion && (
-                  <p><strong className="text-outline">Notas Producción:</strong> {item.notas_produccion}</p>
-                )}
-              </div>
-            )}
+            <InformacionRequerimiento requerimiento={item} />
           </div>
         </div>
 

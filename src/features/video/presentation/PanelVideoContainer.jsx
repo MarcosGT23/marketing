@@ -3,6 +3,7 @@ import PanelVideoUI from './components/PanelVideoUI';
 import { actualizarTareaVideo } from '../infrastructure/video.api';
 import { useRealtimeSync } from '../../../core/hooks/useRealtimeSync';
 import { encolar, debePreservar, tienePendientes, esperarCola } from '../../../core/utils/serialQueue';
+import { CAMPOS_AUDIOVISUALES, completarActividad } from '../utils/videoProgress';
 import { notificarError } from '../../../core/ui/notifications';
 
 export default function PanelVideoContainer() {
@@ -112,11 +113,7 @@ export default function PanelVideoContainer() {
 
             try {
                 const resultado = await actualizarTareaVideo(tv.id_tarea || null, {
-                    req_guion: tv.req_guion,
-                    req_fotos: tv.req_fotos,
-                    req_grabacion: tv.req_grabacion,
-                    req_edicion: tv.req_edicion,
-                    req_voz_off: tv.req_voz_off,
+                    actividades_completadas: tv.actividades_completadas || {},
                     estado: tv.estado,
                     progreso_porcentaje: tv.progreso_porcentaje,
                     Descripcion: tv.Descripcion ?? tv.descripcion ?? null,
@@ -185,44 +182,7 @@ export default function PanelVideoContainer() {
 
     const manejarCambioCheck = (idTarea, campo, checked, idRequerimiento) => {
         const resultado = actualizarTareaLocal(idTarea, idRequerimiento, (tv) => {
-            const actualizado = { ...tv, [campo]: checked };
-
-            const esSoloFotos = Boolean(actualizado.req_fotos) &&
-                !actualizado.req_guion &&
-                !actualizado.req_grabacion &&
-                !actualizado.req_edicion &&
-                !actualizado.req_voz_off;
-
-            if (esSoloFotos) {
-                const porcentajesFase = {
-                    'Por Hacer': 0,
-                    'Grabando': 40,
-                    'En Edición': 75,
-                    'Finalizado': 100
-                };
-                if (actualizado.estado && porcentajesFase[actualizado.estado] !== undefined && porcentajesFase[actualizado.estado] > 0) {
-                    actualizado.progreso_porcentaje = porcentajesFase[actualizado.estado];
-                } else {
-                    actualizado.progreso_porcentaje = 20;
-                    actualizado.estado = 'Grabando';
-                }
-            } else {
-                let totalProgreso = 0;
-                if (actualizado.req_guion) totalProgreso += 20;
-                if (actualizado.req_fotos) totalProgreso += 20;
-                if (actualizado.req_grabacion) totalProgreso += 20;
-                if (actualizado.req_edicion) totalProgreso += 20;
-                if (actualizado.req_voz_off) totalProgreso += 20;
-
-                actualizado.progreso_porcentaje = totalProgreso;
-
-                if (totalProgreso === 0) actualizado.estado = 'Por Hacer';
-                else if (totalProgreso <= 40) actualizado.estado = 'Grabando';
-                else if (totalProgreso < 100) actualizado.estado = 'En Edición';
-                else if (totalProgreso === 100) actualizado.estado = 'Finalizado';
-            }
-
-            return actualizado;
+            return completarActividad(tv, campo, checked);
         });
 
         if (!resultado) return;
@@ -242,6 +202,11 @@ export default function PanelVideoContainer() {
                 };
                 if (porcentajes[valor] !== undefined) {
                     actualizado.progreso_porcentaje = porcentajes[valor];
+                }
+                if (valor === 'Finalizado' || valor === 'Por Hacer') {
+                    actualizado.actividades_completadas = Object.fromEntries(
+                        CAMPOS_AUDIOVISUALES.map(campo => [campo, valor === 'Finalizado'])
+                    );
                 }
             }
             return actualizado;

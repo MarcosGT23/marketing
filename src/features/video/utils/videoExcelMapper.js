@@ -1,6 +1,7 @@
 import { sufijoPeriodoExportacion } from '../../../core/utils/exportacion';
 // src/features/video/utils/videoExcelMapper.js
 import { exportarExcel } from '../../../core/utils/excelExporter';
+import { OPCIONES_AUDIOVISUALES } from '../../requerimientos/utils/opcionesSolicitadas';
 
 /**
  * Exporta las producciones audiovisuales a un archivo .xlsx estilizado.
@@ -19,11 +20,12 @@ export async function exportarVideoExcel(tareas = [], contexto = {}) {
     { header: 'Estado Producción', key: 'estado', width: 18, align: 'center' },
     { header: 'Progreso (%)', key: 'progreso', width: 14, align: 'center', numFmt: '0"%"' },
     { header: 'Fecha de Rodaje', key: 'fechaRodaje', width: 16, align: 'center' },
-    { header: 'Guión', key: 'guion', width: 10, align: 'center' },
-    { header: 'Fotos', key: 'fotos', width: 10, align: 'center' },
-    { header: 'Grabación', key: 'grabacion', width: 12, align: 'center' },
-    { header: 'Edición', key: 'edicion', width: 10, align: 'center' },
-    { header: 'Voz en Off', key: 'vozOff', width: 12, align: 'center' },
+    { header: 'Guion solicitado', key: 'guion', width: 18, align: 'center' },
+    { header: 'Fotos solicitadas', key: 'fotos', width: 18, align: 'center' },
+    { header: 'Grabación solicitada', key: 'grabacion', width: 22, align: 'center' },
+    { header: 'Edición solicitada', key: 'edicion', width: 20, align: 'center' },
+    { header: 'Voz en Off solicitada', key: 'vozOff', width: 22, align: 'center' },
+    { header: 'Actividades completadas', key: 'completadas', width: 40 },
     { header: 'Notas / Observaciones', key: 'descripcion', width: 35 },
     { header: 'Enlace Video Final', key: 'enlaceVideo', width: 35 }
   ];
@@ -43,6 +45,7 @@ export async function exportarVideoExcel(tareas = [], contexto = {}) {
       grabacion: tv.req_grabacion ? 'Sí' : 'No',
       edicion: tv.req_edicion ? 'Sí' : 'No',
       vozOff: tv.req_voz_off ? 'Sí' : 'No',
+      completadas: OPCIONES_AUDIOVISUALES.filter(opcion => tv.actividades_completadas?.[opcion.campo]).map(opcion => opcion.etiqueta).join(', ') || 'Ninguna',
       descripcion: tv.Descripcion || t.descripcion_video || '',
       enlaceVideo: tv.enlace_video || t.enlace_materiales || ''
     };

@@ -9,6 +9,8 @@ import { notificarExito, notificarError } from '../../../../core/ui/notification
 import MenuExportarExcel from '../../../../core/ui/MenuExportarExcel';
 import { filtrarContextoExportacion } from '../../../../core/utils/exportacion';
 import SubmenuPeriodos from '../../../../core/ui/SubmenuPeriodos';
+import TextoExpandible from '../../../../core/ui/TextoExpandible';
+import InformacionRequerimiento from '../../../requerimientos/presentation/components/InformacionRequerimiento';
 import { useFiltroPeriodos } from '../../../../core/hooks/useFiltroPeriodos';
 import { exportarVideoExcel } from '../../utils/videoExcelMapper';
 
@@ -143,7 +145,7 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
     const [agenteSeleccionadoId, setAgenteSeleccionadoId] = useState(null);
     const [vistaModo, setVistaModo] = useState('agentes'); // 'agentes' | 'todos'
     const [busqueda, setBusqueda] = useState('');
-    const [tarjetasExpandidas, setTarjetasExpandidas] = useState({});
+
     const [menuOpcionesId, setMenuOpcionesId] = useState(null);
     const [requerimientoAEditar, setRequerimientoAEditar] = useState(null);
     const reducirMovimiento = useReducedMotion();
@@ -173,10 +175,6 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
             console.error('Error al eliminar requerimiento:', err);
             notificarError(err.message || 'No se pudo eliminar el requerimiento.');
         }
-    };
-
-    const toggleExpandir = (id) => {
-        setTarjetasExpandidas(prev => ({ ...prev, [id]: !prev[id] }));
     };
 
     const [tarjetasBloqueadas, setTarjetasBloqueadas] = useState(() => {
@@ -719,7 +717,7 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
         const keyBloqueo = video.id_tarea || item.id_requerimiento;
         const estaBloqueada = Boolean(tarjetasBloqueadas[keyBloqueo] ?? (video.estado === 'Finalizado'));
         const idTarjeta = item.id_requerimiento;
-        const estaExpandida = Boolean(tarjetasExpandidas[idTarjeta]);
+
         const menuAbierto = menuOpcionesId === idTarjeta;
 
         // "cuando solo se presiones foto automaticamente aparesca el apartado de fase y un apartado de descripcion"
@@ -744,7 +742,7 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                         }}>
                         <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                                <h3 className="font-display font-semibold text-base text-on-surface truncate">
+                                <h3 className="font-display font-semibold text-base text-on-surface break-words">
                                     {item.nombre_propiedad}
                                 </h3>
                                 {item.prioridad === 'Alta' && (
@@ -831,11 +829,11 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs p-2.5 rounded-xl bg-surface-container-lowest border border-surface-container">
                             <div>
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-outline block mb-0.5">Categoría</span>
-                                <span className="font-semibold text-on-surface truncate block">{item.categoria || 'Propiedad'}</span>
+                                <span className="font-semibold text-on-surface break-words block">{item.categoria || 'Propiedad'}</span>
                             </div>
                             <div>
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-outline block mb-0.5">Ubicación</span>
-                                <span className="font-semibold text-on-surface truncate block">{item.ubicacion || 'No especificada'}</span>
+                                <TextoExpandible className="font-semibold text-on-surface" texto={item.ubicacion || 'No especificada'} limite={35} />
                             </div>
                             <div>
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-outline block mb-0.5">Habitaciones</span>
@@ -847,57 +845,7 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                             </div>
                         </div>
 
-                        {/* Público Objetivo */}
-                        {item.publico_objetivo && (
-                            <div className="flex items-center gap-1.5 text-on-surface-variant">
-                                <span className="material-symbols-outlined text-[15px] text-tertiary shrink-0">groups</span>
-                                <span className="text-outline font-medium">Público Objetivo:</span>
-                                <span className="font-semibold text-on-surface truncate">{item.publico_objetivo}</span>
-                            </div>
-                        )}
-
-                        {/* Descripción (expandible cuando se selecciona o clic) */}
-                        {item.descripcion_propiedad && (
-                            <div className="pt-1 border-t border-surface-container/60 space-y-1">
-                                <p className={`text-on-surface-variant transition-all ${estaExpandida ? '' : 'line-clamp-2'}`}>
-                                    <span className="font-bold text-outline">Descripción: </span>
-                                    {item.descripcion_propiedad}
-                                </p>
-                                {item.descripcion_propiedad.length > 80 && (
-                                    <button
-                                        type="button"
-                                        onClick={() => toggleExpandir(idTarjeta)}
-                                        className="text-[11px] font-semibold text-tertiary hover:underline flex items-center gap-1 cursor-pointer pt-0.5"
-                                    >
-                                        <span>{estaExpandida ? 'Ver menos' : 'Ver más detalles'}</span>
-                                        <span className="material-symbols-outlined text-[15px]">
-                                            {estaExpandida ? 'expand_less' : 'expand_more'}
-                                        </span>
-                                    </button>
-                                )}
-                            </div>
-                        )}
-
-                        {/* Elementos adicionales al expandir */}
-                        {estaExpandida && (
-                            <div className="pt-2 border-t border-surface-container/60 space-y-1.5 text-[11px] animate-fadeIn">
-                                {item.elemento_destacar && (
-                                    <p className="text-on-surface-variant">
-                                        <strong className="text-tertiary">Hook audiovisual:</strong> {item.elemento_destacar}
-                                    </p>
-                                )}
-                                {item.fecha_rodaje && (
-                                    <p className="text-on-surface-variant">
-                                        <strong className="text-outline">Fecha tentativa de rodaje:</strong> {item.fecha_rodaje}
-                                    </p>
-                                )}
-                                {item.notas_produccion && (
-                                    <p className="text-on-surface-variant">
-                                        <strong className="text-outline">Notas de producción:</strong> {item.notas_produccion}
-                                    </p>
-                                )}
-                            </div>
-                        )}
+                        <InformacionRequerimiento requerimiento={item} />
                     </div>
 
                     {/* Checklist & Progress */}
@@ -905,13 +853,7 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                         {/* Checklist */}
                         <div className="p-4 border-b" style={{ borderColor: 'var(--color-outline-variant)' }}>
                             <ChecklistRequerimientos
-                                valores={{
-                                    req_guion: Boolean(video.req_guion),
-                                    req_fotos: Boolean(video.req_fotos),
-                                    req_grabacion: Boolean(video.req_grabacion),
-                                    req_edicion: Boolean(video.req_edicion),
-                                    req_voz_off: Boolean(video.req_voz_off),
-                                }}
+                                valores={video.actividades_completadas || {}}
                                 alCambiar={(campo, activo) => alCambiarCheck(video.id_tarea, campo, activo, item.id_requerimiento)}
                                 deshabilitado={estaBloqueada}
                             />

@@ -2,6 +2,7 @@ import { supabaseServer } from '../../../core/lib/supabaseServer';
 import { variantesPeriodo, normalizarPeriodo, obtenerPeriodoActual } from '../../../core/utils/dateUtils';
 import { ESTADO_CAMPANA_ACTIVO, ESTADO_CAMPANA_INACTIVO } from '../../../core/utils/campanaUtils';
 import { guardarTarea, json } from '../../../core/lib/taskStore';
+import { normalizarTareaVideo } from '../../../features/video/utils/videoProgress';
 
 export const prerender = false;
 
@@ -119,7 +120,7 @@ export async function GET({ url }) {
     // El backend transforma los datos crudos en la estructura exacta que el frontend necesita.
     const respuestaNormalizada = (data || []).map(item => {
       const td = Array.isArray(item.tareas_diseno) ? item.tareas_diseno[0] || null : item.tareas_diseno;
-      const tv = Array.isArray(item.tareas_video) ? item.tareas_video[0] || null : item.tareas_video;
+      const tv = normalizarTareaVideo(Array.isArray(item.tareas_video) ? item.tareas_video[0] || null : item.tareas_video);
       const necesitaDiseno = Boolean(item.req_arte_estatico || item.req_carrusel || item.categoria === 'Diseño Interno');
       const necesitaVideo = Boolean(item.req_reel || item.req_fotos);
       const tcm = Array.isArray(item.tareas_cm) ? item.tareas_cm[0] || null : item.tareas_cm;

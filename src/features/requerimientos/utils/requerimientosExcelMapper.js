@@ -1,6 +1,7 @@
 import { sufijoPeriodoExportacion } from '../../../core/utils/exportacion';
 // src/features/requerimientos/utils/requerimientosExcelMapper.js
 import { exportarExcel } from '../../../core/utils/excelExporter';
+import { obtenerOpcionesSolicitadas } from './opcionesSolicitadas';
 
 /**
  * Exporta la lista de requerimientos a un archivo .xlsx estilizado.
@@ -20,7 +21,7 @@ export async function exportarRequerimientosExcel(requerimientos = [], contexto 
     { header: 'Ubicación', key: 'ubicacion', width: 22 },
     { header: 'Prioridad', key: 'prioridad', width: 12, align: 'center' },
     { header: 'Período', key: 'periodo', width: 16, align: 'center' },
-    { header: 'Artes Solicitados', key: 'formatos', width: 24 },
+    { header: 'Opciones solicitadas', key: 'formatos', width: 48 },
     { header: 'Estado Diseño', key: 'estadoDiseno', width: 16, align: 'center' },
     { header: 'Estado Video', key: 'estadoVideo', width: 16, align: 'center' },
     { header: 'Estado CM / Pauta', key: 'estadoCm', width: 18, align: 'center' },
@@ -53,7 +54,7 @@ export async function exportarRequerimientosExcel(requerimientos = [], contexto 
       ubicacion: r.ubicacion || 'No especificada',
       prioridad: r.prioridad || 'Media',
       periodo: r.periodo_mensual || 'Sin período',
-      formatos: formatos.join(', ') || 'General',
+      formatos: obtenerOpcionesSolicitadas(r).join(', ') || 'General',
       estadoDiseno: td?.estado || (formatos.some(f => f.includes('Arte') || f.includes('Carrusel')) ? 'Por Hacer' : 'N/A'),
       estadoVideo: tv?.estado || (formatos.some(f => f.includes('Reel') || f.includes('Fotos')) ? 'Por Hacer' : 'N/A'),
       estadoCm: tcm?.estado || (tcm?.plataforma ? 'Pendiente' : 'Sin Pauta'),

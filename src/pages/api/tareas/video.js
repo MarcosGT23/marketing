@@ -1,4 +1,6 @@
 import { guardarTarea, registrarHistorial, json, estadoValido } from '../../../core/lib/taskStore';
+import { supabaseServer } from '../../../core/lib/supabaseServer';
+import { CAMPOS_AUDIOVISUALES, normalizarTareaVideo, serializarProgresoVideo } from '../../../features/video/utils/videoProgress';
 
 export const prerender = false;
 
@@ -17,11 +19,7 @@ export async function PATCH({ request }) {
     const {
       id_tarea,
       id_requerimiento,
-      req_guion,
-      req_fotos,
-      req_grabacion,
-      req_edicion,
-      req_voz_off,
+      actividades_completadas,
       estado,
       progreso_porcentaje,
       Descripcion,
@@ -37,11 +35,9 @@ export async function PATCH({ request }) {
     }
 
     const campos = {};
-    if (req_guion !== undefined) campos.req_guion = Boolean(req_guion);
-    if (req_fotos !== undefined) campos.req_fotos = Boolean(req_fotos);
-    if (req_grabacion !== undefined) campos.req_grabacion = Boolean(req_grabacion);
-    if (req_edicion !== undefined) campos.req_edicion = Boolean(req_edicion);
-    if (req_voz_off !== undefined) campos.req_voz_off = Boolean(req_voz_off);
+    if (actividades_completadas !== undefined && (!actividades_completadas || Array.isArray(actividades_completadas) || typeof actividades_completadas !== 'object')) {
+      return json({ error: 'El avance de actividades no es válido.' }, 400);
+    }
     if (estado !== undefined) campos.estado = estado;
     if (progreso_porcentaje !== undefined) {
       const porcentaje = Number(progreso_porcentaje);
@@ -49,8 +45,30 @@ export async function PATCH({ request }) {
         ? Math.max(0, Math.min(100, Math.round(porcentaje)))
         : 0;
     }
-    if (Descripcion !== undefined) campos.Descripcion = Descripcion;
-    else if (descripcion !== undefined) campos.Descripcion = descripcion;
+    const actividades = actividades_completadas ?? (
+      ['Finalizado', 'Por Hacer'].includes(estado)
+        ? Object.fromEntries(CAMPOS_AUDIOVISUALES.map(campo => [campo, estado === 'Finalizado']))
+        : undefined
+    );
+    if (actividades !== undefined || Descripcion !== undefined || descripcion !== undefined) {
+      let consulta = supabaseServer.from('tareas_video').select(COLUMNAS);
+      consulta = id_tarea ? consulta.eq('id_tarea', id_tarea) : consulta.eq('id_requerimiento', id_requerimiento);
+      let { data: existente, error } = await consulta.maybeSingle();
+      if (error) return json({ error: error.message }, 500);
+      if (!existente && id_tarea && id_requerimiento) {
+        const resultado = await supabaseServer.from('tareas_video').select(COLUMNAS).eq('id_requerimiento', id_requerimiento).maybeSingle();
+        if (resultado.error) return json({ error: resultado.error.message }, 500);
+        existente = resultado.data;
+      }
+      const actual = normalizarTareaVideo(existente) || {};
+      campos.Descripcion = serializarProgresoVideo(
+        Descripcion !== undefined ? Descripcion : descripcion !== undefined ? descripcion : actual.Descripcion,
+        actividades !== undefined ? { ...actual.actividades_completadas, ...actividades } : actual.actividades_completadas
+      );
+    }
+    if (Object.keys(campos).length === 0) {
+      return json({ error: 'Las opciones solicitadas se editan desde Modificar requerimiento.' }, 400);
+    }
 
     const resultado = await guardarTarea({
       tabla: 'tareas_video',
@@ -78,15 +96,15 @@ export async function PATCH({ request }) {
       return json({ error: 'Tarea de video no encontrada' }, 404);
     }
 
-    const data = resultado.data;
+    const data = normalizarTareaVideo(resultado.data);
 
     if (data?.id_requerimiento) {
       const checks = [];
-      if (data.req_guion) checks.push('Guion');
-      if (data.req_fotos) checks.push('Fotos');
-      if (data.req_grabacion) checks.push('Grabación');
-      if (data.req_edicion) checks.push('Edición');
-      if (data.req_voz_off) checks.push('Voz en Off');
+      if (data.actividades_completadas.req_guion) checks.push('Guion');
+      if (data.actividades_completadas.req_fotos) checks.push('Fotos');
+      if (data.actividades_completadas.req_grabacion) checks.push('Grabación');
+      if (data.actividades_completadas.req_edicion) checks.push('Edición');
+      if (data.actividades_completadas.req_voz_off) checks.push('Voz en Off');
 
       const progreso = data.progreso_porcentaje ?? progreso_porcentaje ?? 0;
       await registrarHistorial({

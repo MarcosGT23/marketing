@@ -1,3 +1,5 @@
+import InformacionRequerimiento from '../../../requerimientos/presentation/components/InformacionRequerimiento';
+import TextoExpandible from '../../../../core/ui/TextoExpandible';
 import { useState, useMemo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import LiquidStateSelector from './LiquidStateSelector';
@@ -127,7 +129,7 @@ export default function TableroDisenoUI({
     const [agenteSeleccionadoId, setAgenteSeleccionadoId] = useState(null);
     const [vistaModo, setVistaModo] = useState('agentes'); // 'agentes' | 'todos'
     const [busqueda, setBusqueda] = useState('');
-    const [tarjetasExpandidas, setTarjetasExpandidas] = useState({});
+
     const [menuOpcionesId, setMenuOpcionesId] = useState(null);
     const [requerimientoAEditar, setRequerimientoAEditar] = useState(null);
     const reducirMovimiento = useReducedMotion();
@@ -158,10 +160,6 @@ export default function TableroDisenoUI({
             console.error('Error al eliminar requerimiento:', err);
             notificarError(err.message || 'No se pudo eliminar el requerimiento.');
         }
-    };
-
-    const toggleExpandir = (id) => {
-        setTarjetasExpandidas(prev => ({ ...prev, [id]: !prev[id] }));
     };
 
     const [tarjetasBloqueadas, setTarjetasBloqueadas] = useState(() => {
@@ -948,7 +946,7 @@ export default function TableroDisenoUI({
         const keyBloqueo = tarea.id_tarea || item.id_requerimiento;
         const estaBloqueada = tarea.estado === 'Finalizado' && (tarjetasBloqueadas[keyBloqueo] ?? true);
         const idTarjeta = item.id_requerimiento;
-        const estaExpandida = Boolean(tarjetasExpandidas[idTarjeta]);
+
         const menuAbierto = menuOpcionesId === idTarjeta;
 
         // Entregables para diseño
@@ -978,7 +976,7 @@ export default function TableroDisenoUI({
                         }}>
                         <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
-                                <h3 className="font-title-md truncate font-semibold" style={{ color: 'var(--color-on-surface)', fontSize: '15px' }}>
+                                <h3 className="font-title-md break-words font-semibold" style={{ color: 'var(--color-on-surface)', fontSize: '15px' }}>
                                     {item.nombre_propiedad}
                                 </h3>
                                 {item.prioridad === 'Alta' && (
@@ -1097,11 +1095,11 @@ export default function TableroDisenoUI({
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs p-2.5 rounded-xl bg-surface-container-lowest border border-surface-container">
                             <div>
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-outline block mb-0.5">Categoría</span>
-                                <span className="font-semibold text-on-surface truncate block">{item.categoria || 'Propiedad'}</span>
+                                <span className="font-semibold text-on-surface break-words block">{item.categoria || 'Propiedad'}</span>
                             </div>
                             <div>
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-outline block mb-0.5">Operación</span>
-                                <span className="font-semibold text-primary-container truncate block">{item.tipo || 'Venta'}</span>
+                                <span className="font-semibold text-primary-container break-words block">{item.tipo || 'Venta'}</span>
                             </div>
                             <div>
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-outline block mb-0.5">Habitaciones</span>
@@ -1116,51 +1114,10 @@ export default function TableroDisenoUI({
                         {/* Ubicación */}
                         <div className="flex items-center gap-1.5 text-on-surface-variant">
                             <span className="material-symbols-outlined text-[15px] text-outline shrink-0">location_on</span>
-                            <span className="truncate">{item.ubicacion || 'Ubicación no especificada'}</span>
+                            <TextoExpandible texto={item.ubicacion || 'Ubicación no especificada'} limite={45} />
                         </div>
 
-                        {/* Descripción con soporte para expandir si es larga */}
-                        {item.descripcion_propiedad && (
-                            <div className="pt-1 border-t border-surface-container/60 space-y-1">
-                                <p className={`text-on-surface-variant transition-all ${estaExpandida ? '' : 'line-clamp-2'}`}>
-                                    <span className="font-bold text-outline">Descripción: </span>
-                                    {item.descripcion_propiedad}
-                                </p>
-                                {item.descripcion_propiedad.length > 90 && (
-                                    <button
-                                        type="button"
-                                        onClick={() => toggleExpandir(idTarjeta)}
-                                        className="text-[11px] font-semibold text-primary-container hover:underline flex items-center gap-1 cursor-pointer pt-0.5"
-                                    >
-                                        <span>{estaExpandida ? 'Ver menos' : 'Ver más detalles'}</span>
-                                        <span className="material-symbols-outlined text-[15px]">
-                                            {estaExpandida ? 'expand_less' : 'expand_more'}
-                                        </span>
-                                    </button>
-                                )}
-                            </div>
-                        )}
-
-                        {/* Datos adicionales al expandir */}
-                        {estaExpandida && (
-                            <div className="pt-2 border-t border-surface-container/60 space-y-1.5 text-[11px] animate-fadeIn">
-                                {item.elemento_destacar && (
-                                    <p className="text-on-surface-variant">
-                                        <strong className="text-primary-container">Hook / Elemento a destacar:</strong> {item.elemento_destacar}
-                                    </p>
-                                )}
-                                {item.precio && (
-                                    <p className="text-on-surface-variant">
-                                        <strong className="text-outline">Precio:</strong> {item.precio}
-                                    </p>
-                                )}
-                                {item.publico_objetivo && (
-                                    <p className="text-on-surface-variant">
-                                        <strong className="text-outline">Público objetivo:</strong> {item.publico_objetivo}
-                                    </p>
-                                )}
-                            </div>
-                        )}
+                        <InformacionRequerimiento requerimiento={item} />
                     </div>
 
                     {/* Progress Bar vinculada al Estado */}
