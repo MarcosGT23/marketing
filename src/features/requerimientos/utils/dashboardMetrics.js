@@ -1,4 +1,5 @@
 import { normalizarPeriodo, periodoAFecha, resumirPeriodos } from '../../../core/utils/dateUtils';
+import { esCampanaActivada } from '../../../core/utils/campanaUtils';
 
 export const ESTADO_SIN_INICIAR = 'Sin iniciar';
 export const ESTADO_EN_PROCESO = 'En proceso';
@@ -50,6 +51,7 @@ export function obtenerTarea(relacion) {
 
 export function tienePauta(requerimiento) {
   const cm = obtenerTarea(requerimiento?.tareas_cm);
+  if (cm?.estado === 'Sin Pauta') return false;
   const pautaConfigurada = Boolean(
     cm &&
     (cm.plataforma || cm.presupuesto || cm.descripcion_pauta || cm.estado === 'Campaña Activa' || cm.estado === 'Finalizado')
@@ -87,7 +89,7 @@ function areaIniciada({ estado }) {
 export function obtenerEstadoRequerimiento(requerimiento) {
   const areas = obtenerAreasRequeridas(requerimiento);
 
-  if (areas.every(areaCompletada)) return ESTADO_ENTREGADO;
+  if (areas.length > 0 && areas.every(areaCompletada)) return ESTADO_ENTREGADO;
   if (areas.some(areaIniciada)) return ESTADO_EN_PROCESO;
   return ESTADO_SIN_INICIAR;
 }
@@ -235,7 +237,7 @@ export function calcularMetricas(requerimientos) {
     else sinIniciar += 1;
 
     if (requerimiento.id_agente != null) agentes.add(String(requerimiento.id_agente));
-    if (obtenerTarea(requerimiento.tareas_cm)?.estado === 'Campaña Activa') activas += 1;
+    if (esCampanaActivada(requerimiento)) activas += 1;
   });
 
   return {

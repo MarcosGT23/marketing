@@ -95,7 +95,7 @@ export default function ModalDetallePropiedadCM({ item, reporte = null, anuncios
       : repRaw;
 
     // Lista de anuncios asociados al reporte normalizados
-    const listaRaw = rep?.reportes_meta_anuncios || (Array.isArray(anuncios) && anuncios.length > 0 ? anuncios : []);
+    const listaRaw = rep?.reportes_meta_anuncios || (rep && Array.isArray(anuncios) ? anuncios : []);
     const lista = listaRaw.map(normalizarAnuncio);
     setListaAnuncios(lista);
 

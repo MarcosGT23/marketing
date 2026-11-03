@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { leerDuracionPauta } from '../../utils/duracionPauta';
 
 const NOMBRES_MESES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -18,52 +19,17 @@ const DIAS_SEMANA = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'];
  * 2. "Mes (28 al 28)": Permite elegir y modificar libremente los meses con atajos rápidos y selectores.
  */
 export default function SelectorDuracionPauta({ valor, alCambiar }) {
-  // Detectar modo inicial ('Días' o 'Mes')
-  const modoInicial = useMemo(() => {
-    if (!valor) return 'Mes';
-    if (valor.toLowerCase().startsWith('mes')) return 'Mes';
-    if (valor.toLowerCase().includes('día') || valor.toLowerCase().includes('dia')) return 'Días';
-    return 'Mes';
-  }, [valor]);
-
-  const [modo, setModo] = useState(modoInicial);
-
-  // Fecha de referencia actual
   const hoy = useMemo(() => new Date(), []);
-  const [mesActual, setMesActual] = useState(hoy.getMonth());
-  const [anioActual, setAnioActual] = useState(hoy.getFullYear());
-
-  // Rango para selección por días: [Date | null, Date | null]
-  const [fechaInicio, setFechaInicio] = useState(null);
-  const [fechaFin, setFechaFin] = useState(null);
-
-  // Estados para modo "Mes" editable (Del 28 de mes A al 28 de mes B)
-  const [mesInicioPauta, setMesInicioPauta] = useState(() => {
-    if (valor) {
-      const match = NOMBRES_MESES.findIndex(m => valor.toLowerCase().includes(m.toLowerCase().slice(0, 3)));
-      if (match !== -1) return match;
-    }
-    // Si hoy es antes del 28, el ciclo actual arrancó el 28 del mes pasado
-    // Si hoy es >= 28, arranca el 28 de este mes
-    return hoy.getDate() >= 28 ? hoy.getMonth() : (hoy.getMonth() + 11) % 12;
-  });
-  
-  const [anioInicioPauta, setAnioInicioPauta] = useState(() => {
-    if (hoy.getDate() < 28 && hoy.getMonth() === 0) {
-      return hoy.getFullYear() - 1;
-    }
-    return hoy.getFullYear();
-  });
-
-  const [mesFinPauta, setMesFinPauta] = useState(() => {
-    const startMes = hoy.getDate() >= 28 ? hoy.getMonth() : (hoy.getMonth() + 11) % 12;
-    return (startMes + 1) % 12;
-  });
-  
-  const [anioFinPauta, setAnioFinPauta] = useState(() => {
-    const startMes = hoy.getDate() >= 28 ? hoy.getMonth() : (hoy.getMonth() + 11) % 12;
-    return startMes === 11 ? hoy.getFullYear() + 1 : hoy.getFullYear();
-  });
+  const inicial = useMemo(() => leerDuracionPauta(valor, hoy), [valor, hoy]);
+  const [modo, setModo] = useState(inicial.modo);
+  const [mesActual, setMesActual] = useState((inicial.fechaInicio || hoy).getMonth());
+  const [anioActual, setAnioActual] = useState((inicial.fechaInicio || hoy).getFullYear());
+  const [fechaInicio, setFechaInicio] = useState(inicial.fechaInicio);
+  const [fechaFin, setFechaFin] = useState(inicial.fechaFin);
+  const [mesInicioPauta, setMesInicioPauta] = useState(inicial.inicio.getMonth());
+  const [anioInicioPauta, setAnioInicioPauta] = useState(inicial.inicio.getFullYear());
+  const [mesFinPauta, setMesFinPauta] = useState(inicial.fin.getMonth());
+  const [anioFinPauta, setAnioFinPauta] = useState(inicial.fin.getFullYear());
 
   // Generar string del modo mes
   const generarTextoMes = (mIni, aIni, mFin, aFin) => {
@@ -75,14 +41,20 @@ export default function SelectorDuracionPauta({ valor, alCambiar }) {
     return `Mes (28 ${mes1} ${aIni} - 28 ${mes2} ${aFin})`;
   };
 
-  // Inicializar selección según el valor recibido
+  // Restaurar también fechas y años al abrir o cambiar un requerimiento.
   useEffect(() => {
-    if (valor && (valor.toLowerCase().includes('día') || valor.toLowerCase().includes('dia'))) {
-      setModo('Días');
-    } else if (valor && valor.toLowerCase().startsWith('mes')) {
-      setModo('Mes');
+    setModo(inicial.modo);
+    setMesInicioPauta(inicial.inicio.getMonth());
+    setAnioInicioPauta(inicial.inicio.getFullYear());
+    setMesFinPauta(inicial.fin.getMonth());
+    setAnioFinPauta(inicial.fin.getFullYear());
+    setFechaInicio(inicial.fechaInicio);
+    setFechaFin(inicial.fechaFin);
+    if (inicial.fechaInicio) {
+      setMesActual(inicial.fechaInicio.getMonth());
+      setAnioActual(inicial.fechaInicio.getFullYear());
     }
-  }, [valor]);
+  }, [inicial]);
 
   // Al cambiar modo a Mes
   const seleccionarModoMes = () => {
@@ -149,8 +121,8 @@ export default function SelectorDuracionPauta({ valor, alCambiar }) {
     const dias = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
     const pad = (n) => String(n).padStart(2, '0');
-    const d1 = `${pad(inicio.getDate())}/${pad(inicio.getMonth() + 1)}`;
-    const d2 = `${pad(fin.getDate())}/${pad(fin.getMonth() + 1)}`;
+    const d1 = `${pad(inicio.getDate())}/${pad(inicio.getMonth() + 1)}/${inicio.getFullYear()}`;
+    const d2 = `${pad(fin.getDate())}/${pad(fin.getMonth() + 1)}/${fin.getFullYear()}`;
 
     return `${dias} ${dias === 1 ? 'día' : 'días'} (${d1} - ${d2})`;
   }
@@ -162,7 +134,7 @@ export default function SelectorDuracionPauta({ valor, alCambiar }) {
     if (!fechaInicio || (fechaInicio && fechaFin)) {
       setFechaInicio(fechaClic);
       setFechaFin(null);
-      const strVal = `1 día (${String(dia).padStart(2, '0')}/${String(mesActual + 1).padStart(2, '0')})`;
+      const strVal = `1 día (${String(dia).padStart(2, '0')}/${String(mesActual + 1).padStart(2, '0')}/${anioActual})`;
       alCambiar(strVal);
     } else {
       let start = fechaInicio;

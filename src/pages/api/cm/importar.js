@@ -7,6 +7,7 @@ import { normalizarPeriodo, variantesPeriodo, obtenerPeriodoActual } from '../..
 import { ESTADO_CAMPANA_ACTIVO } from '../../../core/utils/campanaUtils';
 import { normalizarAnunciosMeta } from '../../../features/cm/utils/anunciosMeta';
 import { tieneMojibake } from '../../../features/cm/utils/mojibake.js';
+import { guardarTarea } from '../../../core/lib/taskStore';
 
 export const prerender = false;
 
@@ -105,24 +106,27 @@ export async function POST({ request }) {
     const monedaNormalizada = typeof moneda === 'string' && moneda.trim()
       ? moneda.trim().toUpperCase().slice(0, 10)
       : null;
-    if (estado || plataforma || presupuesto || descripcion || monedaNormalizada) {
-      await supabaseServer.from('tareas_cm').update({
+    if (estado || plataforma || presupuesto !== undefined || descripcion !== undefined || monedaNormalizada) {
+      const resultado = await guardarTarea({
+        tabla: 'tareas_cm', idRequerimiento: finalIdRequerimiento,
+        campos: {
         ...(estado ? { estado } : {}),
         ...(plataforma ? { plataforma } : {}),
-        ...(presupuesto ? { presupuesto } : {}),
+        ...(presupuesto !== undefined ? { presupuesto: presupuesto === '' ? null : presupuesto } : {}),
         ...(monedaNormalizada ? { moneda: monedaNormalizada } : {}),
-        ...(descripcion ? { descripcion_pauta: descripcion } : {}),
-      }).eq('id_requerimiento', finalIdRequerimiento);
+        ...(descripcion !== undefined ? { descripcion_pauta: descripcion } : {}),
+        }, valoresIniciales: { estado: 'Por Hacer' }
+      });
+      if (resultado.error) throw resultado.error;
     }
 
-    // 1. Eliminar reportes anteriores del mismo período para este requerimiento
-    // (Por FK con CASCADE, también elimina sus reportes_meta_anuncios hijos)
-    // Se eliminan todas las variantes de escritura del período
-    await supabaseServer
+    // Conservar el reporte anterior hasta que el nuevo y sus anuncios se guarden.
+    const { data: anteriores, error: errorAnteriores } = await supabaseServer
       .from('reportes_meta_cm')
-      .delete()
+      .select('id_reporte')
       .eq('id_requerimiento', finalIdRequerimiento)
       .in('periodo_mensual', variantesPeriodo(periodo));
+    if (errorAnteriores) throw errorAnteriores;
 
     // 2. Guardar el reporte padre con los totales en 'reportes_meta_cm'
     const { data: reportePadre, error: errorPadre } = await supabaseServer
@@ -170,10 +174,17 @@ export async function POST({ request }) {
         .select();
 
       if (errorAnuncios) {
+        await supabaseServer.from('reportes_meta_cm').delete().eq('id_reporte', reportePadre.id_reporte);
         return new Response(JSON.stringify({ error: errorAnuncios.message }), { status: 500 });
       }
 
       anunciosGuardados = normalizarAnunciosMeta(dataAnuncios);
+    }
+
+    if (anteriores?.length) {
+      const { error } = await supabaseServer.from('reportes_meta_cm').delete()
+        .in('id_reporte', anteriores.map(reporte => reporte.id_reporte));
+      if (error) throw error;
     }
 
     return new Response(JSON.stringify({

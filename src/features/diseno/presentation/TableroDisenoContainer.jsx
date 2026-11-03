@@ -4,6 +4,8 @@ import { actualizarTareaDiseno } from '../infrastructure/diseno.api';
 import { useRealtimeSync } from '../../../core/hooks/useRealtimeSync';
 import { encolar, debePreservar, tienePendientes, esperarCola } from '../../../core/utils/serialQueue';
 import { notificarExito, notificarError } from '../../../core/ui/notifications';
+import { crearRequerimiento } from '../../requerimientos/infrastructure/requerimiento.api';
+import { obtenerJson } from '../../../core/utils/http';
 
 export default function TableroDisenoContainer() {
   const [datos, setDatos] = useState([]);
@@ -33,8 +35,8 @@ export default function TableroDisenoContainer() {
     if (!silent) setCargando(true);
     try {
       const [resReq, resAgentes] = await Promise.all([
-        fetch('/api/requerimientos?t=' + Date.now(), { cache: 'no-store' }).then(r => r.json()),
-        fetch('/api/usuarios?rol=Agente', { cache: 'no-store' }).then(r => r.json())
+        obtenerJson('/api/requerimientos?t=' + Date.now()),
+        obtenerJson('/api/usuarios?rol=Agente')
       ]);
       
       const ahora = Date.now();
@@ -73,6 +75,7 @@ export default function TableroDisenoContainer() {
       setAgentes(Array.isArray(resAgentes) ? resAgentes : []);
     } catch (err) {
       console.error('Error cargando diseño:', err);
+      if (!silent) notificarError(err.message || 'No se pudo cargar el tablero de diseño.');
     } finally {
       if (!silent) setCargando(false);
     }
@@ -118,6 +121,7 @@ export default function TableroDisenoContainer() {
         }
       } catch (err) {
         console.error('Error auto-guardando tarea de diseño:', err);
+        notificarError(err.message || 'No se pudo guardar el cambio de diseño.');
         // Al quedar la cola libre, sincronizar con la BD para reflejar el estado real
         esperarCola(idRequerimiento).then(() => {
           if (!tienePendientes(idRequerimiento)) {
@@ -201,10 +205,7 @@ export default function TableroDisenoContainer() {
   const manejarCrearInterna = async (e) => {
     e.preventDefault();
     try {
-      await fetch('/api/requerimientos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      await crearRequerimiento({
           id_agente: tareaInterna.id_agente ? parseInt(tareaInterna.id_agente, 10) : null,
           nombre_propiedad: tareaInterna.titulo, 
           descripcion_propiedad: tareaInterna.descripcion,
@@ -213,7 +214,6 @@ export default function TableroDisenoContainer() {
           prioridad: tareaInterna.prioridad,
           fecha_rodaje: tareaInterna.fecha_limite, 
           req_arte_estatico: true // Fuerza a que se asigne al tablero de diseño
-        })
       });
       
       setModalAbierto(false);

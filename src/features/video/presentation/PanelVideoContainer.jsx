@@ -139,6 +139,7 @@ export default function PanelVideoContainer() {
                 }
             } catch (err) {
                 console.error("Error auto-guardando video:", err);
+                notificarError(err.message || 'No se pudo guardar el cambio de video.');
                 esperarCola(idRequerimiento).then(() => {
                     if (!tienePendientes(idRequerimiento)) {
                         mutacionesRecientesRef.current.delete(idRequerimiento);

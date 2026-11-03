@@ -4,6 +4,7 @@ import { crearRequerimiento } from '../infrastructure/requerimiento.api';
 import { useRealtimeSync } from '../../../core/hooks/useRealtimeSync';
 import { obtenerPeriodoActual } from '../../../core/utils/dateUtils';
 import { notificarAviso, notificarError } from '../../../core/ui/notifications';
+import { obtenerJson } from '../../../core/utils/http';
 
 const CREAR_PROP_INICIAL = (idAgente = '', periodo = obtenerPeriodoActual()) => ({
     id_agente: idAgente,
@@ -61,8 +62,7 @@ export default function AgenteContainer() {
     // Cargar la lista real de agentes desde Supabase
     const obtenerAgentes = useCallback(async () => {
         try {
-            const res = await fetch('/api/usuarios?rol=Agente');
-            const data = await res.json();
+            const data = await obtenerJson('/api/usuarios?rol=Agente');
             if (Array.isArray(data)) {
                 setAgentes(data);
                 if (data.length > 0) {
@@ -210,6 +210,7 @@ export default function AgenteContainer() {
     // Enviar todos los requerimientos (burbujas acumuladas + requerimiento en formulario si existe)
     const manejarEnvio = async (e) => {
         if (e && e.preventDefault) e.preventDefault();
+        if (cargando || isCollapsing) return;
 
         // Construir la lista consolidada
         let listaFinal = [...requerimientosLista];
@@ -231,8 +232,8 @@ export default function AgenteContainer() {
             return;
         }
 
-        if (!listaFinal[0].id_agente) {
-            notificarAviso('Selecciona un agente solicitante para continuar.');
+        if (listaFinal.some(req => !req.id_agente || !req.nombre_propiedad?.trim())) {
+            notificarAviso('Cada requerimiento debe tener nombre de propiedad y agente solicitante.');
             return;
         }
 
@@ -245,8 +246,8 @@ export default function AgenteContainer() {
             completado: false
         });
 
+        const exitosos = [];
         try {
-            const exitosos = [];
 
             for (let i = 0; i < listaFinal.length; i++) {
                 const req = listaFinal[i];
@@ -312,7 +313,13 @@ export default function AgenteContainer() {
 
         } catch (error) {
             console.error('Error al guardar requerimientos:', error);
-            notificarError('No se pudieron guardar los requerimientos. Intenta de nuevo.');
+            // Reintentar únicamente los pendientes: los anteriores ya se guardaron.
+            setRequerimientosLista(listaFinal.slice(exitosos.length).map((req, index) => ({
+                ...req, _id: req._id || `pendiente-${Date.now()}-${index}`
+            })));
+            setEditandoIndex(null);
+            setFormData(CREAR_PROP_INICIAL(formData.id_agente, formData.periodo_mensual));
+            notificarError(`${exitosos.length} de ${listaFinal.length} requerimientos guardados. Los pendientes siguen en la lista. ${error.message || ''}`);
             setCargando(false);
             setProgresoEnvio(null);
         }

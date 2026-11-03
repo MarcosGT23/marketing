@@ -4,6 +4,7 @@ import SelectorDuracionPauta from './SelectorDuracionPauta';
 import { actualizarRequerimiento } from '../../infrastructure/requerimiento.api';
 import { obtenerPeriodoActual } from '../../../../core/utils/dateUtils';
 import { ESTADO_CAMPANA_ACTIVO, ESTADO_CAMPANA_INACTIVO } from '../../../../core/utils/campanaUtils';
+import { esVisibleEnPanelCm } from '../../../cm/utils/requerimientosCm';
 
 function SubrayadoTab({ activo, color, reducirMovimiento }) {
   if (!activo) return null;
@@ -120,7 +121,7 @@ export default function ModalEditarRequerimiento({
         fecha_rodaje: requerimiento.fecha_rodaje || '',
         notas_produccion: requerimiento.notas_produccion || '',
         // CM
-        habilitar_pauta: Boolean(tcm.plataforma && tcm.plataforma.trim() !== '' && tcm.estado !== 'Sin Pauta'),
+        habilitar_pauta: esVisibleEnPanelCm(requerimiento),
         plataforma: tcm.plataforma || 'Facebook / Instagram',
         moneda: tcm.moneda || 'USD',
         presupuesto: tcm.presupuesto !== null && tcm.presupuesto !== undefined ? String(tcm.presupuesto) : '',
@@ -418,6 +419,7 @@ export default function ModalEditarRequerimiento({
           {tabActiva === 'propiedad' && (
             <div className="space-y-4">
               {/* Estado de activación de la campaña (estado_general) */}
+              {panel === 'general' && (
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-surface-container-low border border-surface-container">
                 <div className="flex items-center gap-2.5">
                   <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${campanaActiva ? 'bg-primary/15 text-primary-container' : 'bg-surface-container-high text-outline'}`}>
@@ -455,6 +457,7 @@ export default function ModalEditarRequerimiento({
                   })}
                 </div>
               </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
@@ -500,10 +503,16 @@ export default function ModalEditarRequerimiento({
                   >
                     <option value="Departamento">Departamento</option>
                     <option value="Casa">Casa</option>
+                    <option value="Penthouse">Penthouse</option>
                     <option value="Terreno">Terreno</option>
+                    <option value="Comercial">Comercial</option>
                     <option value="Oficina">Oficina</option>
                     <option value="Local Comercial">Local Comercial</option>
                     <option value="Diseño Interno">Diseño Interno</option>
+                    <option value="Meta Ads">Meta Ads</option>
+                    {formData.categoria && !['Departamento', 'Casa', 'Penthouse', 'Terreno', 'Comercial', 'Oficina', 'Local Comercial', 'Diseño Interno', 'Meta Ads'].includes(formData.categoria) && (
+                      <option value={formData.categoria}>{formData.categoria}</option>
+                    )}
                   </select>
                 </div>
 

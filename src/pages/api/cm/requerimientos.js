@@ -14,9 +14,9 @@ export async function GET({ url }) {
       .from('requerimientos_propiedad')
       .select(`
         *,
-        usuarios (id_usuario, nombre),
+        usuarios!id_agente (id_usuario, nombre),
         tareas_cm (*),
-        reportes_meta_cm (
+        reportes_meta_cm!fk_reportes_requerimiento (
           id_reporte,
           id_requerimiento,
           periodo_mensual,

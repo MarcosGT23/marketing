@@ -49,9 +49,9 @@ export async function exportarDashboardExcel({ metricas = {}, requerimientos = [
       descripcion: 'Solicitudes en cola inicial'
     },
     {
-      indicador: 'Campañas Publicitarias Activas',
+      indicador: 'Campañas Activadas',
       valor: metricas.activas || 0,
-      descripcion: 'Pautas en circulación en Meta Ads'
+      descripcion: 'Requerimientos marcados como activos'
     },
     {
       indicador: 'Agentes Inmobiliarios Activos',

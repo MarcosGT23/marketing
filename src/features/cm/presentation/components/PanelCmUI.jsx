@@ -755,7 +755,7 @@ export default function PanelCmUI({ tareas = [], reportes = [], cargando, cargan
               }}>
               <div>
                 <span className="uppercase text-[10px] font-bold block mb-0.5" style={{ color: 'var(--color-outline)' }}>Plataforma</span>
-                <strong style={{ color: 'var(--color-on-surface)' }}>{cm.plataforma || 'Facebook / IG'}</strong>
+                <strong style={{ color: 'var(--color-on-surface)' }}>{cm.plataforma?.trim() || 'Sin definir'}</strong>
               </div>
               <div>
                 <span className="uppercase text-[10px] font-bold block mb-0.5" style={{ color: 'var(--color-outline)' }}>Presupuesto</span>

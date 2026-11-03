@@ -5,6 +5,7 @@ import ModalNuevoReporteCM from './components/ModalNuevoReporteCM';
 import { actualizarTareaCm, registrarReporteMeta } from '../infrastructure/cm.api';
 import { useRealtimeSync } from '../../../core/hooks/useRealtimeSync';
 import { notificarError } from '../../../core/ui/notifications';
+import { esVisibleEnPanelCm } from '../utils/requerimientosCm';
 
 export default function PanelCmContainer() {
   const [datos, setDatos] = useState([]);
@@ -48,10 +49,7 @@ export default function PanelCmContainer() {
           }
           return item;
         })
-        .filter(item => {
-          const tcm = (Array.isArray(item.tareas_cm) ? item.tareas_cm[0] : item.tareas_cm) || {};
-          return Boolean(tcm.plataforma && tcm.plataforma.trim() !== '' && tcm.estado !== 'Sin Pauta');
-        });
+        .filter(esVisibleEnPanelCm);
 
       setDatos(datosActualizados);
     } catch (err) {
@@ -95,10 +93,12 @@ export default function PanelCmContainer() {
     try {
       const res = await fetch(`/api/cm/anuncios?id_requerimiento=${id_requerimiento}&t=${Date.now()}`, { cache: 'no-store' });
       const json = await res.json();
+      if (!res.ok || json?.error) throw new Error(json?.error || 'No se pudo cargar el reporte de la propiedad.');
       setReporteExistente(json);
     } catch (err) {
       console.error('Error consultando reporte:', err);
       setReporteExistente(null);
+      notificarError(err.message || 'No se pudo cargar el reporte de la propiedad.');
     }
   }, []);
 
@@ -113,6 +113,7 @@ export default function PanelCmContainer() {
 
   // Abre el modal y consulta reportes_meta_cm y sus anuncios para esa propiedad
   const abrirDetalle = async (item) => {
+    setReporteExistente(null);
     setPropiedadSeleccionada(item);
     setModalAbierto(true);
     await consultarReporte(item.id_requerimiento);

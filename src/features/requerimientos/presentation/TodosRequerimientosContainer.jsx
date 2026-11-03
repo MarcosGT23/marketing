@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import TodosRequerimientosUI from './components/TodosRequerimientosUI';
 import { useRealtimeSync } from '../../../core/hooks/useRealtimeSync';
+import { obtenerJson } from '../../../core/utils/http';
+import { notificarError } from '../../../core/ui/notifications';
 
 export default function TodosRequerimientosContainer() {
   const [requerimientos, setRequerimientos] = useState([]);
@@ -11,14 +13,15 @@ export default function TodosRequerimientosContainer() {
     if (!silent) setCargando(true);
     try {
       const [resReq, resAgentes] = await Promise.all([
-        fetch('/api/requerimientos').then(r => r.json()),
-        fetch('/api/usuarios?rol=Agente').then(r => r.json())
+        obtenerJson('/api/requerimientos'),
+        obtenerJson('/api/usuarios?rol=Agente')
       ]);
 
       setRequerimientos(Array.isArray(resReq) ? resReq : []);
       setAgentes(Array.isArray(resAgentes) ? resAgentes : []);
     } catch (err) {
       console.error('Error cargando requerimientos:', err);
+      if (!silent) notificarError(err.message || 'No se pudieron cargar los requerimientos.');
     } finally {
       if (!silent) setCargando(false);
     }

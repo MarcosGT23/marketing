@@ -62,7 +62,10 @@ export default function TodosRequerimientosUI({
   const listaAgentesAgrupados = useMemo(() => {
     const mapa = {};
 
-    requerimientos.forEach((item) => {
+    requerimientos.filter(item =>
+      (!periodoFiltro || normalizarPeriodo(item.periodo_mensual) === periodoFiltro) &&
+      (!categoriaFiltro || item.categoria === categoriaFiltro)
+    ).forEach((item) => {
       const id = String(item.usuarios?.id_usuario || item.id_agente || 'sin-asignar');
       const nombre = item.usuarios?.nombre || (item.id_agente ? `Agente #${item.id_agente}` : 'General / Sin Agente');
 
@@ -89,7 +92,7 @@ export default function TodosRequerimientosUI({
     });
 
     return Object.values(mapa).sort((a, b) => b.requerimientos.length - a.requerimientos.length);
-  }, [requerimientos]);
+  }, [requerimientos, periodoFiltro, categoriaFiltro]);
 
   // Agentes filtrados por la búsqueda
   const agentesFiltrados = useMemo(() => {

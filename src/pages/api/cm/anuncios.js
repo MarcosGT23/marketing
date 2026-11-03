@@ -20,12 +20,14 @@ export async function GET({ url }) {
         reportes_meta_anuncios (*)
       `)
       .eq('id_requerimiento', id_requerimiento)
-      .order('fecha_importacion', { ascending: false });
+      .order('fecha_reporte', { ascending: false })
+      .order('id_reporte', { ascending: false })
+      .limit(1);
 
     if (error) {
       console.warn('Error consultando reportes_meta_cm:', error.message);
-      return new Response(JSON.stringify(null), {
-        status: 200,
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 500,
         headers: { 'Content-Type': 'application/json' }
       });
     }
@@ -41,6 +43,9 @@ export async function GET({ url }) {
       headers: { 'Content-Type': 'application/json' }
     });
   } catch (err) {
-    return new Response(JSON.stringify(null), { status: 200 });
+    return new Response(JSON.stringify({ error: err.message || 'Error al consultar anuncios' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }

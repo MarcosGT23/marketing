@@ -1,6 +1,7 @@
 import { supabaseServer } from '../../../core/lib/supabaseServer';
 import { variantesPeriodo, normalizarPeriodo, obtenerPeriodoActual } from '../../../core/utils/dateUtils';
 import { ESTADO_CAMPANA_ACTIVO, ESTADO_CAMPANA_INACTIVO } from '../../../core/utils/campanaUtils';
+import { guardarTarea, json } from '../../../core/lib/taskStore';
 
 export const prerender = false;
 
@@ -58,7 +59,8 @@ export async function GET({ url }) {
           req_fotos,
           req_grabacion,
           req_edicion,
-          req_voz_off
+          req_voz_off,
+          Descripcion
         ),
         tareas_cm (
           id_tarea,
@@ -180,8 +182,12 @@ export async function GET({ url }) {
 // POST: Registrar nuevo requerimiento 
 // ============================================================================
 export async function POST({ request }) {
+  let idCreado = null;
   try {
     const body = await request.json();
+    if (!body || typeof body.nombre_propiedad !== 'string' || !body.nombre_propiedad.trim()) {
+      return json({ error: 'El nombre de la propiedad es obligatorio.' }, 400);
+    }
 
     const { data: requerimiento, error: errorReq } = await supabaseServer
       .from('requerimientos_propiedad')
@@ -212,15 +218,18 @@ export async function POST({ request }) {
 
     if (errorReq) throw errorReq;
     const idReq = requerimiento.id_requerimiento;
+    idCreado = idReq;
 
     // Garantizar tarea de video si se marcó reel o algún flag audiovisual
     const necesitaVideo = Boolean(body.req_reel || body.req_fotos || body.req_guion || body.req_grabacion || body.req_edicion || body.req_voz_off);
     if (necesitaVideo) {
-      const { data: videoExistente } = await supabaseServer
+      const { data: videoExistente, error: errorVideo } = await supabaseServer
         .from('tareas_video')
         .select('id_tarea')
         .eq('id_requerimiento', idReq)
         .maybeSingle();
+
+      if (errorVideo) throw errorVideo;
 
       const videoData = {
         req_guion: Boolean(body.req_guion),
@@ -231,25 +240,30 @@ export async function POST({ request }) {
       };
 
       if (videoExistente) {
-        await supabaseServer.from('tareas_video').update(videoData).eq('id_requerimiento', idReq);
+        const { error } = await supabaseServer.from('tareas_video').update(videoData).eq('id_requerimiento', idReq);
+        if (error) throw error;
       } else {
-        await supabaseServer.from('tareas_video').insert([{
+        const { error } = await supabaseServer.from('tareas_video').insert([{
           id_requerimiento: idReq,
           estado: 'Por Hacer',
           progreso_porcentaje: 0,
           ...videoData
         }]);
+
+        if (error) throw error;
       }
     }
 
     // Garantizar tarea de CM si tiene plataforma, presupuesto, duración o descripción
     const tienePauta = Boolean(body.plataforma || body.presupuesto || body.periodo_pauta || body.descripcion_pauta);
     if (tienePauta) {
-      const { data: cmExistente } = await supabaseServer
+      const { data: cmExistente, error: errorCm } = await supabaseServer
         .from('tareas_cm')
         .select('id_tarea')
         .eq('id_requerimiento', idReq)
         .maybeSingle();
+
+      if (errorCm) throw errorCm;
 
       const cmData = {
         plataforma: body.plataforma || 'Facebook / Instagram',
@@ -260,31 +274,38 @@ export async function POST({ request }) {
       };
 
       if (cmExistente) {
-        await supabaseServer.from('tareas_cm').update(cmData).eq('id_requerimiento', idReq);
+        const { error } = await supabaseServer.from('tareas_cm').update(cmData).eq('id_requerimiento', idReq);
+        if (error) throw error;
       } else {
-        await supabaseServer.from('tareas_cm').insert([{
+        const { error } = await supabaseServer.from('tareas_cm').insert([{
           id_requerimiento: idReq,
           estado: 'Por Hacer',
           ...cmData
         }]);
+
+        if (error) throw error;
       }
     }
 
     // Asegurar que si requiere diseño se inserte su tarea en tareas_diseno si el trigger no lo hizo
     if (body.req_arte_estatico || body.req_carrusel || body.categoria === 'Diseño Interno') {
-      const { data: disenoExistente } = await supabaseServer
+      const { data: disenoExistente, error: errorDiseno } = await supabaseServer
         .from('tareas_diseno')
         .select('id_tarea')
         .eq('id_requerimiento', idReq)
         .maybeSingle();
 
+      if (errorDiseno) throw errorDiseno;
+
       if (!disenoExistente) {
-        await supabaseServer.from('tareas_diseno').insert([{
+        const { error } = await supabaseServer.from('tareas_diseno').insert([{
           id_requerimiento: idReq,
           estado: 'Por Hacer',
           progreso_porcentaje: 0,
           fecha_limite: body.fecha_rodaje || null
         }]);
+
+        if (error) throw error;
       }
     }
 
@@ -296,6 +317,15 @@ export async function POST({ request }) {
       }
     });
   } catch (err) {
+    // Un fallo de tareas no debe dejar una solicitud incompleta que se duplique al reintentar.
+    if (idCreado) {
+      for (const tabla of ['tareas_diseno', 'tareas_video', 'tareas_cm', 'historial_seguimiento', 'requerimientos_propiedad']) {
+        const { error } = await supabaseServer.from(tabla).delete().eq('id_requerimiento', idCreado);
+        if (error) {
+          return json({ error: `La solicitud #${idCreado} se creó parcialmente. ${err.message}. No se pudo revertir: ${error.message}`, id_requerimiento: idCreado }, 500);
+        }
+      }
+    }
     return new Response(JSON.stringify({ error: err.message }), { 
       status: 500, 
       headers: { 
@@ -314,6 +344,12 @@ export async function PUT({ request }) {
     const body = await request.json();
     const idReq = body.id_requerimiento;
     const panel = body.panel || 'general'; // 'diseno' | 'video' | 'cm' | 'general'
+    if (!['general', 'diseno', 'video', 'cm'].includes(panel)) {
+      return json({ error: 'Panel inválido' }, 400);
+    }
+    if (body.nombre_propiedad !== undefined && (typeof body.nombre_propiedad !== 'string' || !body.nombre_propiedad.trim())) {
+      return json({ error: 'El nombre de la propiedad es obligatorio.' }, 400);
+    }
 
     if (!idReq) {
       return new Response(JSON.stringify({ error: 'id_requerimiento es requerido para actualizar' }), {
@@ -364,96 +400,65 @@ export async function PUT({ request }) {
 
     if (errorReq) throw errorReq;
 
-    // Actualizar tarea de video SOLO si el panel es 'video' o 'general'
+    // Las ediciones parciales conservan los campos de las otras áreas.
     if (panel === 'video' || panel === 'general') {
-      if (body.req_reel !== undefined || body.req_guion !== undefined || body.req_fotos !== undefined) {
-        const { data: videoExistente } = await supabaseServer
-          .from('tareas_video')
-          .select('id_tarea')
-          .eq('id_requerimiento', idReq)
-          .maybeSingle();
-
-        const videoData = {
-          req_guion: Boolean(body.req_guion),
-          req_fotos: Boolean(body.req_fotos),
-          req_grabacion: Boolean(body.req_grabacion),
-          req_edicion: Boolean(body.req_edicion),
-          req_voz_off: Boolean(body.req_voz_off)
-        };
-
-        if (videoExistente) {
-          await supabaseServer.from('tareas_video').update(videoData).eq('id_requerimiento', idReq);
-        } else if (body.req_reel) {
-          await supabaseServer.from('tareas_video').insert([{
-            id_requerimiento: idReq,
-            estado: 'Por Hacer',
-            progreso_porcentaje: 0,
-            ...videoData
-          }]);
+      const flags = ['req_guion', 'req_fotos', 'req_grabacion', 'req_edicion', 'req_voz_off'];
+      const campos = Object.fromEntries(flags.filter(campo => body[campo] !== undefined)
+        .map(campo => [campo, Boolean(body[campo])]));
+      if (body.req_reel || Object.keys(campos).length) {
+        const { data: existente, error } = await supabaseServer.from('tareas_video')
+          .select('id_tarea').eq('id_requerimiento', idReq).maybeSingle();
+        if (error) throw error;
+        const requerida = body.req_reel || Object.values(campos).some(Boolean);
+        if ((existente && Object.keys(campos).length) || (!existente && requerida)) {
+          const resultado = await guardarTarea({
+            tabla: 'tareas_video', idRequerimiento: idReq,
+            campos: Object.keys(campos).length ? campos : { estado: 'Por Hacer' },
+            valoresIniciales: { estado: 'Por Hacer', progreso_porcentaje: 0 }
+          });
+          if (resultado.error) throw resultado.error;
         }
       }
     }
 
-    // Actualizar tarea de CM SOLO si el panel es 'cm' o 'general'
     if (panel === 'cm' || panel === 'general') {
-      if (body.quitar_pauta || body.habilitar_pauta === false) {
-        await supabaseServer.from('tareas_cm').update({
-          plataforma: null,
-          presupuesto: null,
-          estado: 'Sin Pauta',
-          descripcion_pauta: null
-        }).eq('id_requerimiento', idReq);
-      } else if (body.plataforma !== undefined || body.presupuesto !== undefined || body.periodo_pauta !== undefined || body.descripcion_pauta !== undefined) {
-        const { data: cmExistente } = await supabaseServer
-          .from('tareas_cm')
-          .select('id_tarea')
-          .eq('id_requerimiento', idReq)
-          .maybeSingle();
-
-        const cmData = {
-          plataforma: body.plataforma || 'Facebook / Instagram',
-          presupuesto: body.presupuesto || null,
-          moneda: body.moneda || 'USD',
-          periodo_pauta: body.periodo_pauta || 'Mes',
-          descripcion_pauta: body.descripcion_pauta !== undefined ? body.descripcion_pauta : ''
-        };
-
-        if (cmExistente) {
-          await supabaseServer.from('tareas_cm').update(cmData).eq('id_requerimiento', idReq);
-        } else if (body.plataforma || body.presupuesto || body.periodo_pauta || body.descripcion_pauta) {
-          await supabaseServer.from('tareas_cm').insert([{
-            id_requerimiento: idReq,
-            estado: 'Por Hacer',
-            ...cmData
-          }]);
+      const quitar = body.quitar_pauta || body.habilitar_pauta === false;
+      const campos = quitar ? {
+        plataforma: null, presupuesto: null, estado: 'Sin Pauta', descripcion_pauta: null
+      } : Object.fromEntries(
+        ['plataforma', 'presupuesto', 'moneda', 'periodo_pauta', 'descripcion_pauta']
+          .filter(campo => body[campo] !== undefined)
+          .map(campo => [campo, body[campo] === '' ? null : body[campo]])
+      );
+      if (Object.keys(campos).length) {
+        // Reactivar una pauta retirada solo cuando el formulario lo solicita.
+        if (!quitar && (body.habilitar_pauta === true || body.plataforma?.trim())) {
+          const { data: tarea, error } = await supabaseServer.from('tareas_cm')
+            .select('estado').eq('id_requerimiento', idReq).maybeSingle();
+          if (error) throw error;
+          if (tarea?.estado === 'Sin Pauta') campos.estado = 'Por Hacer';
         }
+        const resultado = await guardarTarea({
+          tabla: 'tareas_cm', idRequerimiento: idReq, campos,
+          valoresIniciales: { estado: 'Por Hacer', moneda: 'USD', periodo_pauta: 'Mes' }
+        });
+        if (resultado.error) throw resultado.error;
       }
     }
 
-    // Actualizar tarea de diseño SOLO si el panel es 'diseno' o 'general'
     if (panel === 'diseno' || panel === 'general') {
-      const reqDiseno = body.req_arte_estatico || body.req_carrusel || body.categoria === 'Diseño Interno';
-      if (body.req_arte_estatico !== undefined || body.req_carrusel !== undefined || body.categoria !== undefined || body.fecha_limite !== undefined) {
-        const { data: disenoExistente } = await supabaseServer
-          .from('tareas_diseno')
-          .select('id_tarea')
-          .eq('id_requerimiento', idReq)
-          .maybeSingle();
-
-        if (disenoExistente) {
-          const updateObj = {};
-          if (body.fecha_limite !== undefined) updateObj.fecha_limite = body.fecha_limite || null;
-          else if (body.fecha_rodaje) updateObj.fecha_limite = body.fecha_rodaje;
-          if (Object.keys(updateObj).length > 0) {
-            await supabaseServer.from('tareas_diseno').update(updateObj).eq('id_requerimiento', idReq);
-          }
-        } else if (reqDiseno) {
-          await supabaseServer.from('tareas_diseno').insert([{
-            id_requerimiento: idReq,
-            estado: 'Por Hacer',
-            progreso_porcentaje: 0,
-            fecha_limite: body.fecha_limite || body.fecha_rodaje || null
-          }]);
+      const requiereDiseno = body.req_arte_estatico || body.req_carrusel || body.categoria === 'Diseño Interno';
+      if (requiereDiseno || body.fecha_limite !== undefined) {
+        const { data: existente, error } = await supabaseServer.from('tareas_diseno')
+          .select('id_tarea').eq('id_requerimiento', idReq).maybeSingle();
+        if (error) throw error;
+        if ((existente && body.fecha_limite !== undefined) || (!existente && requiereDiseno)) {
+          const resultado = await guardarTarea({
+            tabla: 'tareas_diseno', idRequerimiento: idReq,
+            campos: { fecha_limite: body.fecha_limite !== undefined ? body.fecha_limite || null : body.fecha_rodaje || null },
+            valoresIniciales: { estado: 'Por Hacer', progreso_porcentaje: 0 }
+          });
+          if (resultado.error) throw resultado.error;
         }
       }
     }
@@ -491,20 +496,10 @@ export async function DELETE({ request }) {
       });
     }
 
-    // 1. Eliminar reportes publicitarios o de CM asociados
-    try {
-      await supabaseServer.from('reportes_meta_cm').delete().eq('id_requerimiento', idReq);
-    } catch (_) {}
-
-    // 2. Eliminar tareas de diseño, video y CM
-    await supabaseServer.from('tareas_diseno').delete().eq('id_requerimiento', idReq);
-    await supabaseServer.from('tareas_video').delete().eq('id_requerimiento', idReq);
-    await supabaseServer.from('tareas_cm').delete().eq('id_requerimiento', idReq);
-
-    // 3. Eliminar historial de seguimiento
-    try {
-      await supabaseServer.from('historial_seguimiento').delete().eq('id_requerimiento', idReq);
-    } catch (_) {}
+    for (const tabla of ['reportes_meta_cm', 'tareas_diseno', 'tareas_video', 'tareas_cm', 'historial_seguimiento']) {
+      const { error } = await supabaseServer.from(tabla).delete().eq('id_requerimiento', idReq);
+      if (error) throw error;
+    }
 
     // 4. Eliminar el requerimiento de propiedad principal
     const { error: errReq } = await supabaseServer
