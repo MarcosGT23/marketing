@@ -2,8 +2,9 @@ import React, { useState, useMemo } from 'react';
 import ModalEditarRequerimiento from './ModalEditarRequerimiento';
 import { eliminarRequerimiento } from '../../infrastructure/requerimiento.api';
 import { notificarExito, notificarError } from '../../../../core/ui/notifications';
+import { filtrarContextoExportacion } from '../../../../core/utils/exportacion';
 import { normalizarPeriodo, periodoAFecha } from '../../../../core/utils/dateUtils';
-import BotonExportarExcel from '../../../../core/ui/BotonExportarExcel';
+import MenuExportarExcel from '../../../../core/ui/MenuExportarExcel';
 import { exportarRequerimientosExcel } from '../../utils/requerimientosExcelMapper';
 
 const COLORES_AVATAR = [
@@ -151,10 +152,11 @@ export default function TodosRequerimientosUI({
     );
   }
 
-  const handleExportarExcel = async () => {
-    await exportarRequerimientosExcel(requerimientosAMostrar, {
+  const handleExportarExcel = async (seleccionados, contexto) => {
+    await exportarRequerimientosExcel(seleccionados, {
+      ...contexto,
       agenteNombre: agenteActivo?.nombre || null,
-      periodo: periodoFiltro || null
+      periodo: contexto.periodo
     });
   };
 
@@ -185,7 +187,9 @@ export default function TodosRequerimientosUI({
         </div>
 
         <div className="flex flex-wrap items-center gap-3 z-10">
-          <BotonExportarExcel
+          <MenuExportarExcel
+            registros={filtrarContextoExportacion(requerimientos, { agente: agenteSeleccionadoId, busqueda, categoria: categoriaFiltro })}
+            periodoInicial={periodoFiltro}
             alExportar={handleExportarExcel}
             etiqueta="Exportar Excel"
             colorTema="primary"

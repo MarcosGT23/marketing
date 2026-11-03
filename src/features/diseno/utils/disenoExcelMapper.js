@@ -1,3 +1,4 @@
+import { sufijoPeriodoExportacion } from '../../../core/utils/exportacion';
 // src/features/diseno/utils/disenoExcelMapper.js
 import { exportarExcel } from '../../../core/utils/excelExporter';
 
@@ -9,7 +10,7 @@ import { exportarExcel } from '../../../core/utils/excelExporter';
  */
 export async function exportarDisenoExcel(tareas = [], contexto = {}) {
   const fechaHoy = new Date().toISOString().split('T')[0];
-  const nombreArchivo = `Reporte_Diseno_${contexto.agenteNombre ? contexto.agenteNombre.replace(/\s+/g, '_') : 'General'}_${fechaHoy}.xlsx`;
+  const nombreArchivo = `Reporte_Diseno_${contexto.agenteNombre ? contexto.agenteNombre.replace(/\s+/g, '_') : 'General'}_${sufijoPeriodoExportacion(contexto.periodo)}_${fechaHoy}.xlsx`;
 
   const columnas = [
     { header: 'ID', key: 'id', width: 8, align: 'center' },
@@ -56,7 +57,7 @@ export async function exportarDisenoExcel(tareas = [], contexto = {}) {
       {
         nombre: 'Tareas Diseño',
         titulo: 'REMAX BLACK • Tablero de Diseño Gráfico',
-        subtitulo,
+        subtitulo: `${contexto.periodo || ''} • ${subtitulo}${contexto.campanaNombre ? ` • ${contexto.campanaNombre}` : ''}`,
         columnas,
         filas,
         totales: {

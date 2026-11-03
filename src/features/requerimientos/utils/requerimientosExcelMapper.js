@@ -1,3 +1,4 @@
+import { sufijoPeriodoExportacion } from '../../../core/utils/exportacion';
 // src/features/requerimientos/utils/requerimientosExcelMapper.js
 import { exportarExcel } from '../../../core/utils/excelExporter';
 
@@ -9,7 +10,7 @@ import { exportarExcel } from '../../../core/utils/excelExporter';
  */
 export async function exportarRequerimientosExcel(requerimientos = [], contexto = {}) {
   const fechaHoy = new Date().toISOString().split('T')[0];
-  const nombreArchivo = `Reporte_Requerimientos_${contexto.agenteNombre ? contexto.agenteNombre.replace(/\s+/g, '_') : 'General'}_${fechaHoy}.xlsx`;
+  const nombreArchivo = `Reporte_Requerimientos_${contexto.agenteNombre ? contexto.agenteNombre.replace(/\s+/g, '_') : 'General'}_${sufijoPeriodoExportacion(contexto.periodo)}_${fechaHoy}.xlsx`;
 
   const columnas = [
     { header: 'ID', key: 'id', width: 8, align: 'center' },
@@ -71,7 +72,7 @@ export async function exportarRequerimientosExcel(requerimientos = [], contexto 
       {
         nombre: 'Requerimientos',
         titulo: 'REMAX BLACK • Control de Requerimientos Inmobiliarios',
-        subtitulo,
+        subtitulo: `${contexto.periodo || ''} • ${subtitulo}${contexto.campanaNombre ? ` • ${contexto.campanaNombre}` : ''}`,
         columnas,
         filas,
         totales: {

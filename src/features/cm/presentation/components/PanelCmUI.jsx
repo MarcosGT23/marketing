@@ -204,7 +204,7 @@ export default function PanelCmUI({ tareas = [], reportes = [], cargando, cargan
 
         {/* Resumen Global y Acciones */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 relative z-10">
-          <MenuExportarReportesCM reportes={reportes} />
+          <MenuExportarReportesCM reportes={reportes} tareas={tareas} periodoInicial={periodoActivo} />
           <div className="px-3 py-1.5 sm:py-2 rounded-xl text-xs flex items-center gap-2 font-medium"
             style={{
               background: 'var(--color-surface-container-low)',

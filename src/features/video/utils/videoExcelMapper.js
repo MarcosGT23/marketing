@@ -1,3 +1,4 @@
+import { sufijoPeriodoExportacion } from '../../../core/utils/exportacion';
 // src/features/video/utils/videoExcelMapper.js
 import { exportarExcel } from '../../../core/utils/excelExporter';
 
@@ -9,7 +10,7 @@ import { exportarExcel } from '../../../core/utils/excelExporter';
  */
 export async function exportarVideoExcel(tareas = [], contexto = {}) {
   const fechaHoy = new Date().toISOString().split('T')[0];
-  const nombreArchivo = `Reporte_Video_${contexto.agenteNombre ? contexto.agenteNombre.replace(/\s+/g, '_') : 'General'}_${fechaHoy}.xlsx`;
+  const nombreArchivo = `Reporte_Video_${contexto.agenteNombre ? contexto.agenteNombre.replace(/\s+/g, '_') : 'General'}_${sufijoPeriodoExportacion(contexto.periodo)}_${fechaHoy}.xlsx`;
 
   const columnas = [
     { header: 'ID', key: 'id', width: 8, align: 'center' },
@@ -57,7 +58,7 @@ export async function exportarVideoExcel(tareas = [], contexto = {}) {
       {
         nombre: 'Producciones Video',
         titulo: 'REMAX BLACK • Panel de Producción Audiovisual',
-        subtitulo,
+        subtitulo: `${contexto.periodo || ''} • ${subtitulo}${contexto.campanaNombre ? ` • ${contexto.campanaNombre}` : ''}`,
         columnas,
         filas,
         totales: {

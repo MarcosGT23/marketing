@@ -1,3 +1,4 @@
+import { sufijoPeriodoExportacion } from '../../../core/utils/exportacion';
 // src/features/cm/utils/cmExcelMapper.js
 import { exportarExcel } from '../../../core/utils/excelExporter';
 import { nombreAgenteDeReporte } from './reportesMeta';
@@ -25,7 +26,7 @@ export async function exportarReportesCmExcel(reportes = [], contexto = {}) {
         .replace(/[^a-zA-Z0-9_-]+/g, '_')
         .replace(/^_+|_+$/g, '')
     : 'Todos_los_agentes';
-  const nombreArchivo = `Reportes_CM_${sufijoAgente}_${fechaHoy}.xlsx`;
+  const nombreArchivo = `Reportes_CM_${sufijoAgente}_${sufijoPeriodoExportacion(contexto.periodo)}_${fechaHoy}.xlsx`;
 
   const filasReportes = reportes.map((reporte) => ({
     propiedad: reporte.propiedad?.nombre_propiedad || `Requerimiento #${reporte.id_requerimiento}`,
@@ -75,7 +76,7 @@ export async function exportarReportesCmExcel(reportes = [], contexto = {}) {
   }, { leads: 0, inversion: 0, alcance: 0, ctr: 0 });
 
   const propiedades = new Set(reportes.map((r) => r.id_requerimiento)).size;
-  const subtituloFiltro = contexto.agenteNombre ? `Agente: ${contexto.agenteNombre} • ` : '';
+  const subtituloFiltro = `${contexto.periodo || ''} • ${contexto.agenteNombre ? `Agente: ${contexto.agenteNombre} • ` : ''}${contexto.campanaNombre ? `${contexto.campanaNombre} • ` : ''}`;
 
   await exportarExcel({
     nombreArchivo,

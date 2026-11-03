@@ -3,7 +3,7 @@ import { resolve, dirname } from 'node:path';
 import vm from 'node:vm';
 
 // Base aislada en memoria: ninguna prueba puede acceder a Supabase real.
-export async function apiHarness(archivo, iniciales = {}, fallar = () => false) {
+export async function apiHarness(archivo, iniciales = {}, fallar = () => false, sustituciones = {}) {
   const tablas = structuredClone(iniciales);
   const operaciones = [];
   let secuencia = 1000;
@@ -55,6 +55,14 @@ export async function apiHarness(archivo, iniciales = {}, fallar = () => false) 
   const cache = new Map();
   async function cargar(ruta) {
     if (cache.has(ruta)) return cache.get(ruta);
+    const reemplazo = Object.entries(sustituciones).find(([sufijo]) => ruta.endsWith(sufijo))?.[1];
+    if (reemplazo) {
+      const modulo = new vm.SyntheticModule(Object.keys(reemplazo), function () {
+        for (const [nombre, valor] of Object.entries(reemplazo)) this.setExport(nombre, valor);
+      }, { context: contexto });
+      cache.set(ruta, modulo);
+      return modulo;
+    }
     if (ruta.endsWith('supabaseServer.js')) {
       const modulo = new vm.SyntheticModule(['supabaseServer'], function () { this.setExport('supabaseServer', cliente); }, { context: contexto });
       cache.set(ruta, modulo);

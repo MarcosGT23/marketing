@@ -6,7 +6,8 @@ import { ChecklistRequerimientos } from './ChecklistRequerimientos';
 import ModalEditarRequerimiento from '../../../requerimientos/presentation/components/ModalEditarRequerimiento';
 import { eliminarRequerimiento } from '../../../requerimientos/infrastructure/requerimiento.api';
 import { notificarExito, notificarError } from '../../../../core/ui/notifications';
-import BotonExportarExcel from '../../../../core/ui/BotonExportarExcel';
+import MenuExportarExcel from '../../../../core/ui/MenuExportarExcel';
+import { filtrarContextoExportacion } from '../../../../core/utils/exportacion';
 import SubmenuPeriodos from '../../../../core/ui/SubmenuPeriodos';
 import { useFiltroPeriodos } from '../../../../core/hooks/useFiltroPeriodos';
 import { exportarVideoExcel } from '../../utils/videoExcelMapper';
@@ -269,8 +270,9 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
         );
     }, [agentes, busqueda]);
 
-    const handleExportarExcel = async () => {
-        await exportarVideoExcel(requerimientosAMostrar, {
+    const handleExportarExcel = async (seleccionados, contexto) => {
+        await exportarVideoExcel(seleccionados, {
+            ...contexto,
             agenteNombre: agenteActivo?.nombre || null
         });
     };
@@ -317,7 +319,9 @@ export default function PanelVideoUI({ tareas = [], cargando, alCambiarCheck, al
                     </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3 relative z-10">
-                    <BotonExportarExcel
+                    <MenuExportarExcel
+                        registros={filtrarContextoExportacion(tareas, { agente: agenteSeleccionadoId, busqueda })}
+                        periodoInicial={periodoActivo}
                         alExportar={handleExportarExcel}
                         etiqueta="Exportar Excel"
                         colorTema="tertiary"
