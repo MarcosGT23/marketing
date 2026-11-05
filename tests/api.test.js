@@ -32,6 +32,7 @@ test('POST valida nombre antes de escribir y crea tareas de diseño, fotos y pau
 
 test('las altas y ediciones de pauta conservan fechas dentro del límite de Supabase', async () => {
   const rechazarExceso = ({ tabla, accion, valores }) => {
+    if (tabla === 'requerimientos_propiedad' && accion === 'update' && !Object.keys(valores).length) return true;
     const duracion = (Array.isArray(valores) ? valores[0] : valores)?.periodo_pauta;
     return tabla === 'tareas_cm' && ['insert', 'update'].includes(accion) && duracion?.length > 20;
   };

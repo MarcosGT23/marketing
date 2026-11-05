@@ -419,14 +419,14 @@ export async function PUT({ request }) {
       if (body.notas_produccion !== undefined) camposActualizar.notas_produccion = body.notas_produccion || null;
     }
 
-    const { data: requerimiento, error: errorReq } = await supabaseServer
-      .from('requerimientos_propiedad')
-      .update(camposActualizar)
-      .eq('id_requerimiento', idReq)
-      .select()
-      .single();
+    const tablaReq = supabaseServer.from('requerimientos_propiedad');
+    const consultaReq = Object.keys(camposActualizar).length
+      ? tablaReq.update(camposActualizar).select()
+      : tablaReq.select();
+    const { data: requerimiento, error: errorReq } = await consultaReq.eq('id_requerimiento', idReq).maybeSingle();
 
     if (errorReq) throw errorReq;
+    if (!requerimiento) return json({ error: 'Requerimiento no encontrado.' }, 404);
 
     // Las ediciones parciales conservan los campos de las otras áreas.
     if (panel === 'video' || panel === 'general') {
