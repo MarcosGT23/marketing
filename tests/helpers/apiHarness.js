@@ -17,14 +17,21 @@ export async function apiHarness(archivo, iniciales = {}, fallar = () => false, 
         insert(datos) { accion = 'insert'; valores = datos; return this; },
         update(datos) { accion = 'update'; valores = datos; return this; },
         delete() { accion = 'delete'; return this; },
-        eq(campo, valor) { filtros.push(r => String(r[campo]) === String(valor)); return this; },
+        eq(campo, valor) { if (!campo.includes('.')) filtros.push(r => String(r[campo]) === String(valor)); return this; },
         in(campo, lista) { filtros.push(r => lista.includes(r[campo])); return this; },
         ilike(campo, valor) {
           const patron = new RegExp('^' + valor.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replaceAll('%', '.*') + '$', 'i');
           filtros.push(r => patron.test(r[campo] || '')); return this;
         },
-        order(campo, opciones = {}) { orden.push([campo, opciones.ascending !== false]); return this; },
-        limit(valor) { limite = valor; return this; },
+        like(campo, valor) {
+          if (!campo.includes('.')) {
+            const patron = new RegExp('^' + valor.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replaceAll('%', '.*') + '$');
+            filtros.push(r => patron.test(r[campo] || ''));
+          }
+          return this;
+        },
+        order(campo, opciones = {}) { if (!opciones.referencedTable) orden.push([campo, opciones.ascending !== false]); return this; },
+        limit(valor, opciones = {}) { if (!opciones.referencedTable) limite = valor; return this; },
         single() { singular = true; return this; },
         maybeSingle() { singular = true; return this; },
         then(onResolve, onReject) {
@@ -34,7 +41,13 @@ export async function apiHarness(archivo, iniciales = {}, fallar = () => false, 
             tablas[tabla] ||= [];
             let filas = tablas[tabla].filter(r => filtros.every(f => f(r)));
             if (accion === 'insert') {
-              const clave = tabla === 'requerimientos_propiedad' ? 'id_requerimiento' : tabla === 'reportes_meta_cm' ? 'id_reporte' : tabla === 'reportes_meta_anuncios' ? 'id_anuncio' : 'id_tarea';
+              const claves = {
+                requerimientos_propiedad: 'id_requerimiento',
+                reportes_meta_cm: 'id_reporte',
+                reportes_meta_anuncios: 'id_anuncio',
+                historial_seguimiento: 'id_historial',
+              };
+              const clave = claves[tabla] || 'id_tarea';
               filas = (Array.isArray(valores) ? valores : [valores]).map(r => ({ [clave]: ++secuencia, ...r }));
               tablas[tabla].push(...filas);
             } else if (accion === 'update') {

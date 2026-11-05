@@ -32,8 +32,8 @@ test('completar o desmarcar una actividad no modifica las opciones solicitadas',
 
 test('serialización conserva descripción y avance de manera independiente', () => {
   const tarea = tareaInicial();
-  const serializado = serializarProgresoVideo(tarea.Descripcion, { req_fotos: true });
-  const resultado = normalizarTareaVideo({ ...tarea, Descripcion: serializado });
+  const serializado = serializarProgresoVideo({ ...tarea, actividades_completadas: { req_fotos: true } });
+  const resultado = normalizarTareaVideo(tarea, serializado);
   assert.equal(resultado.Descripcion, tarea.Descripcion);
   assert.equal(resultado.actividades_completadas.req_fotos, true);
   assert.equal(resultado.actividades_completadas.req_guion, false);
@@ -42,7 +42,11 @@ test('serialización conserva descripción y avance de manera independiente', ()
 });
 
 test('PATCH de progreso conserva requisitos e instrucciones y devuelve el avance separado', async () => {
-  const api = await apiHarness('src/pages/api/tareas/video.js', { tareas_video: [tareaInicial()] });
+  const tarea = { ...tareaInicial(), Descripcion: '2026-11-20' };
+  const api = await apiHarness('src/pages/api/tareas/video.js', { tareas_video: [tarea] }, ({ tabla, accion, valores }) => {
+    // Supabase rechaza texto escrito en la columna de fecha.
+    return tabla === 'tareas_video' && accion === 'update' && valores.Descripcion !== undefined;
+  });
   const res = await api.llamar('PATCH', {
     id_tarea: 10, actividades_completadas: { req_grabacion: true },
     estado: 'Grabando', progreso_porcentaje: 20,
@@ -52,7 +56,7 @@ test('PATCH de progreso conserva requisitos e instrucciones y devuelve el avance
   assert.equal(api.tablas.tareas_video[0].req_guion, true);
   assert.equal(api.tablas.tareas_video[0].req_edicion, true);
   assert.equal(api.tablas.tareas_video[0].req_grabacion, false);
-  assert.equal(res.body.data.Descripcion, tareaInicial().Descripcion);
+  assert.equal(res.body.data.Descripcion, tarea.Descripcion);
   assert.equal(res.body.data.actividades_completadas.req_grabacion, true);
 
   const editada = await api.llamar('PATCH', { id_tarea: 10, Descripcion: 'Nueva instrucción.' });
@@ -63,27 +67,49 @@ test('PATCH de progreso conserva requisitos e instrucciones y devuelve el avance
   assert.equal(vuelta.body.data.actividades_completadas.req_grabacion, false);
   assert.equal(vuelta.body.data.Descripcion, 'Nueva instrucción.');
   assert.equal(vuelta.body.data.req_grabacion, false);
+  assert.equal(api.tablas.tareas_video[0].Descripcion, tarea.Descripcion);
 });
 
 test('GET normaliza el avance guardado sin exponer el formato de almacenamiento', async () => {
-  const tarea = { ...tareaInicial(), Descripcion: serializarProgresoVideo('Texto visible', { req_fotos: true }) };
+  const tarea = tareaInicial();
+  const comentario = serializarProgresoVideo({
+    ...tarea, Descripcion: 'Texto visible', estado: 'Grabando', progreso_porcentaje: 20,
+    actividades_completadas: { req_fotos: true }
+  }, 'Checklist: Fotos');
   const api = await apiHarness('src/pages/api/requerimientos/index.js', {
-    requerimientos_propiedad: [{ id_requerimiento: 1, req_reel: true, tareas_video: [tarea] }],
+    requerimientos_propiedad: [{ id_requerimiento: 1, req_reel: true, tareas_video: [tarea], video_guardado: [{ comentario }] }],
   });
   const res = await api.llamar('GET');
   assert.equal(res.body[0].tareas_video.Descripcion, 'Texto visible');
+  assert.equal(res.body[0].tareas_video.progreso_porcentaje, 20);
   assert.equal(res.body[0].tareas_video.actividades_completadas.req_fotos, true);
   assert.equal(res.body[0].tareas_video.req_edicion, true);
+  assert.equal(res.body[0].video_guardado, undefined);
+
+  const bitacora = await apiHarness('src/pages/api/historial/index.js', {
+    historial_seguimiento: [{ departamento: 'Video', comentario }]
+  });
+  assert.equal((await bitacora.llamar('GET')).body[0].comentario, 'Checklist: Fotos');
 });
 
 test('las opciones solo se editan desde el requerimiento y conservan el avance', async () => {
-  const tarea = { ...tareaInicial(), Descripcion: serializarProgresoVideo('Instrucciones', { req_fotos: true }) };
+  const tarea = tareaInicial();
+  const comentario = serializarProgresoVideo({ ...tarea, actividades_completadas: { req_fotos: true } });
   const api = await apiHarness('src/pages/api/requerimientos/index.js', {
     requerimientos_propiedad: [{ id_requerimiento: 1, nombre_propiedad: 'Casa' }], tareas_video: [tarea],
   });
   assert.equal((await api.llamar('PUT', { id_requerimiento: 1, panel: 'video', req_guion: false })).status, 200);
   assert.equal(api.tablas.tareas_video[0].req_guion, false);
-  assert.equal(normalizarTareaVideo(api.tablas.tareas_video[0]).actividades_completadas.req_fotos, true);
+  assert.equal(normalizarTareaVideo(api.tablas.tareas_video[0], comentario).actividades_completadas.req_fotos, true);
+});
+
+test('un fallo de bitácora no confirma un avance que no se guardó', async () => {
+  const tarea = tareaInicial();
+  const api = await apiHarness('src/pages/api/tareas/video.js', { tareas_video: [tarea] },
+    op => op.tabla === 'historial_seguimiento' && op.accion === 'insert');
+  const res = await api.llamar('PATCH', { id_tarea: 10, estado: 'Grabando', actividades_completadas: { req_guion: true } });
+  assert.equal(res.status, 500);
+  assert.deepEqual(api.tablas.tareas_video, [tarea]);
 });
 
 test('finalizar y volver a pendientes sincroniza avances sin cambiar solicitudes', async () => {

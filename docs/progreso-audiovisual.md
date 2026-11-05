@@ -6,7 +6,7 @@ El checklist de producción usa `actividades_completadas`, con las mismas claves
 
 ## Persistencia compatible
 
-Para funcionar con el esquema ya conectado, sin requerir cambios de tablas, la descripción de la tarea almacena un sobre JSON versionado con el texto y el avance. `normalizarTareaVideo` convierte ese formato a la representación pública de la API: `Descripcion` siempre es texto y `actividades_completadas` es un objeto independiente. Las descripciones anteriores en texto se leen sin modificación; solo se guarda el sobre al actualizar el avance o las observaciones. Las opciones solicitadas permanecen en sus columnas existentes.
+En Supabase, `tareas_video.Descripcion` es una fecha. Al guardar observaciones o avance, la API añade a `historial_seguimiento` un registro de Video con el estado, porcentaje, checklist y observaciones. El último registro de avance se usa para mostrar la tarea, y la API de bitácora presenta su comentario legible. Así, el panel guarda el avance completo en una sola escritura y conserva el campo de fecha y las opciones solicitadas.
 
 Una tarea anterior sin avance separado comienza con las actividades pendientes. Si su estado ya era `Finalizado`, se conserva como completada. No se reescriben masivamente tareas existentes ni se intenta reconstruir solicitudes históricas que se hubieran alterado antes de esta separación.
 

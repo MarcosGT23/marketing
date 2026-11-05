@@ -1,32 +1,47 @@
 export const CAMPOS_AUDIOVISUALES = ['req_guion', 'req_fotos', 'req_grabacion', 'req_edicion', 'req_voz_off'];
+export const PREFIJO_AVANCE_VIDEO = 'PANEL-VIDEO-V1:';
 
 export function normalizarCompletados(valores = {}) {
   return Object.fromEntries(CAMPOS_AUDIOVISUALES.map(campo => [campo, valores?.[campo] === true]));
 }
 
-// Sobre versionado para persistir el avance separado de los requisitos sin
-// exigir una migración de la base existente. La API siempre expone texto limpio.
-export function normalizarTareaVideo(tarea) {
+export function leerAvanceVideo(comentario) {
+  if (!comentario?.startsWith(PREFIJO_AVANCE_VIDEO)) return null;
+  try {
+    const datos = JSON.parse(comentario.slice(PREFIJO_AVANCE_VIDEO.length));
+    return datos?._panel_video_version === 1 ? datos : null;
+  } catch {
+    return null;
+  }
+}
+
+export function normalizarTareaVideo(tarea, comentario) {
   if (!tarea) return tarea;
   let contenido;
   try { contenido = JSON.parse(tarea.Descripcion); } catch { /* Descripción de texto existente. */ }
+  const avance = leerAvanceVideo(comentario);
   const esSobre = contenido?._panel_video_version === 1 &&
     Object.prototype.hasOwnProperty.call(contenido, 'descripcion') &&
     contenido.actividades_completadas && typeof contenido.actividades_completadas === 'object';
-  const completados = esSobre ? contenido.actividades_completadas :
-    (tarea.actividades_completadas || Object.fromEntries(CAMPOS_AUDIOVISUALES.map(campo => [campo, tarea.estado === 'Finalizado'])));
+  const completados = avance?.actividades_completadas ?? (esSobre ? contenido.actividades_completadas :
+    (tarea.actividades_completadas || Object.fromEntries(CAMPOS_AUDIOVISUALES.map(campo => [campo, tarea.estado === 'Finalizado']))));
   return {
     ...tarea,
-    Descripcion: esSobre ? contenido.descripcion : tarea.Descripcion,
+    estado: avance?.estado ?? tarea.estado,
+    progreso_porcentaje: avance?.progreso_porcentaje ?? tarea.progreso_porcentaje,
+    Descripcion: avance ? avance.descripcion : esSobre ? contenido.descripcion : tarea.Descripcion,
     actividades_completadas: normalizarCompletados(completados),
   };
 }
 
-export function serializarProgresoVideo(descripcion, completados) {
-  return JSON.stringify({
+export function serializarProgresoVideo(tarea, comentario) {
+  return PREFIJO_AVANCE_VIDEO + JSON.stringify({
     _panel_video_version: 1,
-    descripcion: descripcion ?? null,
-    actividades_completadas: normalizarCompletados(completados),
+    descripcion: tarea.Descripcion ?? null,
+    estado: tarea.estado,
+    progreso_porcentaje: tarea.progreso_porcentaje,
+    actividades_completadas: normalizarCompletados(tarea.actividades_completadas),
+    comentario,
   });
 }
 

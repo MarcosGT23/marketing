@@ -2,7 +2,7 @@ import { supabaseServer } from '../../../core/lib/supabaseServer';
 import { variantesPeriodo, normalizarPeriodo, obtenerPeriodoActual } from '../../../core/utils/dateUtils';
 import { ESTADO_CAMPANA_ACTIVO, ESTADO_CAMPANA_INACTIVO } from '../../../core/utils/campanaUtils';
 import { guardarTarea, json } from '../../../core/lib/taskStore';
-import { normalizarTareaVideo } from '../../../features/video/utils/videoProgress';
+import { PREFIJO_AVANCE_VIDEO, normalizarTareaVideo } from '../../../features/video/utils/videoProgress';
 
 export const prerender = false;
 
@@ -63,6 +63,9 @@ export async function GET({ url }) {
           req_voz_off,
           Descripcion
         ),
+        video_guardado:historial_seguimiento (
+          comentario
+        ),
         tareas_cm (
           id_tarea,
           estado,
@@ -92,7 +95,11 @@ export async function GET({ url }) {
           )
         )
       `)
-      .order('fecha_creacion', { ascending: false });
+      .order('fecha_creacion', { ascending: false })
+      .eq('video_guardado.departamento', 'Video')
+      .like('video_guardado.comentario', PREFIJO_AVANCE_VIDEO + '%')
+      .order('id_historial', { ascending: false, referencedTable: 'video_guardado' })
+      .limit(1, { referencedTable: 'video_guardado' });
 
     // Filtros dinámicos
     // El periodo se busca por todas sus variantes de escritura ("Octubre 2026" / "octubre de 2026")
@@ -118,9 +125,12 @@ export async function GET({ url }) {
 
     // PATRÓN: DTO (Data Transfer Object) y BFF (Backend for Frontend)
     // El backend transforma los datos crudos en la estructura exacta que el frontend necesita.
-    const respuestaNormalizada = (data || []).map(item => {
+    const respuestaNormalizada = (data || []).map(({ video_guardado, ...item }) => {
       const td = Array.isArray(item.tareas_diseno) ? item.tareas_diseno[0] || null : item.tareas_diseno;
-      const tv = normalizarTareaVideo(Array.isArray(item.tareas_video) ? item.tareas_video[0] || null : item.tareas_video);
+      const tv = normalizarTareaVideo(
+        Array.isArray(item.tareas_video) ? item.tareas_video[0] || null : item.tareas_video,
+        video_guardado?.[0]?.comentario
+      );
       const necesitaDiseno = Boolean(item.req_arte_estatico || item.req_carrusel || item.categoria === 'Diseño Interno');
       const necesitaVideo = Boolean(item.req_reel || item.req_fotos);
       const tcm = Array.isArray(item.tareas_cm) ? item.tareas_cm[0] || null : item.tareas_cm;
@@ -184,6 +194,7 @@ export async function GET({ url }) {
 // ============================================================================
 export async function POST({ request }) {
   let idCreado = null;
+  let etapa = 'requerimiento';
   try {
     const body = await request.json();
     if (!body || typeof body.nombre_propiedad !== 'string' || !body.nombre_propiedad.trim()) {
@@ -224,6 +235,7 @@ export async function POST({ request }) {
     // Garantizar tarea de video si se marcó reel o algún flag audiovisual
     const necesitaVideo = Boolean(body.req_reel || body.req_fotos || body.req_guion || body.req_grabacion || body.req_edicion || body.req_voz_off);
     if (necesitaVideo) {
+      etapa = 'video';
       const { data: videoExistente, error: errorVideo } = await supabaseServer
         .from('tareas_video')
         .select('id_tarea')
@@ -258,6 +270,7 @@ export async function POST({ request }) {
     // Garantizar tarea de CM si tiene plataforma, presupuesto, duración o descripción
     const tienePauta = Boolean(body.plataforma || body.presupuesto || body.periodo_pauta || body.descripcion_pauta);
     if (tienePauta) {
+      etapa = 'pauta';
       const { data: cmExistente, error: errorCm } = await supabaseServer
         .from('tareas_cm')
         .select('id_tarea')
@@ -290,6 +303,7 @@ export async function POST({ request }) {
 
     // Asegurar que si requiere diseño se inserte su tarea en tareas_diseno si el trigger no lo hizo
     if (body.req_arte_estatico || body.req_carrusel || body.categoria === 'Diseño Interno') {
+      etapa = 'diseño';
       const { data: disenoExistente, error: errorDiseno } = await supabaseServer
         .from('tareas_diseno')
         .select('id_tarea')
@@ -318,6 +332,7 @@ export async function POST({ request }) {
       }
     });
   } catch (err) {
+    console.error('[POST /api/requerimientos] Falló el alta', { etapa, codigo: err?.code || err?.name });
     // Un fallo de tareas no debe dejar una solicitud incompleta que se duplique al reintentar.
     if (idCreado) {
       for (const tabla of ['tareas_diseno', 'tareas_video', 'tareas_cm', 'historial_seguimiento', 'requerimientos_propiedad']) {

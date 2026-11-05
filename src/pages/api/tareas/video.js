@@ -1,6 +1,6 @@
-import { guardarTarea, registrarHistorial, json, estadoValido } from '../../../core/lib/taskStore';
+import { guardarTarea, json, estadoValido } from '../../../core/lib/taskStore';
 import { supabaseServer } from '../../../core/lib/supabaseServer';
-import { CAMPOS_AUDIOVISUALES, normalizarTareaVideo, serializarProgresoVideo } from '../../../features/video/utils/videoProgress';
+import { CAMPOS_AUDIOVISUALES, PREFIJO_AVANCE_VIDEO, normalizarCompletados, normalizarTareaVideo, serializarProgresoVideo } from '../../../features/video/utils/videoProgress';
 
 export const prerender = false;
 
@@ -50,72 +50,73 @@ export async function PATCH({ request }) {
         ? Object.fromEntries(CAMPOS_AUDIOVISUALES.map(campo => [campo, estado === 'Finalizado']))
         : undefined
     );
-    if (actividades !== undefined || Descripcion !== undefined || descripcion !== undefined) {
-      let consulta = supabaseServer.from('tareas_video').select(COLUMNAS);
-      consulta = id_tarea ? consulta.eq('id_tarea', id_tarea) : consulta.eq('id_requerimiento', id_requerimiento);
-      let { data: existente, error } = await consulta.maybeSingle();
-      if (error) return json({ error: error.message }, 500);
-      if (!existente && id_tarea && id_requerimiento) {
-        const resultado = await supabaseServer.from('tareas_video').select(COLUMNAS).eq('id_requerimiento', id_requerimiento).maybeSingle();
-        if (resultado.error) return json({ error: resultado.error.message }, 500);
-        existente = resultado.data;
-      }
-      const actual = normalizarTareaVideo(existente) || {};
-      campos.Descripcion = serializarProgresoVideo(
-        Descripcion !== undefined ? Descripcion : descripcion !== undefined ? descripcion : actual.Descripcion,
-        actividades !== undefined ? { ...actual.actividades_completadas, ...actividades } : actual.actividades_completadas
-      );
+    const observaciones = Descripcion !== undefined ? Descripcion : descripcion;
+    if (observaciones !== undefined && observaciones !== null && typeof observaciones !== 'string') {
+      return json({ error: 'Las observaciones deben ser texto.' }, 400);
     }
-    if (Object.keys(campos).length === 0) {
+    if (Object.keys(campos).length === 0 && actividades === undefined && observaciones === undefined) {
       return json({ error: 'Las opciones solicitadas se editan desde Modificar requerimiento.' }, 400);
     }
 
-    const resultado = await guardarTarea({
-      tabla: 'tareas_video',
-      idTarea: id_tarea,
-      idRequerimiento: id_requerimiento,
-      campos,
-      valoresIniciales: {
-        estado: 'Por Hacer',
-        progreso_porcentaje: 0,
-        req_guion: false,
-        req_fotos: false,
-        req_grabacion: false,
-        req_edicion: false,
-        req_voz_off: false
-      },
-      columnas: COLUMNAS
-    });
-
-    if (resultado.error) {
-      console.error('[PATCH /api/tareas/video] Error de base de datos:', resultado.error);
-      return json({ error: resultado.error.message }, 500);
+    let tarea;
+    if (id_tarea) {
+      const resultado = await supabaseServer.from('tareas_video').select(COLUMNAS).eq('id_tarea', id_tarea).maybeSingle();
+      if (resultado.error) throw resultado.error;
+      tarea = resultado.data;
     }
-
-    if (resultado.noEncontrada) {
-      return json({ error: 'Tarea de video no encontrada' }, 404);
+    if (!tarea && id_requerimiento) {
+      const resultado = await supabaseServer.from('tareas_video').select(COLUMNAS).eq('id_requerimiento', id_requerimiento).maybeSingle();
+      if (resultado.error) throw resultado.error;
+      tarea = resultado.data;
     }
-
-    const data = normalizarTareaVideo(resultado.data);
-
-    if (data?.id_requerimiento) {
-      const checks = [];
-      if (data.actividades_completadas.req_guion) checks.push('Guion');
-      if (data.actividades_completadas.req_fotos) checks.push('Fotos');
-      if (data.actividades_completadas.req_grabacion) checks.push('Grabación');
-      if (data.actividades_completadas.req_edicion) checks.push('Edición');
-      if (data.actividades_completadas.req_voz_off) checks.push('Voz en Off');
-
-      const progreso = data.progreso_porcentaje ?? progreso_porcentaje ?? 0;
-      await registrarHistorial({
-        id_requerimiento: data.id_requerimiento,
-        departamento: 'Video',
-        usuario: body.usuario || 'Área Audiovisual',
-        accion: `Video actualizado a "${data.estado || estado}" (${progreso}%)`,
-        comentario: body.comentario || (checks.length > 0 ? `Checklist: ${checks.join(', ')}` : 'Sin checks activos'),
-        fecha_registro: new Date().toISOString()
+    if (!tarea && id_requerimiento) {
+      const resultado = await guardarTarea({
+        tabla: 'tareas_video',
+        idRequerimiento: id_requerimiento,
+        campos: { id_requerimiento },
+        valoresIniciales: {
+          estado: 'Por Hacer',
+          progreso_porcentaje: 0,
+          ...normalizarCompletados()
+        },
+        columnas: COLUMNAS
       });
+      if (resultado.error) throw resultado.error;
+      tarea = resultado.data;
     }
+    if (!tarea?.id_requerimiento) return json({ error: 'Tarea de video no encontrada' }, 404);
+
+    const anterior = await supabaseServer.from('historial_seguimiento')
+      .select('comentario')
+      .eq('id_requerimiento', tarea.id_requerimiento)
+      .eq('departamento', 'Video')
+      .like('comentario', PREFIJO_AVANCE_VIDEO + '%')
+      .order('id_historial', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (anterior.error) throw anterior.error;
+
+    const actual = normalizarTareaVideo(tarea, anterior.data?.comentario);
+    const data = {
+      ...actual,
+      ...campos,
+      Descripcion: observaciones !== undefined ? observaciones : actual.Descripcion,
+      actividades_completadas: normalizarCompletados({ ...actual.actividades_completadas, ...actividades })
+    };
+
+    const etiquetas = ['Guion', 'Fotos', 'Grabación', 'Edición', 'Voz en Off'];
+    const checks = etiquetas.filter((_, indice) => data.actividades_completadas[CAMPOS_AUDIOVISUALES[indice]]);
+    const comentario = body.comentario || (checks.length ? `Checklist: ${checks.join(', ')}` : 'Sin checks activos');
+    // La bitácora guarda el avance completo en una sola escritura. Descripcion en tareas_video es una fecha.
+    const { error } = await supabaseServer.from('historial_seguimiento').insert({
+      id_requerimiento: data.id_requerimiento,
+      departamento: 'Video',
+      usuario: body.usuario || 'Área Audiovisual',
+      accion: `Video actualizado a "${data.estado}" (${data.progreso_porcentaje ?? 0}%)`,
+      comentario: serializarProgresoVideo(data, comentario),
+      fecha_registro: new Date().toISOString()
+    });
+    if (error) throw error;
 
     return json({ mensaje: 'Tarea de video actualizada con éxito', data });
   } catch (err) {

@@ -1,6 +1,7 @@
 // src/pages/api/historial/index.js
 // Endpoint para consultar la bitácora histórica de actividades de seguimiento
 import { supabaseServer } from '../../../core/lib/supabaseServer';
+import { leerAvanceVideo } from '../../../features/video/utils/videoProgress';
 
 export const prerender = false;
 
@@ -33,7 +34,11 @@ export async function GET({ url }) {
       });
     }
 
-    return new Response(JSON.stringify(data || []), {
+    const historial = (data || []).map(registro => {
+      const avance = registro.departamento === 'Video' ? leerAvanceVideo(registro.comentario) : null;
+      return avance ? { ...registro, comentario: avance.comentario } : registro;
+    });
+    return new Response(JSON.stringify(historial), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     });
