@@ -1,4 +1,5 @@
 import { guardarTarea, registrarHistorial, json, estadoValido } from '../../../core/lib/taskStore';
+import { ERROR_DURACION_PAUTA, guardarDuracionPauta, mostrarDuracionPauta } from '../../../features/requerimientos/utils/duracionPauta';
 
 export const prerender = false;
 
@@ -44,7 +45,10 @@ export async function PATCH({ request }) {
       if (plataforma !== undefined) campos.plataforma = plataforma;
       if (presupuesto !== undefined) campos.presupuesto = presupuesto;
       if (moneda !== undefined) campos.moneda = moneda;
-      if (periodo_pauta !== undefined) campos.periodo_pauta = periodo_pauta;
+      if (periodo_pauta !== undefined) {
+        campos.periodo_pauta = guardarDuracionPauta(periodo_pauta);
+        if (campos.periodo_pauta === undefined) return json({ error: ERROR_DURACION_PAUTA }, 400);
+      }
       if (descripcion_pauta !== undefined) campos.descripcion_pauta = descripcion_pauta;
     }
 
@@ -66,7 +70,10 @@ export async function PATCH({ request }) {
       return json({ error: 'Tarea de CM no encontrada' }, 404);
     }
 
-    const data = resultado.data;
+    const data = resultado.data && {
+      ...resultado.data,
+      periodo_pauta: mostrarDuracionPauta(resultado.data.periodo_pauta)
+    };
 
     if (data?.id_requerimiento) {
       await registrarHistorial({

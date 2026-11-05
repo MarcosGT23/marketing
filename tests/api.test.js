@@ -30,6 +30,38 @@ test('POST valida nombre antes de escribir y crea tareas de diseño, fotos y pau
   assert.equal(api.tablas.tareas_cm[0].plataforma, 'Instagram');
 });
 
+test('las altas y ediciones de pauta conservan fechas dentro del límite de Supabase', async () => {
+  const rechazarExceso = ({ tabla, accion, valores }) => {
+    const duracion = (Array.isArray(valores) ? valores[0] : valores)?.periodo_pauta;
+    return tabla === 'tareas_cm' && ['insert', 'update'].includes(accion) && duracion?.length > 20;
+  };
+  const api = await apiHarness(ruta, {}, rechazarExceso);
+  const ciclo = 'Mes (28 Dic 2026 - 28 Ene 2027)';
+  const alta = await api.llamar('POST', { nombre_propiedad: 'Casa', periodo_pauta: ciclo });
+  assert.equal(alta.status, 201);
+  const requerimiento = api.tablas.requerimientos_propiedad[0];
+  requerimiento.tareas_cm = api.tablas.tareas_cm;
+  assert.equal((await api.llamar('GET')).body[0].tareas_cm.periodo_pauta, ciclo);
+
+  const rango = '7 días (29/12/2026 - 04/01/2027)';
+  const editar = { id_requerimiento: requerimiento.id_requerimiento, panel: 'cm', periodo_pauta: rango };
+  assert.equal((await api.llamar('PUT', editar)).status, 200);
+  assert.equal((await api.llamar('GET')).body[0].tareas_cm.periodo_pauta, rango);
+
+  const cm = await apiHarness('src/pages/api/tareas/cm.js', { tareas_cm: api.tablas.tareas_cm }, rechazarExceso);
+  const parche = await cm.llamar('PATCH', { id_requerimiento: editar.id_requerimiento, periodo_pauta: ciclo });
+  assert.equal(parche.status, 200);
+  assert.equal(parche.body.data.periodo_pauta, ciclo);
+});
+
+test('POST rechaza una duración demasiado larga y desconocida antes de escribir', async () => {
+  const api = await apiHarness(ruta);
+  const res = await api.llamar('POST', { nombre_propiedad: 'Casa', periodo_pauta: 'Duración de pauta sin fechas reconocibles' });
+  assert.equal(res.status, 400);
+  assert.match(res.body.error, /duración de la pauta/);
+  assert.equal(api.operaciones.length, 0);
+});
+
 test('PUT parcial de video conserva los otros checks y la fecha de diseño', async () => {
   const api = await apiHarness(ruta, inicial());
   const res = await api.llamar('PUT', { id_requerimiento: 1, panel: 'video', req_edicion: false });

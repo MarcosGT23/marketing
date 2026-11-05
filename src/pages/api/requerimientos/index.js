@@ -3,6 +3,7 @@ import { variantesPeriodo, normalizarPeriodo, obtenerPeriodoActual } from '../..
 import { ESTADO_CAMPANA_ACTIVO, ESTADO_CAMPANA_INACTIVO } from '../../../core/utils/campanaUtils';
 import { guardarTarea, json } from '../../../core/lib/taskStore';
 import { PREFIJO_AVANCE_VIDEO, normalizarTareaVideo } from '../../../features/video/utils/videoProgress';
+import { ERROR_DURACION_PAUTA, guardarDuracionPauta, mostrarDuracionPauta } from '../../../features/requerimientos/utils/duracionPauta';
 
 export const prerender = false;
 
@@ -157,7 +158,7 @@ export async function GET({ url }) {
           req_voz_off: false,
           Descripcion: null
         } : null),
-        tareas_cm: tcm || {
+        tareas_cm: tcm ? { ...tcm, periodo_pauta: mostrarDuracionPauta(tcm.periodo_pauta) } : {
           id_tarea: null,
           id_requerimiento: item.id_requerimiento,
           estado: 'Por Hacer',
@@ -199,6 +200,10 @@ export async function POST({ request }) {
     const body = await request.json();
     if (!body || typeof body.nombre_propiedad !== 'string' || !body.nombre_propiedad.trim()) {
       return json({ error: 'El nombre de la propiedad es obligatorio.' }, 400);
+    }
+    const duracionPauta = guardarDuracionPauta(body.periodo_pauta);
+    if (body.periodo_pauta !== undefined && duracionPauta === undefined) {
+      return json({ error: ERROR_DURACION_PAUTA }, 400);
     }
 
     const { data: requerimiento, error: errorReq } = await supabaseServer
@@ -283,7 +288,7 @@ export async function POST({ request }) {
         plataforma: body.plataforma || 'Facebook / Instagram',
         presupuesto: body.presupuesto || null,
         moneda: body.moneda || 'USD',
-        periodo_pauta: body.periodo_pauta || 'Mes',
+        periodo_pauta: duracionPauta || 'Mes',
         descripcion_pauta: body.descripcion_pauta || ''
       };
 
@@ -374,6 +379,13 @@ export async function PUT({ request }) {
       });
     }
 
+    const quitarPauta = body.quitar_pauta || body.habilitar_pauta === false;
+    const aplicaPauta = panel === 'cm' || panel === 'general';
+    const duracionPauta = guardarDuracionPauta(body.periodo_pauta);
+    if (aplicaPauta && !quitarPauta && body.periodo_pauta !== undefined && duracionPauta === undefined) {
+      return json({ error: ERROR_DURACION_PAUTA }, 400);
+    }
+
     const camposActualizar = {};
     if (body.id_agente !== undefined) camposActualizar.id_agente = body.id_agente || null;
     if (body.periodo_mensual !== undefined) camposActualizar.periodo_mensual = normalizarPeriodo(body.periodo_mensual) || body.periodo_mensual;
@@ -437,18 +449,18 @@ export async function PUT({ request }) {
       }
     }
 
-    if (panel === 'cm' || panel === 'general') {
-      const quitar = body.quitar_pauta || body.habilitar_pauta === false;
-      const campos = quitar ? {
+    if (aplicaPauta) {
+      const campos = quitarPauta ? {
         plataforma: null, presupuesto: null, estado: 'Sin Pauta', descripcion_pauta: null
       } : Object.fromEntries(
-        ['plataforma', 'presupuesto', 'moneda', 'periodo_pauta', 'descripcion_pauta']
+        ['plataforma', 'presupuesto', 'moneda', 'descripcion_pauta']
           .filter(campo => body[campo] !== undefined)
           .map(campo => [campo, body[campo] === '' ? null : body[campo]])
       );
+      if (!quitarPauta && duracionPauta !== undefined) campos.periodo_pauta = duracionPauta || null;
       if (Object.keys(campos).length) {
         // Reactivar una pauta retirada solo cuando el formulario lo solicita.
-        if (!quitar && (body.habilitar_pauta === true || body.plataforma?.trim())) {
+        if (!quitarPauta && (body.habilitar_pauta === true || body.plataforma?.trim())) {
           const { data: tarea, error } = await supabaseServer.from('tareas_cm')
             .select('estado').eq('id_requerimiento', idReq).maybeSingle();
           if (error) throw error;
