@@ -97,6 +97,12 @@ import ToastHost from "../ui/ToastHost.jsx";
                             <span class="material-symbols-outlined" style="font-size:17px">campaign</span>
                             Pauta & CM
                         </a>
+                        <a href="/equipo/calendario" id="nav-calendario"
+                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150"
+                            style={pathname === '/equipo/calendario' ? 'background:var(--color-primary-fixed);color:var(--color-on-primary-fixed-variant)' : 'color:var(--color-on-surface-variant)'}>
+                            <span class="material-symbols-outlined" style="font-size:17px">calendar_month</span>
+                            Calendario
+                        </a>
                     </nav>
                 </div>
 
@@ -150,6 +156,11 @@ import ToastHost from "../ui/ToastHost.jsx";
 
             <!-- Nav Links -->
             <nav class="flex flex-col gap-1 p-4 flex-1">
+                <a href="/equipo/calendario" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                    style={pathname === '/equipo/calendario' ? 'background:var(--color-primary-fixed);color:var(--color-on-primary-fixed-variant)' : 'color:var(--color-on-surface)'}>
+                    <span class="material-symbols-outlined" style="font-size:20px">calendar_month</span>
+                    <span>Calendario de producción</span>
+                </a>
                 <a href="/agente/dashboard" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all"
                     style={pathname === '/agente/dashboard' ? 'background:var(--color-primary-fixed);color:var(--color-on-primary-fixed-variant)' : 'color:var(--color-on-surface)'}>
                     <span class="material-symbols-outlined" style="font-size:20px">dashboard</span>
