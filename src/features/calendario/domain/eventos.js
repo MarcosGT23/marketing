@@ -21,20 +21,20 @@ export function horaTexto(hora) {
   return `${String(Math.floor(minutos / 60)).padStart(2, '0')}:${String(minutos % 60).padStart(2, '0')}`;
 }
 
-export function diasDelMes(anio, mes) {
+export function diasDelMes(anio, mes, incluirDomingos = false) {
   const primero = new Date(anio, mes, 1, 12);
   const ultimo = new Date(anio, mes + 1, 0, 12);
-  const primerDiaVisible = primero.getDay() === 0 ? 2 : 1;
-  const desplazamiento = primero.getDay() === 0 ? 0 : (primero.getDay() + 6) % 7;
+  const primerDiaVisible = !incluirDomingos && primero.getDay() === 0 ? 2 : 1;
+  const desplazamiento = !incluirDomingos && primero.getDay() === 0 ? 0 : (primero.getDay() + 6) % 7;
   const semanas = Math.ceil((desplazamiento + ultimo.getDate() - primerDiaVisible + 1) / 7);
   return Array.from({ length: semanas * 7 }, (_, indice) => {
     const dia = new Date(anio, mes, primerDiaVisible - desplazamiento + indice, 12);
     const fecha = `${dia.getFullYear()}-${String(dia.getMonth() + 1).padStart(2, '0')}-${String(dia.getDate()).padStart(2, '0')}`;
     return { fecha, numero: dia.getDate(), otroMes: dia.getMonth() !== mes, domingo: dia.getDay() === 0 };
-  }).filter(dia => !dia.domingo);
+  }).filter(dia => incluirDomingos || !dia.domingo);
 }
 
-export function validarEvento(evento) {
+export function validarEvento(evento, { exigirMotivo = true } = {}) {
   if (!evento || typeof evento !== 'object') return 'El evento no es válido.';
   if (typeof evento.id !== 'string' || !/^[a-zA-Z0-9_-]{1,80}$/.test(evento.id)) return 'El identificador del evento no es válido.';
   if (typeof evento.title !== 'string' || !evento.title.trim() || evento.title.length > 200) return 'Escribe un título de hasta 200 caracteres.';
@@ -46,7 +46,7 @@ export function validarEvento(evento) {
   if (dia.getDay() === 0) return 'El calendario permite reservas de lunes a sábado.';
   if (typeof evento.start !== 'number' || typeof evento.duration !== 'number' || !Number.isFinite(evento.start) || !Number.isFinite(evento.duration) || evento.start < 7 || evento.duration < 0.5 || evento.start + evento.duration > 19 || !Number.isInteger(evento.start * 2) || !Number.isInteger(evento.duration * 2)) return 'Selecciona un horario entre 07:00 y 19:00, en intervalos de 30 minutos.';
   if (evento.exceptionReason != null && (typeof evento.exceptionReason !== 'string' || evento.exceptionReason.length > 500)) return 'El motivo de excepción admite hasta 500 caracteres.';
-  if (esDiaEdicion(evento.date) && evento.type !== 'edicion' && (evento.exceptionReason || '').trim().length < 4) return 'Esta fecha está reservada para edición. Escribe el motivo de la excepción.';
+  if (exigirMotivo && esDiaEdicion(evento.date) && evento.type !== 'edicion' && (evento.exceptionReason || '').trim().length < 4) return 'Esta fecha está reservada para edición. Escribe el motivo de la excepción.';
   return null;
 }
 

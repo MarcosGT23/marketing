@@ -41,6 +41,7 @@ test('API rechaza datos inválidos y propaga un conflicto de Sheets', async () =
     } }
   });
   assert.equal((await api.llamar('POST', { action: 'add', ...reserva({ date: '2026-11-08' }) })).status, 400);
+  assert.equal((await api.llamar('POST', { action: 'add', ...reserva({ date: '2026-11-09' }) })).status, 400);
   assert.equal(peticiones.length, 0);
   const conflicto = await api.llamar('POST', { action: 'add', ...reserva(), token: 'no-transmitir' });
   assert.equal(conflicto.status, 409);
@@ -64,12 +65,13 @@ test('conexión distingue configuración pendiente, HTML, errores de Sheets y co
     await assert.rejects(consultarSheets({ action: 'add', event: reserva() }), error => error.status === 409);
     globalThis.fetch = async () => Response.json({ ok: true });
     await assert.rejects(consultarSheets({ action: 'add', event: reserva() }), /confirmar la reserva/);
+    const existente = reserva({ date: '2026-11-09' });
     globalThis.fetch = async (url, opciones) => {
       assert.equal(url.searchParams.get('token'), 'clave-de-prueba');
       assert.equal(opciones.cache, 'no-store');
-      return Response.json({ ok: true, events: [reserva()] });
+      return Response.json({ ok: true, events: [existente] });
     };
-    assert.equal((await consultarSheets()).length, 1);
+    assert.deepEqual(await consultarSheets(), [existente]);
   } finally {
     globalThis.fetch = fetchAnterior;
     if (urlAnterior === undefined) delete process.env.GOOGLE_SHEETS_CALENDAR_URL; else process.env.GOOGLE_SHEETS_CALENDAR_URL = urlAnterior;
@@ -83,6 +85,8 @@ test('Apps Script guarda, evita duplicados, rechaza solapes y elimina la fila po
   let liberaciones = 0;
   const hoja = {
     getLastRow: () => filas.length,
+    getParent: () => ({ getUrl: () => 'https://docs.google.com/spreadsheets/d/hoja-prueba/edit' }),
+    getSheetId: () => 123,
     setFrozenRows() {},
     deleteRow(indice) { assert.ok(bloqueado); filas.splice(indice - 1, 1); },
     getRange(fila, columna, alto, ancho) {
@@ -114,5 +118,12 @@ test('Apps Script guarda, evita duplicados, rechaza solapes y elimina la fila po
   assert.equal(enviar({ action: 'delete', id: 'reserva-1' }).ok, true);
   assert.equal(enviar({ action: 'delete', id: 'reserva-1' }).ok, true);
   assert.equal(entorno.doGet({ parameter: { token: 'clave' } }).events.length, 0);
+  const filaExistente = ['anterior', 'Rodaje ya agendado', 'Equipo Interno', 'grabacion', '2026-11-09', 9, 2, '', ''];
+  filas.push(filaExistente);
+  assert.equal(entorno.doGet({ parameter: { token: 'clave' } }).events[0].id, 'anterior');
+  const nueva = reserva({ date: '2026-11-09', start: 11 });
+  assert.equal(enviar({ action: 'add', event: nueva }).code, 'INVALID_EVENT');
+  assert.equal(enviar({ action: 'add', event: { ...nueva, exceptionReason: 'Rodaje solicitado por el cliente' } }).ok, true);
+  assert.equal(filas[2], filaExistente);
   assert.ok(liberaciones >= 10);
 });

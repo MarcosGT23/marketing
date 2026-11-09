@@ -1,4 +1,5 @@
 import { repararMojibake } from './mojibake.js';
+import { leerFilasCsv } from '../../../core/utils/csv.js';
 
 const IDIOMAS = {
   es: { codigo: 'es', nombre: 'Español', icono: '🇪🇸' },
@@ -681,55 +682,9 @@ function detectarDelimitador(texto) {
 
 // Parser CSV que respeta comillas dobles y saltos de línea dentro de campos.
 function parsearCsv(texto, delimitador) {
-  const filas = [];
-  let fila = [];
-  let campo = '';
-  let entreComillas = false;
-
-  for (let i = 0; i < texto.length; i++) {
-    const caracter = texto[i];
-
-    if (entreComillas) {
-      if (caracter === '"') {
-        if (texto[i + 1] === '"') {
-          campo += '"';
-          i++;
-        } else {
-          entreComillas = false;
-        }
-      } else {
-        campo += caracter;
-      }
-      continue;
-    }
-
-    if (caracter === '"') {
-      entreComillas = true;
-      continue;
-    }
-    if (caracter === delimitador) {
-      fila.push(campo.trim());
-      campo = '';
-      continue;
-    }
-    if (caracter === '\n' || caracter === '\r') {
-      if (caracter === '\r' && texto[i + 1] === '\n') i++;
-      fila.push(campo.trim());
-      filas.push(fila);
-      fila = [];
-      campo = '';
-      continue;
-    }
-
-    campo += caracter;
-  }
-
-  if (campo !== '' || fila.length > 0) {
-    fila.push(campo.trim());
-    filas.push(fila);
-  }
-
-  return filas.filter((f) => f.some((valor) => valor !== ''));
+  return leerFilasCsv(texto, delimitador)
+    .map(fila => fila.map(campo => campo.trim()))
+    .filter(fila => fila.some(valor => valor !== ''));
 }
 
 export function redondearA(valor, decimales = 0) {

@@ -50,7 +50,7 @@ export async function consultarSheets(operacion) {
     throw new ErrorCalendario(datos?.error || 'No se pudo completar el cambio en Google Sheets.', estados[datos?.code] || 502, datos?.code);
   }
   if (!operacion) {
-    if (!Array.isArray(datos.events) || datos.events.some(evento => validarEvento(evento))) {
+    if (!Array.isArray(datos.events) || datos.events.some(evento => validarEvento(evento, { exigirMotivo: false }))) {
       throw new ErrorCalendario('Hay filas de calendario incompletas o inválidas en la pestaña Eventos. Revisa sus fechas y horarios.');
     }
     return datos.events;

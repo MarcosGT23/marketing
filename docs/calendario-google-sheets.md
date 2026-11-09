@@ -13,7 +13,7 @@ El calendario usa una pestaña nueva llamada `Eventos`. Las pestañas del plan d
 1. En la hoja convertida abre **Extensiones → Apps Script**.
 2. Copia el contenido completo de `integrations/google-apps-script/Calendario.gs` al editor y guarda.
 3. En **Configuración del proyecto → Propiedades del script**, añade `SPREADSHEET_ID` con el ID de la hoja convertida y `CALENDAR_TOKEN` con una clave aleatoria larga de uso exclusivo para esta conexión. Puedes generar una con `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
-4. Selecciona y ejecuta `prepararCalendario`. Autoriza el acceso a la hoja. Esto crea la pestaña `Eventos` y sus columnas si aún no existe. Si ya tiene columnas diferentes, el script pide revisarlas.
+4. Selecciona y ejecuta `prepararCalendario`. Autoriza el acceso a la hoja. Esto crea la pestaña `Eventos` y sus columnas si aún no existe. El registro muestra `Calendario preparado` seguido del enlace exacto de esa pestaña. Si ya tiene columnas diferentes, el script pide revisarlas.
 5. Publica con **Implementar → Nueva implementación → Aplicación web**, ejecutada como el propietario y accesible para **Cualquier persona**. La clave del paso anterior se verifica en cada petición de lectura o escritura. La hoja puede conservar sus permisos privados.
 6. Copia la URL de implementación terminada en `/exec`.
 
@@ -42,3 +42,11 @@ La primera fila de `Eventos` contiene, en este orden, `id`, `title`, `agent`, `t
 - Los eventos se vuelven a consultar al sincronizar y cada 30 segundos mientras la pestaña está visible. Los cambios manuales en `Eventos` deben respetar sus columnas, tipos y reglas.
 
 El calendario organiza reservas independientes. La creación de un requerimiento todavía se gestiona desde su formulario.
+
+## Anotaciones del calendario existente
+
+El panel también consulta en modo lectura la pestaña [CALENDARIO PRODUCCIÓN del archivo compartido](https://docs.google.com/spreadsheets/d/1vYr3FGQCPqwPscycq2ypRTzoBiXF1wCC/edit?gid=841561740). Usa su lectura CSV para conservar los textos, saltos de línea y referencias de celda. Esta lectura corresponde al archivo original compartido, con independencia de la hoja configurada en Apps Script para las reservas nuevas.
+
+Los encabezados de año, mes y días permiten ubicar las anotaciones en la cuadrícula. Las notas fuera de las columnas de días o con fechas que no coinciden se muestran sin fecha en el listado completo. Las anotaciones mantienen su texto original, incluidos horarios incompletos y varias actividades dentro de una misma celda.
+
+El calendario incluye domingos para mostrar las anotaciones que tenga la hoja en esos días. Las nuevas reservas conservan el horario de lunes a sábado. Desde «Ver todas las anotaciones» se puede consultar el historial completo y filtrar por mes. Cada tarjeta y cada fila enlazan a su celda de origen. La lectura se renueva al sincronizar y con el sondeo del calendario, y requiere que el archivo compartido siga disponible para lectura.

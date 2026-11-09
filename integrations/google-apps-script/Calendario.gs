@@ -34,8 +34,9 @@ function prepararCalendario() {
   var bloqueo = LockService.getScriptLock();
   bloqueo.waitLock(15000);
   try {
-    abrirHoja(true);
+    var hoja = abrirHoja(true);
     SpreadsheetApp.flush();
+    console.log('Calendario preparado: ' + hoja.getParent().getUrl() + '#gid=' + hoja.getSheetId());
   } finally { bloqueo.releaseLock(); }
 }
 
@@ -55,13 +56,13 @@ function leerEventos(hoja) {
     evento.start = Number(evento.start);
     evento.duration = Number(evento.duration);
     evento.exceptionReason = String(evento.exceptionReason || '');
-    var error = validarReserva(evento);
+    var error = validarReserva(evento, false);
     if (error) fallo('Fila ' + (indice + 2) + ' de Eventos: ' + error, 'INVALID_EVENT');
     return evento;
   }).filter(function(evento) { return evento !== null; });
 }
 
-function validarReserva(evento) {
+function validarReserva(evento, exigirMotivo) {
   if (!evento || typeof evento.id !== 'string' || !/^[a-zA-Z0-9_-]{1,80}$/.test(evento.id)) return 'Identificador inválido.';
   if (typeof evento.title !== 'string' || !evento.title.trim() || evento.title.length > 200) return 'Escribe un título de hasta 200 caracteres.';
   if (typeof evento.agent !== 'string' || !evento.agent.trim() || evento.agent.length > 100) return 'Selecciona una persona responsable.';
@@ -73,7 +74,7 @@ function validarReserva(evento) {
   if (dia === 0) return 'Solo se permiten reservas de lunes a sábado.';
   if (typeof evento.start !== 'number' || typeof evento.duration !== 'number' || !isFinite(evento.start) || !isFinite(evento.duration) || evento.start < 7 || evento.duration < 0.5 || evento.start + evento.duration > 19 || !Number.isInteger(evento.start * 2) || !Number.isInteger(evento.duration * 2)) return 'El horario debe estar entre 07:00 y 19:00, en intervalos de 30 minutos.';
   if (evento.exceptionReason != null && (typeof evento.exceptionReason !== 'string' || evento.exceptionReason.length > 500)) return 'El motivo admite hasta 500 caracteres.';
-  if ([1, 3, 5].indexOf(dia) >= 0 && evento.type !== 'edicion' && String(evento.exceptionReason || '').trim().length < 4) return 'Escribe un motivo para reservar una actividad distinta a edición en esta fecha.';
+  if (exigirMotivo && [1, 3, 5].indexOf(dia) >= 0 && evento.type !== 'edicion' && String(evento.exceptionReason || '').trim().length < 4) return 'Escribe un motivo para reservar una actividad distinta a edición en esta fecha.';
   return null;
 }
 
@@ -120,7 +121,7 @@ function doPost(e) {
       return { ok: true, id: body.id };
     }
     var evento = body.event;
-    var error = validarReserva(evento);
+    var error = validarReserva(evento, true);
     if (error) fallo(error, 'INVALID_EVENT');
     evento.title = evento.title.trim();
     evento.agent = evento.agent.trim();

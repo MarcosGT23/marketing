@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { TIPOS_EVENTO, diasDelMes, esDiaEdicion, fechaBolivia, fechaLocal, haySolape, horaTexto, validarEvento } from '../domain/eventos';
 import { obtenerJson } from '../../../core/utils/http';
+import HistorialProduccion from './HistorialProduccion';
 import './calendario.css';
 
 const FORMATO_MES = new Intl.DateTimeFormat('es-BO', { month: 'long', year: 'numeric' });
 const FORMATO_DIA = new Intl.DateTimeFormat('es-BO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+const ACTIVIDADES_POR_PAGINA = 5;
 
 function Modal({ titulo, cerrar, ocupado, children }) {
   const dialogo = useRef(null);
@@ -20,13 +22,45 @@ function Modal({ titulo, cerrar, ocupado, children }) {
   </dialog>;
 }
 
-function Evento({ evento, abrir, compacto = false }) {
+function Evento({ evento, abrir, compacto = false, fechaPasada = false }) {
+  const fecha = !compacto && <span className="cal-fecha-evento">
+    {FORMATO_DIA.format(fechaLocal(evento.date))}
+    {fechaPasada && <span className="cal-fecha-pasada">Pasada</span>}
+  </span>;
+
+  if (evento.source === 'produccion') {
+    return <button type="button" className="cal-evento produccion" onClick={() => abrir(evento)}>
+      {fecha}
+      <span className="cal-origen-nota">Hoja · {evento.cell}</span>
+      <span className="cal-contenido-anotacion">{evento.text}</span>
+      <span className="cal-ver-nota">Ver información completa</span>
+    </button>;
+  }
   return <button type="button" className={`cal-evento ${evento.type}`} onClick={() => abrir(evento)}>
-    {!compacto && <span className="cal-fecha-evento">{FORMATO_DIA.format(fechaLocal(evento.date))}</span>}
+    {fecha}
     <strong>{evento.title}</strong>
     <span>{horaTexto(evento.start)}–{horaTexto(evento.start + evento.duration)}</span>
     <span className="cal-responsable">{evento.agent}</span>
   </button>;
+}
+
+function ActividadesDelMes({ actividades, mes, hoy, cargando, abrirDetalle }) {
+  const [pagina, setPagina] = useState(1);
+  const totalPaginas = Math.max(1, Math.ceil(actividades.length / ACTIVIDADES_POR_PAGINA));
+  const paginaVisible = Math.min(pagina, totalPaginas);
+  const inicio = (paginaVisible - 1) * ACTIVIDADES_POR_PAGINA;
+
+  return <aside className="cal-proximos">
+    <div className="cal-titulo-aside"><h2>Actividades del mes</h2><span>{actividades.length}</span></div>
+    <p>{FORMATO_MES.format(mes)}</p>
+    {actividades.slice(inicio, inicio + ACTIVIDADES_POR_PAGINA).map(evento => <Evento key={evento.id} evento={evento} abrir={abrirDetalle} fechaPasada={evento.date < hoy} />)}
+    {!actividades.length && <div className="cal-vacio"><span aria-hidden="true">▦</span><strong>{cargando ? 'Cargando actividades…' : 'Sin actividades para mostrar'}</strong>{!cargando && <p>No se encontraron actividades para este mes con el filtro actual.</p>}</div>}
+    {totalPaginas > 1 && <nav className="cal-paginacion" aria-label="Paginación de actividades del mes">
+      <button type="button" className="cal-icono" aria-label="Página anterior" disabled={paginaVisible === 1} onClick={() => setPagina(paginaVisible - 1)}>‹</button>
+      <span aria-live="polite">Página {paginaVisible} de {totalPaginas}</span>
+      <button type="button" className="cal-icono" aria-label="Página siguiente" disabled={paginaVisible === totalPaginas} onClick={() => setPagina(paginaVisible + 1)}>›</button>
+    </nav>}
+  </aside>;
 }
 
 export default function Calendario() {
@@ -37,6 +71,8 @@ export default function Calendario() {
   const [cargando, setCargando] = useState(true);
   const [conectado, setConectado] = useState(false);
   const [errorCarga, setErrorCarga] = useState('');
+  const [produccion, setProduccion] = useState(null);
+  const [errorProduccion, setErrorProduccion] = useState('');
   const [aviso, setAviso] = useState('');
   const [filtro, setFiltro] = useState('todos');
   const [zoom, setZoom] = useState(140);
@@ -53,12 +89,25 @@ export default function Calendario() {
     const peticion = ++secuencia.current;
     setCargando(true);
     try {
-      const datos = await obtenerJson('/api/events.json');
+      const [reservas, anotaciones] = await Promise.allSettled([
+        obtenerJson('/api/events.json'),
+        obtenerJson('/api/calendario/produccion'),
+      ]);
       if (peticion !== secuencia.current || ocupado.current) return;
-      if (!Array.isArray(datos)) throw new Error('El calendario recibió una respuesta incompleta.');
-      setEventos(datos);
-      setConectado(true);
-      setErrorCarga('');
+      if (reservas.status === 'fulfilled' && Array.isArray(reservas.value)) {
+        setEventos(reservas.value);
+        setConectado(true);
+        setErrorCarga('');
+      } else {
+        setErrorCarga(reservas.reason?.message || 'No se pudieron cargar las reservas.');
+        setConectado(false);
+      }
+      if (anotaciones.status === 'fulfilled' && Array.isArray(anotaciones.value?.anotaciones)) {
+        setProduccion(anotaciones.value);
+        setErrorProduccion('');
+      } else {
+        setErrorProduccion(anotaciones.reason?.message || 'No se pudieron cargar las anotaciones de la hoja.');
+      }
     } catch (error) {
       if (peticion !== secuencia.current || ocupado.current) return;
       setErrorCarga(error.message);
@@ -82,8 +131,13 @@ export default function Calendario() {
 
   const ordenados = useMemo(() => [...eventos].sort((a, b) => a.date.localeCompare(b.date) || a.start - b.start), [eventos]);
   const visibles = ordenados.filter(evento => filtro === 'todos' || evento.type === filtro);
-  const proximos = visibles.filter(evento => new Date(`${evento.date}T00:00:00-04:00`).getTime() + (evento.start + evento.duration) * 3600000 > Date.now()).slice(0, 6);
-  const dias = diasDelMes(mes.getFullYear(), mes.getMonth());
+  const notasVisibles = filtro === 'todos' || filtro === 'produccion' ? produccion?.anotaciones.filter(nota => nota.date) || [] : [];
+  const dias = diasDelMes(mes.getFullYear(), mes.getMonth(), true);
+  const mesSeleccionado = `${mes.getFullYear()}-${String(mes.getMonth() + 1).padStart(2, '0')}`;
+  const actividadesDelMes = [...visibles, ...notasVisibles]
+    .filter(actividad => actividad.date.slice(0, 7) === mesSeleccionado)
+    .sort((a, b) => a.date.localeCompare(b.date) || (a.start ?? 0) - (b.start ?? 0));
+  const mesesDisponibles = [...new Set([mesSeleccionado, ...(produccion?.meses.map(periodo => periodo.valor) || []), ...eventos.map(evento => evento.date.slice(0, 7))])].sort();
   const responsables = [...new Set(['Equipo Interno', ...agentes, ...eventos.map(evento => evento.agent)])];
   const conflicto = formulario && eventos.find(evento => haySolape(evento, formulario));
 
@@ -154,12 +208,18 @@ export default function Calendario() {
     </header>
 
     {errorCarga && <div className="cal-alerta" role="alert"><strong>Calendario pendiente de sincronizar</strong><p>{errorCarga} Los eventos se mostrarán cuando la conexión esté disponible.</p></div>}
+    {errorProduccion && <div className="cal-alerta" role="alert"><strong>Anotaciones de la hoja pendientes de sincronizar</strong><p>{errorProduccion}{produccion ? ' Se conserva la última lectura disponible.' : ''}</p></div>}
     {aviso && <p role="status" className="cal-exito">{aviso}</p>}
+    {produccion && <div className="cal-fuente-produccion">
+      <div><strong>CALENDARIO PRODUCCIÓN</strong><p>{produccion.anotaciones.length} anotaciones de la hoja. Pulsa una tarjeta para leer su contenido completo.</p></div>
+      <a href={produccion.sourceUrl} target="_blank" rel="noreferrer" className="cal-boton">Abrir hoja original</a>
+    </div>}
 
     <div className="cal-toolbar">
       <div className="cal-filtros" aria-label="Filtrar actividades">
         <button aria-pressed={filtro === 'todos'} onClick={() => setFiltro('todos')}>Todas</button>
         {Object.entries(TIPOS_EVENTO).map(([tipo, nombre]) => <button key={tipo} className={tipo} aria-pressed={filtro === tipo} onClick={() => setFiltro(tipo)}><span aria-hidden="true">● </span>{nombre}</button>)}
+        <button className="produccion" aria-pressed={filtro === 'produccion'} onClick={() => setFiltro('produccion')}>Anotaciones de la hoja</button>
       </div>
       <div className="cal-controles">
         <div className="cal-zoom"><button className="cal-icono" aria-label="Reducir altura de los días" disabled={zoom <= 100} onClick={() => setZoom(actual => actual - 20)}>−</button><button className="cal-icono" aria-label="Aumentar altura de los días" disabled={zoom >= 240} onClick={() => setZoom(actual => actual + 20)}>+</button></div>
@@ -167,25 +227,29 @@ export default function Calendario() {
         <button className="cal-boton" onClick={() => { const dia = fechaLocal(hoy); setMes(new Date(dia.getFullYear(), dia.getMonth(), 1, 12)); }}>Hoy</button>
       </div>
     </div>
+    <label className="cal-selector-mes">Ir a un mes
+      <select value={mesSeleccionado} onChange={evento => { const [anio, numeroMes] = evento.target.value.split('-').map(Number); setMes(new Date(anio, numeroMes - 1, 1, 12)); }}>
+        {mesesDisponibles.map(periodo => <option key={periodo} value={periodo}>{FORMATO_MES.format(fechaLocal(`${periodo}-01`))}</option>)}
+      </select>
+    </label>
 
     <div className="cal-cuerpo">
       <div className="cal-agenda">
         <div className="cal-scroll"><div className="cal-semana">{DIAS.map(dia => <div key={dia}>{dia}</div>)}</div>
           <div className="cal-cuadricula">{dias.map(dia => {
             const reservada = esDiaEdicion(dia.fecha);
-            return <div key={dia.fecha} className={`cal-dia ${dia.otroMes ? 'otro-mes' : ''} ${reservada ? 'reservado' : ''} ${dia.fecha === hoy ? 'hoy' : ''}`}>
-              <button className="cal-dia-numero" disabled={!conectado || guardando} aria-label={`Agendar el ${FORMATO_DIA.format(fechaLocal(dia.fecha))}${reservada ? ', reservado para edición' : ''}`} onClick={() => abrirReserva(dia.fecha)}><span>{reservada && <span aria-hidden="true">◈ </span>}{dia.numero}</span><span aria-hidden="true">+</span></button>
+            return <div key={dia.fecha} className={`cal-dia ${dia.otroMes ? 'otro-mes' : ''} ${reservada ? 'reservado' : ''} ${dia.fecha === hoy ? 'hoy' : ''} ${dia.fecha < hoy ? 'pasado' : ''}`}>
+              <button className="cal-dia-numero" disabled={dia.domingo || !conectado || guardando} aria-label={`${dia.domingo ? 'Domingo' : 'Agendar el'} ${FORMATO_DIA.format(fechaLocal(dia.fecha))}${reservada ? ', reservado para edición' : ''}`} onClick={() => abrirReserva(dia.fecha)}><span>{reservada && <span aria-hidden="true">◈ </span>}{dia.numero}</span>{!dia.domingo && <span aria-hidden="true">+</span>}</button>
               {visibles.filter(evento => evento.date === dia.fecha).map(evento => <Evento key={evento.id} evento={evento} abrir={abrirDetalle} compacto />)}
+              {notasVisibles.filter(nota => nota.date === dia.fecha).map(nota => <Evento key={nota.id} evento={nota} abrir={abrirDetalle} compacto />)}
             </div>;
           })}</div>
         </div>
-        <p className="cal-nota">◈ Lunes, miércoles y viernes se reservan para edición. Las otras actividades requieren un motivo de excepción. Horario de Bolivia · 07:00–19:00.</p>
+        <p className="cal-nota">Las anotaciones mantienen el texto y la fecha de la hoja original. Para nuevas reservas, lunes, miércoles y viernes se reservan para edición y las excepciones requieren un motivo. Horario de reservas de lunes a sábado · Bolivia · 07:00–19:00.</p>
       </div>
-      <aside className="cal-proximos"><div className="cal-titulo-aside"><h2>Próximos eventos</h2><span>{proximos.length}</span></div><p>Actividades pendientes desde hoy.</p>
-        {proximos.map(evento => <Evento key={evento.id} evento={evento} abrir={abrirDetalle} />)}
-        {!proximos.length && <div className="cal-vacio"><span aria-hidden="true">▦</span><strong>{conectado ? 'Agenda despejada' : 'Conexión pendiente'}</strong><p>{conectado ? 'Los próximos eventos aparecerán aquí.' : 'Los eventos se cargarán desde Google Sheets.'}</p></div>}
-      </aside>
+      <ActividadesDelMes key={`${mesSeleccionado}-${filtro}`} actividades={actividadesDelMes} mes={mes} hoy={hoy} cargando={cargando} abrirDetalle={abrirDetalle} />
     </div>
+    {produccion && <HistorialProduccion produccion={produccion} />}
 
     {formulario && <Modal titulo="Agendar evento" ocupado={guardando} cerrar={() => setFormulario(null)}><form onSubmit={guardar}>
       <fieldset disabled={guardando} className="cal-form">
@@ -200,7 +264,12 @@ export default function Calendario() {
       </fieldset>
     </form></Modal>}
 
-    {detalle && <Modal titulo="Detalle del evento" ocupado={guardando} cerrar={() => setDetalle(null)}>
+    {detalle?.source === 'produccion' && <Modal titulo="Anotación de CALENDARIO PRODUCCIÓN" ocupado={false} cerrar={() => setDetalle(null)}>
+      <p className="cal-nota">{detalle.date ? FORMATO_DIA.format(fechaLocal(detalle.date)) : 'Sin fecha indicada'} · Celda {detalle.cell}</p>
+      <div className="cal-texto-original">{detalle.text}</div>
+      <div className="cal-pie-modal"><a className="cal-boton" href={detalle.sourceUrl} target="_blank" rel="noreferrer">Ver celda en Google Sheets</a><button className="cal-boton" onClick={() => setDetalle(null)}>Cerrar</button></div>
+    </Modal>}
+    {detalle && detalle.source !== 'produccion' && <Modal titulo="Detalle del evento" ocupado={guardando} cerrar={() => setDetalle(null)}>
       <div className={`cal-resumen ${detalle.type}`}><strong>{detalle.title}</strong><p>{detalle.agent}</p></div>
       <dl className="cal-datos"><div><dt>Actividad</dt><dd>{TIPOS_EVENTO[detalle.type]}</dd></div><div><dt>Fecha</dt><dd>{FORMATO_DIA.format(fechaLocal(detalle.date))}</dd></div><div><dt>Horario</dt><dd>{horaTexto(detalle.start)}–{horaTexto(detalle.start + detalle.duration)} · Bolivia</dd></div>{detalle.exceptionReason && <div><dt>Motivo de excepción</dt><dd>{detalle.exceptionReason}</dd></div>}</dl>
       {confirmarBorrado && <p className="cal-error">Se eliminará «{detalle.title}» de la hoja de Google Sheets.</p>}
